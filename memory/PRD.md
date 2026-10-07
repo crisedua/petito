@@ -58,6 +58,7 @@ WhatsApp/Instagram. Sin cuentas, sin suscripciones, sin app nativa.
 - [x] Testing: 10/10 backend pytest + e2e frontend (100%).
 
 ## Changelog
+- **2026-06 · Música más motivadora**: reescribí el motor procedural (`lib/music.js`) de pads suaves a loops enérgicos — bombo four-on-the-floor, bajo con groove (sawtooth), palmas en contratiempo, hi-hats y leads brillantes; compresor en el master para pegada. Cada tema con su carácter (cueca en 6/8 festivo, navidad con campanitas). Sigue 100% procedural, sin archivos ni licencias; misma API (`trackForTheme`, `createMusicPlayer`) así que `StoryCarousel` no cambió.
 - **2026-06 · Vista previa progresiva (perf)**: la historia central (título + fotos + cierre) ahora se publica apenas está lista (~15s, antes ~90s) y las 3 escenas IA se transmiten (stream) dentro del carrusel a medida que terminan. Backend: `run_pipeline` dividido, `generate_bonus_scenes` corre después de `preview_ready` con las 3 escenas 100% en paralelo (sin retardo escalonado) + un reintento paralelo. Nuevo campo `Story.bonus_pending` + polling en `Create.jsx`/`StoryView.jsx` con banner "Creando escenas mágicas...". Órdenes de slide: título=0, fotos=1..n, bonus=100+, cierre=9999. Verificado e2e: core en 15s, 9 slides al final.
 
 ## Credentials
