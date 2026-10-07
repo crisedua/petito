@@ -91,7 +91,8 @@ def story_public(story: Story, slides, paid: bool):
         "theme_label": THEMES.get(story.theme, {}).get("label", story.theme),
         "music": THEMES.get(story.theme, {}).get("music", "alegre"),
         "status": story.status, "progress_step": story.progress_step,
-        "progress_pct": story.progress_pct, "title": story.title,
+        "progress_pct": story.progress_pct, "bonus_pending": story.bonus_pending,
+        "title": story.title,
         "price_clp": story.price_clp, "paid": paid, "email": story.email,
         "error": story.error, "slides": out, "brand_url": BRAND_URL,
         "retention_days": RETENTION_DAYS,
@@ -99,6 +100,71 @@ def story_public(story: Story, slides, paid: bool):
 
 
 # ---------------- pipeline ----------------
+BONUS_ORDER_BASE = 100   # bonus slides sort between photos and closing
+CLOSING_ORDER = 9999
+
+
+def _save_jpg(story_id, image, fname, q=90):
+    image.save(storage.file_path(story_id, fname), "JPEG", quality=q)
+
+
+async def _add_slide(story_id, kind, image, order, caption="", lockable=True):
+    fn = f"slide_{order}.jpg"
+    await asyncio.to_thread(_save_jpg, story_id, image, fn, 90)
+    locked = (not FREE_MODE) and lockable and order >= 2
+    sl = Slide(story_id=story_id, order=order, kind=kind, caption=caption, image_file=fn, locked=locked)
+    if locked:
+        lk = await asyncio.to_thread(renderer.make_locked, image, BRAND_NAME)
+        lfn = f"slide_{order}_locked.jpg"
+        await asyncio.to_thread(_save_jpg, story_id, lk, lfn, 82)
+        sl.locked_file = lfn
+    await db.slides.insert_one(sl.model_dump())
+    return sl
+
+
+async def generate_bonus_scenes(story, photos, theme, best_file):
+    """Runs AFTER the core story is live; streams each magic scene into the carousel."""
+    import time
+    scenes_cfg = theme["bonus_scenes"][:BONUS_SCENES_COUNT]
+    data_uri = storage.image_to_data_uri(story.id, best_file)
+    t0 = time.monotonic()
+
+    async def one_scene(scene_cfg):
+        return await asyncio.to_thread(
+            ai_pipeline.generate_bonus_scene, data_uri, story.pet_name,
+            SPECIES.get(story.species, "mascota"), scene_cfg["prompt"])
+
+    # all scenes fully in parallel (no staggered start)
+    images = await asyncio.gather(*[one_scene(sc) for sc in scenes_cfg], return_exceptions=True)
+
+    # single parallel retry pass for any the flaky proxy dropped
+    missing = [i for i, img in enumerate(images) if isinstance(img, Exception)]
+    if missing:
+        logger.warning(f"Bonus scenes retry: {missing}")
+        retried = await asyncio.gather(*[one_scene(scenes_cfg[i]) for i in missing], return_exceptions=True)
+        for idx, i in enumerate(missing):
+            images[i] = retried[idx]
+
+    ok = 0
+    for i, sc in enumerate(scenes_cfg):
+        img = images[i]
+        if isinstance(img, Exception):
+            logger.warning(f"Bonus scene {i} skipped: {img}")
+            continue
+        cap = sc["caption"].replace("{name}", story.pet_name)
+        rendered = await asyncio.to_thread(renderer.photo_slide, img, cap, sc["sticker"],
+                                           story.pet_name, BRAND_NAME, story.theme, i)
+        await _add_slide(story.id, "bonus", rendered, BONUS_ORDER_BASE + i, caption=cap)
+        ok += 1
+
+    if ok:
+        await log_generation(story.id, "bonus_scenes", ai_pipeline.FAL_MODEL, images=ok,
+                             cost_usd=ai_pipeline.FAL_IMG_COST * ok,
+                             duration_ms=int((time.monotonic() - t0) * 1000))
+    await db.stories.update_one({"id": story.id}, {"$set": {
+        "bonus_pending": False, "progress_step": "¡Tu historia está lista!"}})
+
+
 async def run_pipeline(story_id: str):
     import time
     story = await get_story(story_id)
@@ -112,7 +178,7 @@ async def run_pipeline(story_id: str):
 
         # Stage 1: selection
         await db.stories.update_one({"id": story_id}, {"$set": {
-            "progress_step": "Eligiendo tus mejores fotos...", "progress_pct": 20}})
+            "progress_step": "Eligiendo tus mejores fotos...", "progress_pct": 25}})
         b64s = [storage.image_to_b64(story_id, p["file"]) for p in photos]
         t0 = time.monotonic()
         sel, best_idx, usage = await ai_pipeline.select_photos(
@@ -122,7 +188,7 @@ async def run_pipeline(story_id: str):
 
         # Stage 2: captions
         await db.stories.update_one({"id": story_id}, {"$set": {
-            "progress_step": "Escribiendo tu historia con humor chileno...", "progress_pct": 45}})
+            "progress_step": "Escribiendo tu historia con humor chileno...", "progress_pct": 55}})
         scenes = [s.get("scene_description", "") for s in sel]
         t0 = time.monotonic()
         title, captions, stickers, usage = await ai_pipeline.write_captions(
@@ -132,76 +198,16 @@ async def run_pipeline(story_id: str):
 
         best_file = photos[best_idx]["file"] if best_idx < len(photos) else photos[0]["file"]
 
-        # Stage 3: bonus scenes (optional, several in parallel)
-        bonus_results = []
-        if story.bonus_enabled and BONUS_ENABLED:
-            scenes_cfg = theme["bonus_scenes"][:BONUS_SCENES_COUNT]
-            await db.stories.update_one({"id": story_id}, {"$set": {
-                "progress_step": f"Creando {len(scenes_cfg)} escenas mágicas de tu mascota...",
-                "progress_pct": 65}})
-            data_uri = storage.image_to_data_uri(story_id, best_file)
-            t0 = time.monotonic()
-
-            async def one_scene(scene_cfg, delay):
-                await asyncio.sleep(delay)
-                return await asyncio.to_thread(
-                    ai_pipeline.generate_bonus_scene, data_uri, story.pet_name,
-                    SPECIES.get(story.species, "mascota"), scene_cfg["prompt"])
-
-            jobs = [one_scene(sc, i * 4) for i, sc in enumerate(scenes_cfg)]
-            images = await asyncio.gather(*jobs, return_exceptions=True)
-            results = dict(zip(range(len(scenes_cfg)), images))
-
-            # second pass: retry the ones the proxy dropped, one at a time
-            missing = [i for i, img in results.items() if isinstance(img, Exception)]
-            for i in missing:
-                logger.warning(f"Bonus scene {i} failed, retrying: {results[i]}")
-                await asyncio.sleep(5)
-                try:
-                    results[i] = await one_scene(scenes_cfg[i], 0)
-                except Exception as e:
-                    logger.warning(f"Bonus scene {i} skipped: {e}")
-
-            ok = 0
-            for i, sc in enumerate(scenes_cfg):
-                img = results[i]
-                if isinstance(img, Exception):
-                    continue
-                ok += 1
-                bonus_results.append((sc, img))
-            if ok:
-                await log_generation(story_id, "bonus_scenes", ai_pipeline.FAL_MODEL, images=ok,
-                                     cost_usd=ai_pipeline.FAL_IMG_COST * ok,
-                                     duration_ms=int((time.monotonic() - t0) * 1000))
-
-        # Stage 4: render
+        # Stage 3: render + PUBLISH the core story immediately (fast first view)
         await db.stories.update_one({"id": story_id}, {"$set": {
             "progress_step": "Diseñando tus diapositivas...", "progress_pct": 85}})
         await db.slides.delete_many({"story_id": story_id})
 
-        def save_jpg(image, fname, q=90):
-            image.save(storage.file_path(story_id, fname), "JPEG", quality=q)
-
-        async def add_slide(kind, image, order, caption="", lockable=True):
-            fn = f"slide_{order}.jpg"
-            await asyncio.to_thread(save_jpg, image, fn, 90)
-            locked = (not FREE_MODE) and lockable and order >= 2
-            sl = Slide(story_id=story_id, order=order, kind=kind, caption=caption, image_file=fn, locked=locked)
-            if locked:
-                lk = await asyncio.to_thread(renderer.make_locked, image, BRAND_NAME)
-                lfn = f"slide_{order}_locked.jpg"
-                await asyncio.to_thread(save_jpg, lk, lfn, 82)
-                sl.locked_file = lfn
-            return sl
-
-        slides = []
-        order = 0
         # title slide (uses best photo as cover)
         cover = await asyncio.to_thread(storage.load_image, story_id, best_file)
         img = await asyncio.to_thread(renderer.title_slide, title, story.pet_name, theme["label"],
                                       BRAND_NAME, cover, story.theme)
-        slides.append(await add_slide("title", img, order, lockable=False))
-        order += 1
+        await _add_slide(story_id, "title", img, 0, lockable=False)
 
         # photo slides (alternating layouts + stickers)
         for i, s in enumerate(sel):
@@ -211,30 +217,28 @@ async def run_pipeline(story_id: str):
             stk = stickers[i] if i < len(stickers) else ""
             img = await asyncio.to_thread(renderer.photo_slide, src, cap, stk, story.pet_name,
                                           BRAND_NAME, story.theme, i)
-            slides.append(await add_slide("photo", img, order, caption=cap))
-            order += 1
+            await _add_slide(story_id, "photo", img, 1 + i, caption=cap)
 
-        # bonus slides
-        for bi, (sc, bonus_img) in enumerate(bonus_results):
-            cap = sc["caption"].replace("{name}", story.pet_name)
-            img = await asyncio.to_thread(renderer.photo_slide, bonus_img, cap, sc["sticker"],
-                                          story.pet_name, BRAND_NAME, story.theme, bi)
-            slides.append(await add_slide("bonus", img, order, caption=cap))
-            order += 1
-
-        # closing slide
+        # closing slide (kept last via high order so bonus can slot in before it)
         img = await asyncio.to_thread(renderer.closing_slide, story.pet_name, BRAND_NAME, BRAND_URL, story.theme)
-        slides.append(await add_slide("closing", img, order))
+        await _add_slide(story_id, "closing", img, CLOSING_ORDER)
 
-        await db.slides.insert_many([s.model_dump() for s in slides])
+        bonus_will_run = bool(story.bonus_enabled and BONUS_ENABLED)
         await db.stories.update_one({"id": story_id}, {"$set": {
-            "status": "preview_ready", "title": title,
-            "progress_step": "¡Tu historia está lista!", "progress_pct": 100}})
-        logger.info(f"Story {story_id} ready with {len(slides)} slides")
+            "status": "preview_ready", "title": title, "progress_pct": 100,
+            "bonus_pending": bonus_will_run,
+            "progress_step": "Agregando escenas mágicas..." if bonus_will_run else "¡Tu historia está lista!"}})
+        logger.info(f"Story {story_id} core ready (bonus_pending={bonus_will_run})")
+
+        # Stage 4: bonus scenes stream in while the user already enjoys the story
+        if bonus_will_run:
+            await generate_bonus_scenes(story, photos, theme, best_file)
+            logger.info(f"Story {story_id} bonus scenes done")
     except Exception as e:
         logger.exception(f"Pipeline failed for {story_id}")
         await db.stories.update_one({"id": story_id}, {"$set": {
-            "status": "failed", "error": str(e), "progress_step": "Algo salió mal", "progress_pct": 0}})
+            "status": "failed", "error": str(e), "progress_step": "Algo salió mal",
+            "progress_pct": 0, "bonus_pending": False}})
 
 
 # ---------------- routes ----------------

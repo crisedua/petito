@@ -159,6 +159,7 @@ class Story(BaseModel):
     status: str = "draft"  # draft, generating, preview_ready, paid, failed
     progress_step: str = ""
     progress_pct: int = 0
+    bonus_pending: bool = False
     title: Optional[str] = None
     price_clp: int = 3990
     paid_at: Optional[str] = None

@@ -315,6 +315,19 @@ function StepResult({ story, setStory, storyId, slug, cfg, price, nav }) {
 
   const refresh = async () => setStory(await getStory(storyId));
 
+  // Stream the magic AI scenes in as they finish (progressive preview)
+  useEffect(() => {
+    if (!story?.bonus_pending) return;
+    const poll = setInterval(async () => {
+      try {
+        const s = await getStory(storyId);
+        setStory(s);
+        if (!s.bonus_pending) clearInterval(poll);
+      } catch { /* keep polling */ }
+    }, 3000);
+    return () => clearInterval(poll);
+  }, [story?.bonus_pending, storyId]);
+
   const unlock = async () => {
     setBusy(true);
     try {
@@ -365,6 +378,13 @@ function StepResult({ story, setStory, storyId, slug, cfg, price, nav }) {
         <p className="text-center text-sm text-muted-foreground mb-4">{story?.theme_label} · {story?.pet_name}</p>
 
         <StoryCarousel slides={story?.slides || []} paid={paid} theme={story?.theme} onUnlock={() => document.getElementById("paywall")?.scrollIntoView({ behavior: "smooth" })} />
+
+        {story?.bonus_pending && (
+          <div className="mt-4 flex items-center justify-center gap-2 text-sm text-primary font-semibold bg-primary/10 rounded-2xl py-3 px-4" data-testid="bonus-pending-banner">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Creando escenas mágicas de {story?.pet_name}... aparecerán solitas ✨
+          </div>
+        )}
 
         {paid ? (
           <div className="mt-6 grid grid-cols-2 gap-3" data-testid="share-hub">

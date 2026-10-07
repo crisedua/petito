@@ -57,6 +57,9 @@ WhatsApp/Instagram. Sin cuentas, sin suscripciones, sin app nativa.
 - [x] PWA instalable (manifest + service worker + íconos). Todo en español de Chile.
 - [x] Testing: 10/10 backend pytest + e2e frontend (100%).
 
+## Changelog
+- **2026-06 · Vista previa progresiva (perf)**: la historia central (título + fotos + cierre) ahora se publica apenas está lista (~15s, antes ~90s) y las 3 escenas IA se transmiten (stream) dentro del carrusel a medida que terminan. Backend: `run_pipeline` dividido, `generate_bonus_scenes` corre después de `preview_ready` con las 3 escenas 100% en paralelo (sin retardo escalonado) + un reintento paralelo. Nuevo campo `Story.bonus_pending` + polling en `Create.jsx`/`StoryView.jsx` con banner "Creando escenas mágicas...". Órdenes de slide: título=0, fotos=1..n, bonus=100+, cierre=9999. Verificado e2e: core en 15s, 9 slides al final.
+
 ## Credentials
 Admin password `Cuentapatas.2026` (ver `/app/memory/test_credentials.md`).
 

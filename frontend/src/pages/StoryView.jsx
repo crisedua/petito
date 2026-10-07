@@ -16,6 +16,19 @@ export default function StoryView() {
     getStoryBySlug(slug).then(setStory).catch(() => toast.error("Historia no encontrada")).finally(() => setLoading(false));
   }, [slug]);
 
+  // Stream the magic AI scenes in as they finish
+  useEffect(() => {
+    if (!story?.bonus_pending) return;
+    const poll = setInterval(async () => {
+      try {
+        const s = await getStoryBySlug(slug);
+        setStory(s);
+        if (!s.bonus_pending) clearInterval(poll);
+      } catch { /* keep polling */ }
+    }, 3000);
+    return () => clearInterval(poll);
+  }, [story?.bonus_pending, slug]);
+
   const shareUrl = window.location.href;
 
   const downloadAll = async () => {
@@ -63,6 +76,13 @@ export default function StoryView() {
         <h1 className="font-display font-bold text-xl text-center text-neutral-900">{story.title}</h1>
         <p className="text-center text-sm text-muted-foreground mb-4">{story.theme_label} · {story.pet_name}</p>
         <StoryCarousel slides={story.slides} paid={story.paid} theme={story.theme} onUnlock={() => nav("/crear")} />
+
+        {story.bonus_pending && (
+          <div className="mt-4 flex items-center justify-center gap-2 text-sm text-primary font-semibold bg-primary/10 rounded-2xl py-3 px-4" data-testid="bonus-pending-banner">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Creando escenas mágicas... aparecerán solitas ✨
+          </div>
+        )}
 
         {story.paid ? (
           <div className="mt-6 grid grid-cols-2 gap-3">
