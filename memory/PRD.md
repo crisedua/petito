@@ -34,7 +34,12 @@ WhatsApp/Instagram. Sin cuentas, sin suscripciones, sin app nativa.
 - Fotos privadas, aviso "se borran en 7 días". Admin protegido por contraseña.
 
 ## Implemented (2026-06)
-- [x] Landing con historia de ejemplo auto-animada y CTA.
+- [x] **FREE por ahora** (`FREE_MODE=true`): sin paywall, todas las diapositivas desbloqueadas
+  (`paid=true`). El código de paywall/Mercado Pago queda intacto para reactivarlo luego.
+- [x] **Render rediseñado** (no es "solo foto + texto"): identidad visual por tema (confeti, montañas,
+  sol, guirnalda de banderas chilenas, nieve), portada con la mejor foto, layouts alternados
+  (full-bleed y polaroid), "sticker" corto por slide generado por el modelo, viñeta + grano.
+- [x] Landing con historia de ejemplo animada y CTA.
 - [x] Wizard: datos mascota (nombre, especie, hasta 3 rasgos), 5 temas, selector de hasta 20 fotos.
 - [x] Pipeline completo: visión (Claude) + frases chilenas (Claude) + escena bonus (fal.ai) + render.
 - [x] Pantalla de progreso animada con pasos reales del backend.

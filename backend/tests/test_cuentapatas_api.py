@@ -1,5 +1,6 @@
-"""End-to-end backend tests for Cuentapatas (Chilean pet-story PWA).
-Covers config, pipeline, paywall, public page, rate-limit, admin, cost logging.
+"""End-to-end backend tests for Cuentapatas (Chilean pet-story PWA) in FREE_MODE.
+Covers /api/config (free_mode=true), full pipeline (all unlocked, paid=true),
+media serving, public slug page, rate-limit (3/day), admin, cost logging.
 """
 import os
 import time
@@ -7,7 +8,7 @@ import uuid
 import pytest
 import requests
 
-BASE_URL = os.environ["REACT_APP_BACKEND_URL"].rstrip("/") if os.environ.get("REACT_APP_BACKEND_URL") else "https://cuentapatas-demo.preview.emergentagent.com"
+BASE_URL = os.environ["REACT_APP_BACKEND_URL"].rstrip("/")
 API = f"{BASE_URL}/api"
 ADMIN_PASSWORD = "Cuentapatas.2026"
 
@@ -37,16 +38,14 @@ def test_config():
     assert d["price_clp"] == 3990
     assert d["payment_mode"] == "demo"
     assert d["bonus_enabled"] is True
+    assert d["free_mode"] is True, f"expected free_mode=true got {d.get('free_mode')}"
     assert len(d["themes"]) == 5
     assert len(d["traits"]) == 7
-    keys = {t["key"] for t in d["themes"]}
-    assert {"mi_ano", "aventuras", "un_dia", "dieciochero", "navidad"}.issubset(keys) or len(keys) == 5
 
 
-# ---------------- full pipeline ----------------
+# ---------------- full pipeline (FREE MODE) ----------------
 @pytest.fixture(scope="module")
 def generated_story(device_id):
-    # Create
     payload = {"pet_name": "TestPatas", "species": "perro",
                "traits": ["regalon", "chistoso"], "theme": "dieciochero"}
     r = requests.post(f"{API}/stories", json=payload,
@@ -54,7 +53,6 @@ def generated_story(device_id):
     assert r.status_code == 200, r.text
     sid = r.json()["id"]
 
-    # Upload photos
     files = [("files", (f"p{i}.jpg", open(p, "rb"), "image/jpeg"))
              for i, p in enumerate(PHOTOS)]
     r = requests.post(f"{API}/stories/{sid}/photos", files=files, timeout=60)
@@ -63,15 +61,12 @@ def generated_story(device_id):
     assert r.status_code == 200, r.text
     assert r.json()["uploaded"] == 3
 
-    # Generate
     r = requests.post(f"{API}/stories/{sid}/generate",
                       headers={"X-Device-Id": device_id}, timeout=30)
     assert r.status_code == 200, r.text
 
-    # Poll
-    deadline = time.time() + 150
-    status = None
-    data = None
+    deadline = time.time() + 180
+    status, data = None, None
     while time.time() < deadline:
         r = requests.get(f"{API}/stories/{sid}", timeout=30)
         assert r.status_code == 200
@@ -80,62 +75,50 @@ def generated_story(device_id):
         if status in ("preview_ready", "paid", "failed"):
             break
         time.sleep(5)
-    assert status == "preview_ready", f"Pipeline did not complete: status={status} err={data.get('error') if data else None}"
+    assert status == "preview_ready", f"status={status} err={data.get('error') if data else None}"
     return sid, data
 
 
-def test_pipeline_result(generated_story):
-    sid, data = generated_story
+def test_pipeline_free_mode(generated_story):
+    _, data = generated_story
     assert data["title"]
+    assert data["paid"] is True, "FREE_MODE should mark story as paid=true"
     slides = data["slides"]
-    assert len(slides) >= 4  # title + photos + closing
+    assert len(slides) >= 4
     assert slides[0]["kind"] == "title"
     kinds = [s["kind"] for s in slides]
     assert "closing" in kinds
-    # First 2 unlocked, later locked
-    assert slides[0]["locked"] is False
-    assert slides[1]["locked"] is False
-    assert any(s["locked"] for s in slides[2:])
-    for s in slides[2:]:
-        if s["locked"]:
-            assert "_locked" in s["image_url"]
-
-
-def test_paywall_unlock(generated_story):
-    sid, _ = generated_story
-    r = requests.post(f"{API}/stories/{sid}/pay-demo", timeout=30)
-    assert r.status_code == 200
-    assert r.json()["status"] == "paid"
-    r = requests.get(f"{API}/stories/{sid}", timeout=30)
-    d = r.json()
-    assert d["paid"] is True
-    for s in d["slides"]:
-        assert s["locked"] is False
-        assert "_locked" not in (s["image_url"] or "")
+    # ALL slides must be unlocked and must NOT serve _locked variants
+    for s in slides:
+        assert s["locked"] is False, f"slide {s['order']} is locked in free mode"
+        assert s["image_url"], "slide missing image_url"
+        assert "_locked" not in s["image_url"], f"serving locked variant: {s['image_url']}"
 
 
 def test_media_accessible(generated_story):
-    sid, data = generated_story
-    url = BASE_URL + data["slides"][0]["image_url"]
-    r = requests.get(url, timeout=30)
-    assert r.status_code == 200
-    assert r.headers.get("content-type", "").startswith("image/")
+    _, data = generated_story
+    for s in data["slides"][:3]:
+        url = BASE_URL + s["image_url"]
+        r = requests.get(url, timeout=30)
+        assert r.status_code == 200
+        assert r.headers.get("content-type", "").startswith("image/")
 
 
-# ---------------- public slug page ----------------
 def test_public_slug_page(generated_story):
     sid, data = generated_story
     slug = data["slug"]
     r = requests.get(f"{API}/stories/slug/{slug}", timeout=30)
     assert r.status_code == 200
-    assert r.json()["id"] == sid
+    body = r.json()
+    assert body["id"] == sid
+    assert body["paid"] is True
+    for s in body["slides"]:
+        assert s["locked"] is False
 
 
-# ---------------- rate limiting ----------------
+# ---------------- rate limiting (3/day/device) ----------------
 def test_rate_limit_429():
     device = f"rl-{uuid.uuid4()}"
-    sids = []
-    # Create & generate 3 times (expected success)
     for i in range(3):
         r = requests.post(f"{API}/stories",
                           json={"pet_name": f"RL{i}", "species": "perro",
@@ -143,14 +126,13 @@ def test_rate_limit_429():
                           headers={"X-Device-Id": device}, timeout=30)
         assert r.status_code == 200
         sid = r.json()["id"]
-        files = [("files", (f"p.jpg", open(PHOTOS[0], "rb"), "image/jpeg"))]
+        files = [("files", ("p.jpg", open(PHOTOS[0], "rb"), "image/jpeg"))]
         requests.post(f"{API}/stories/{sid}/photos", files=files, timeout=60)
         files[0][1][1].close()
         g = requests.post(f"{API}/stories/{sid}/generate",
                           headers={"X-Device-Id": device}, timeout=30)
         assert g.status_code == 200, f"call {i+1}: {g.status_code} {g.text}"
-        sids.append(sid)
-    # 4th should 429
+    # 4th -> 429
     r = requests.post(f"{API}/stories",
                       json={"pet_name": "RL4", "species": "perro",
                             "traits": ["regalon"], "theme": "un_dia"},
