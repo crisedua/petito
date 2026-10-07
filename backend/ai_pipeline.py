@@ -109,7 +109,7 @@ async def write_captions(pet_name, species, traits, theme_label, scene_descripti
     system = (
         "Eres un copywriter chileno experto en humor cálido y tierno. Escribes en primera "
         "persona como si fueras la mascota. Español de Chile, modismos suaves (regalón, "
-        "pancito, siesta, choro), sin groserías ni humor ofensivo. Respondes SOLO JSON válido."
+        "pancito, siesta, choro, aperrado), sin groserías ni humor ofensivo. Respondes SOLO JSON válido."
     )
     k = len(scene_descriptions)
     scenes = "\n".join(f"{i}. {d}" for i, d in enumerate(scene_descriptions))
@@ -117,18 +117,24 @@ async def write_captions(pet_name, species, traits, theme_label, scene_descripti
         f"Soy {pet_name}, un {species}. Mis rasgos: {', '.join(traits) or 'muy regalón'}. "
         f"Tema: {theme_label}.\n"
         f"Hay {k} diapositivas con estas escenas:\n{scenes}\n\n"
-        f"Escribe un título corto y pegajoso para la historia (máx 5 palabras) y UNA frase por "
-        f"diapositiva, en primera persona como la mascota, cálida y divertida, máximo 20 palabras "
-        f"cada una, usando mi nombre a veces.\n"
-        f'Responde JSON: {{"title": "<título>", "captions": ["frase 0", ... "frase {k-1}"]}} '
-        f"con exactamente {k} frases."
+        f"Entrega: (1) un título corto y pegajoso para la historia (máx 5 palabras); "
+        f"(2) para CADA diapositiva una frase en primera persona como la mascota, cálida y divertida, "
+        f"máximo 18 palabras, usando mi nombre a veces; "
+        f"(3) para CADA diapositiva un 'sticker': una expresión MUY corta de 1 a 3 palabras tipo grito "
+        f"de historia de Instagram (ej: '¡Qué regalón!', '¡Modo siesta!', '¡Tiki tiki ti!', '¡Pancito ya!').\n"
+        f'Responde JSON: {{"title": "<título>", "captions": ["..." x{k}], "stickers": ["..." x{k}]}} '
+        f"con exactamente {k} captions y {k} stickers."
     )
     text, usage = await _run_claude(system, UserMessage(text=prompt))
     data = _extract_json(text)
     caps = data.get("captions", [])
+    stks = data.get("stickers", [])
     while len(caps) < k:
         caps.append(f"¡{pet_name} aquí, pasándolo regio!")
-    return data.get("title") or f"La historia de {pet_name}", caps[:k], usage
+    while len(stks) < k:
+        stks.append("¡Regalón!")
+    title = data.get("title") or f"La historia de {pet_name}"
+    return title, caps[:k], [str(s)[:22] for s in stks[:k]], usage
 
 
 def _trusted_queue_url(value: str) -> str:

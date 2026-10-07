@@ -94,7 +94,7 @@ export default function Landing() {
         </div>
 
         <div className="mt-6 flex items-center justify-center gap-2 text-sm text-muted-foreground">
-          <Sparkles className="w-4 h-4 text-accent" /> Pago único · Sin suscripciones · Sin cuenta
+          <Sparkles className="w-4 h-4 text-accent" /> Gratis por ahora · Sin cuenta · Listo en 60s
         </div>
       </div>
 

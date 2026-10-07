@@ -31,6 +31,7 @@ PRICE_CLP = int(os.environ.get("STORY_PRICE_CLP", "3990"))
 USD_TO_CLP = float(os.environ.get("USD_TO_CLP", "950"))
 FREE_PER_DAY = int(os.environ.get("FREE_PREVIEWS_PER_DAY", "3"))
 BONUS_ENABLED = os.environ.get("BONUS_SCENES_ENABLED", "true").lower() == "true"
+FREE_MODE = os.environ.get("FREE_MODE", "true").lower() == "true"
 RETENTION_DAYS = int(os.environ.get("PHOTO_RETENTION_DAYS", "7"))
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
 ADMIN_TOKEN = os.environ.get("ADMIN_TOKEN", "")
@@ -73,6 +74,7 @@ async def log_generation(story_id, step, model, usage=None, images=0, cost_usd=0
 
 
 def story_public(story: Story, slides, paid: bool):
+    paid = paid or FREE_MODE
     out = []
     for s in sorted(slides, key=lambda x: x.order):
         locked = s.locked and not paid
@@ -121,10 +123,12 @@ async def run_pipeline(story_id: str):
             "progress_step": "Escribiendo tu historia con humor chileno...", "progress_pct": 45}})
         scenes = [s.get("scene_description", "") for s in sel]
         t0 = time.monotonic()
-        title, captions, usage = await ai_pipeline.write_captions(
+        title, captions, stickers, usage = await ai_pipeline.write_captions(
             story.pet_name, SPECIES.get(story.species, "mascota"), story.traits, theme["label"], scenes)
         await log_generation(story_id, "captions", ai_pipeline.CLAUDE_MODEL, usage=usage,
                              duration_ms=int((time.monotonic() - t0) * 1000))
+
+        best_file = photos[best_idx]["file"] if best_idx < len(photos) else photos[0]["file"]
 
         # Stage 3: bonus scene (optional)
         bonus_img = None
@@ -132,7 +136,6 @@ async def run_pipeline(story_id: str):
             await db.stories.update_one({"id": story_id}, {"$set": {
                 "progress_step": "Creando una escena mágica de tu mascota...", "progress_pct": 65}})
             try:
-                best_file = photos[best_idx]["file"] if best_idx < len(photos) else photos[0]["file"]
                 data_uri = storage.image_to_data_uri(story_id, best_file)
                 t0 = time.monotonic()
                 bonus_img = await asyncio.to_thread(
@@ -149,54 +152,53 @@ async def run_pipeline(story_id: str):
         await db.stories.update_one({"id": story_id}, {"$set": {
             "progress_step": "Diseñando tus diapositivas...", "progress_pct": 85}})
         await db.slides.delete_many({"story_id": story_id})
+
+        def save_jpg(image, fname, q=90):
+            image.save(storage.file_path(story_id, fname), "JPEG", quality=q)
+
+        async def add_slide(kind, image, order, caption="", lockable=True):
+            fn = f"slide_{order}.jpg"
+            await asyncio.to_thread(save_jpg, image, fn, 90)
+            locked = (not FREE_MODE) and lockable and order >= 2
+            sl = Slide(story_id=story_id, order=order, kind=kind, caption=caption, image_file=fn, locked=locked)
+            if locked:
+                lk = await asyncio.to_thread(renderer.make_locked, image, BRAND_NAME)
+                lfn = f"slide_{order}_locked.jpg"
+                await asyncio.to_thread(save_jpg, lk, lfn, 82)
+                sl.locked_file = lfn
+            return sl
+
         slides = []
         order = 0
-        # title slide
-        img = await asyncio.to_thread(renderer.title_slide, title, story.pet_name, theme["label"], BRAND_NAME)
-        fn = f"slide_{order}.jpg"
-        await asyncio.to_thread(lambda: img.save(storage.file_path(story_id, fn), "JPEG", quality=90))
-        slides.append(Slide(story_id=story_id, order=order, kind="title", image_file=fn, locked=False))
+        # title slide (uses best photo as cover)
+        cover = await asyncio.to_thread(storage.load_image, story_id, best_file)
+        img = await asyncio.to_thread(renderer.title_slide, title, story.pet_name, theme["label"],
+                                      BRAND_NAME, cover, story.theme)
+        slides.append(await add_slide("title", img, order, lockable=False))
         order += 1
 
-        # photo slides
+        # photo slides (alternating layouts + stickers)
         for i, s in enumerate(sel):
             pf = photos[int(s["photo_index"])]["file"]
             src = await asyncio.to_thread(storage.load_image, story_id, pf)
             cap = captions[i] if i < len(captions) else ""
-            img = await asyncio.to_thread(renderer.photo_slide, src, cap, story.pet_name, BRAND_NAME)
-            fn = f"slide_{order}.jpg"
-            await asyncio.to_thread(lambda im=img, f=fn: im.save(storage.file_path(story_id, f), "JPEG", quality=90))
-            locked = order >= 2
-            sl = Slide(story_id=story_id, order=order, kind="photo", caption=cap, image_file=fn, locked=locked)
-            if locked:
-                lk = await asyncio.to_thread(renderer.make_locked, img, BRAND_NAME)
-                lfn = f"slide_{order}_locked.jpg"
-                await asyncio.to_thread(lambda im=lk, f=lfn: im.save(storage.file_path(story_id, f), "JPEG", quality=82))
-                sl.locked_file = lfn
-            slides.append(sl)
+            stk = stickers[i] if i < len(stickers) else ""
+            img = await asyncio.to_thread(renderer.photo_slide, src, cap, stk, story.pet_name,
+                                          BRAND_NAME, story.theme, i)
+            slides.append(await add_slide("photo", img, order, caption=cap))
             order += 1
 
         # bonus slide
         if bonus_img is not None:
-            cap = f"¡Mira cómo me veo, {story.pet_name} edición especial!"
-            img = await asyncio.to_thread(renderer.photo_slide, bonus_img, cap, story.pet_name, BRAND_NAME)
-            fn = f"slide_{order}.jpg"
-            await asyncio.to_thread(lambda im=img, f=fn: im.save(storage.file_path(story_id, f), "JPEG", quality=90))
-            lk = await asyncio.to_thread(renderer.make_locked, img, BRAND_NAME)
-            lfn = f"slide_{order}_locked.jpg"
-            await asyncio.to_thread(lambda im=lk, f=lfn: im.save(storage.file_path(story_id, f), "JPEG", quality=82))
-            slides.append(Slide(story_id=story_id, order=order, kind="bonus", caption=cap,
-                                image_file=fn, locked=True, locked_file=lfn))
+            cap = f"¡{story.pet_name} edición especial {theme['label']}!"
+            img = await asyncio.to_thread(renderer.photo_slide, bonus_img, cap, "¡Pura magia!",
+                                          story.pet_name, BRAND_NAME, story.theme, 0)
+            slides.append(await add_slide("bonus", img, order, caption=cap))
             order += 1
 
         # closing slide
-        img = await asyncio.to_thread(renderer.closing_slide, story.pet_name, BRAND_NAME, BRAND_URL)
-        fn = f"slide_{order}.jpg"
-        await asyncio.to_thread(lambda im=img, f=fn: im.save(storage.file_path(story_id, f), "JPEG", quality=90))
-        lk = await asyncio.to_thread(renderer.make_locked, img, BRAND_NAME)
-        lfn = f"slide_{order}_locked.jpg"
-        await asyncio.to_thread(lambda im=lk, f=lfn: im.save(storage.file_path(story_id, f), "JPEG", quality=82))
-        slides.append(Slide(story_id=story_id, order=order, kind="closing", image_file=fn, locked=True, locked_file=lfn))
+        img = await asyncio.to_thread(renderer.closing_slide, story.pet_name, BRAND_NAME, BRAND_URL, story.theme)
+        slides.append(await add_slide("closing", img, order))
 
         await db.slides.insert_many([s.model_dump() for s in slides])
         await db.stories.update_one({"id": story_id}, {"$set": {
@@ -219,7 +221,7 @@ async def root():
 async def config():
     return {
         "price_clp": PRICE_CLP, "brand_name": BRAND_NAME, "brand_url": BRAND_URL,
-        "payment_mode": provider.mode, "bonus_enabled": BONUS_ENABLED,
+        "payment_mode": provider.mode, "bonus_enabled": BONUS_ENABLED, "free_mode": FREE_MODE,
         "free_per_day": FREE_PER_DAY, "retention_days": RETENTION_DAYS,
         "themes": [{"key": k, "label": v["label"], "emoji": v["emoji"]} for k, v in THEMES.items()],
         "traits": models.TRAITS,
