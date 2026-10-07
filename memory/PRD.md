@@ -34,6 +34,13 @@ WhatsApp/Instagram. Sin cuentas, sin suscripciones, sin app nativa.
 - Fotos privadas, aviso "se borran en 7 días". Admin protegido por contraseña.
 
 ## Implemented (2026-06)
+- [x] **3 escenas bonus IA por historia** (antes 1): cada tema trae 3 prompts + sticker + frase propia
+  (`models.py: THEMES[*].bonus_scenes`). Se generan en paralelo con stagger de 4s, reintentos ante
+  503/429 del proxy fal y una segunda pasada secuencial para la que falle. Costo ~0.12 USD/historia.
+- [x] **Música de fondo al ver la historia**: pistas instrumentales generadas en el navegador con
+  Web Audio API (`frontend/src/lib/music.js`, sin archivos ni licencias). Una pista por tema
+  (alegre / aventura / tierno / cueca / navidad), elegida automáticamente. Mute persistente
+  (`localStorage cp_music_muted`) y autoavance tipo Instagram Stories (5s) con botón play/pausa.
 - [x] **FREE por ahora** (`FREE_MODE=true`): sin paywall, todas las diapositivas desbloqueadas
   (`paid=true`). El código de paywall/Mercado Pago queda intacto para reactivarlo luego.
 - [x] **Render rediseñado** (no es "solo foto + texto"): identidad visual por tema (confeti, montañas,
@@ -64,3 +71,4 @@ Admin password `Cuentapatas.2026` (ver `/app/memory/test_credentials.md`).
 ## Next tasks
 1. Conectar credenciales de Mercado Pago y validar webhook de pago real.
 2. Agregar limpieza programada de fotos a los 7 días.
+3. Export MP4 vertical con la misma musiquita (requiere ffmpeg + render de audio server-side).

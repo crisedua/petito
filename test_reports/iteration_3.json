@@ -1,0 +1,38 @@
+{
+  "summary": "Validated new 3-bonus-scenes + background music feature. Backend: GET /api/config correct (bonus_scenes_count=3, free_mode=true, 5 themes). E2E generation for theme='mis_aventuras' completed in ~85s and returned music='aventura', title+closing+photo slides, locked=false, media endpoints 200 image/jpeg, public slug mirror OK. HOWEVER only 2 of 3 bonus slides came back from fal.ai: one scene was skipped after all 4 proxy retries returned 503 (logged 'Bonus scene skipped: 503 Server Error ... integrations.emergentagent.com/api/v1/fal/proxy'). Review-provided seed /h/fcbaa7ca92 (navidad) correctly returns 3 distinct bonus slides with 8 slides total and music='navidad'. Admin login + metrics work (avg_cost_clp=$43 well under $600 guardrail, total_ai_cost=$852 CLP across 20 stories). Rate-limit 429 on 4th generation per device/day still enforced. Frontend (mobile 390x844) on /h/fcbaa7ca92: counter 'x / 8 · con música 🎵' visible; story-music-toggle and story-autoplay-toggle both visible/clickable, don't cover the sticker; autoplay advances 1→2→3 at ~5s cadence, pause button halts advancement and resumes on second click; music toggle flips text to 'música apagada', writes cp_music_muted=1 to localStorage and persists through reload; manual prev/next walks all 8 slides and clamps at 8/8; 0 JS console errors (no AudioContext warning triggered because user gesture occurred). Landing (/) at 390px shows '3 escenas con IA' and 'Con musiquita' chips with no horizontal overflow (scrollWidth=390).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/stories/{id}/generate (stage bonus_scenes)", "issue": "Occasional 503 from Emergent fal proxy exhausts the 4-retry/3-6-9s backoff -> only 2/3 bonus scenes produced. Pipeline still finishes as preview_ready with fewer slides (7 instead of 8). Repro: 1 in ~2-3 runs under current proxy load. Consider longer backoff, more retries, or sequentializing the 3 fal calls instead of 4s-stagger parallel. Backend log line: 'Bonus scene skipped: 503 Server Error: Service Unavailable for url: https://integrations.emergentagent.com/api/v1/fal/proxy'."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_cuentapatas_api.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Harden bonus-scene fal.ai retries: either run the 3 calls sequentially (budget ~90s) or widen backoff (e.g. 5/10/20/40s) + retry on connection errors too, so a single 503 burst doesn't drop a slide. Current pytest run shows the symptom (expected 3 bonus got 2).",
+    "Optional: when a bonus scene is skipped, consider retrying the whole bonus stage once at the end before giving up, to keep the 8-slide contract."
+  ],
+  "critical_code_review_comments": [
+    "ai_pipeline.generate_bonus_scene retries only cover the submit POST; failures of status/response GETs or network ConnectionError raise straight through to one_scene -> gather(return_exceptions=True) and the slide is silently dropped. Consider wrapping the whole function in a retry.",
+    "server.py BONUS_SCENES_COUNT caps at 3 (max(1, min(3, int(env)))) - matches /api/config exposure; good.",
+    "FREE_MODE pay-demo endpoint still live (harmless but noise) - noted in prior iteration.",
+    "No automatic retry at the stage level if ok < len(scenes_cfg); the story proceeds with partial bonus."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_cuentapatas_api.py"
+  ],
+  "success_rate": {"backend": "80% (8/10 pytest passed; 2 failures are the same bonus-count flake)", "frontend": "100%"},
+  "test_credentials": "Admin password Cuentapatas.2026 (from /app/memory/test_credentials.md).",
+  "seed_data_creation": "Pytest created ~5 stories (1 mis_aventuras TestPatas e2e + 3 un_dia rate-limit + 1 429 attempt). Reused existing /h/fcbaa7ca92 (navidad, 8 slides) per main-agent request.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Flaky point: bonus_scenes stage occasionally yields 2 scenes instead of 3 when Emergent fal proxy throws 503. Re-run the pipeline test to confirm after fix. Frontend contract (data-testid story-music-toggle / story-autoplay-toggle / counter 'x / N · con música 🎵|música apagada', localStorage key cp_music_muted) is implemented correctly on /h/fcbaa7ca92.",
+  "rca of the issue": "Emergent fal.ai proxy returned HTTP 503 across all 4 submit retries for one of the three parallel bonus-scene calls launched with a 4s stagger. The retry window (3+6+9=18s) is shorter than the proxy outage window observed. Mitigation: increase per-call retry attempts/backoff, add retry on ConnectionError/ReadTimeout, or run the 3 bonus calls sequentially so the proxy sees them with ~15-25s spacing instead of overlapping."
+}

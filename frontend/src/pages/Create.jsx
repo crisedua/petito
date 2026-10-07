@@ -251,7 +251,7 @@ function StepPhotos({ files, setFiles, onBack, onGenerate, busy }) {
       </div>
       <BottomBar>
         <Button onClick={onGenerate} disabled={busy || files.length < 1} className="w-full h-14 text-base font-display font-semibold rounded-2xl shadow-lg shadow-primary/30" data-testid="generate-story-button">
-          {busy ? <><Loader2 className="w-5 h-5 animate-spin mr-2" /> Preparando...</> : <>¡Generar historia en 90s! ✨</>}
+          {busy ? <><Loader2 className="w-5 h-5 animate-spin mr-2" /> Preparando...</> : <>¡Generar mi historia! ✨</>}
         </Button>
       </BottomBar>
     </Screen>

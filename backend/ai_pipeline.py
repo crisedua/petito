@@ -166,17 +166,26 @@ def generate_bonus_scene(best_photo_data_uri, pet_name, species, bonus_prompt, t
         "aspect_ratio": "9:16",
     }
     submit = None
+    last_err = None
     for attempt in range(4):
-        submit = requests.post(
-            f"{FAL_CONTROL}/proxy", headers={**headers, "X-Fal-Target-Url": f"https://queue.fal.run/{FAL_MODEL}"},
-            json=payload, timeout=60,
-        )
+        try:
+            submit = requests.post(
+                f"{FAL_CONTROL}/proxy",
+                headers={**headers, "X-Fal-Target-Url": f"https://queue.fal.run/{FAL_MODEL}"},
+                json=payload, timeout=60,
+            )
+        except requests.RequestException as e:
+            last_err = e
+            time.sleep(5 * (attempt + 1))
+            continue
         if submit.status_code == 402:
             raise RuntimeError("INSUFFICIENT_CREDITS")
         if submit.status_code in (429, 500, 502, 503, 504) and attempt < 3:
-            time.sleep(3 * (attempt + 1))
+            time.sleep(5 * (attempt + 1))
             continue
         break
+    if submit is None:
+        raise RuntimeError(f"Bonus submit failed: {last_err}")
     submit.raise_for_status()
     sub = submit.json()
     status_url = _trusted_queue_url(sub["status_url"])
@@ -184,8 +193,12 @@ def generate_bonus_scene(best_photo_data_uri, pet_name, species, bonus_prompt, t
 
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
-        st = requests.get(status_url, headers=headers, timeout=30)
-        st.raise_for_status()
+        try:
+            st = requests.get(status_url, headers=headers, timeout=30)
+            st.raise_for_status()
+        except requests.RequestException:
+            time.sleep(3)
+            continue
         status = (st.json().get("status") or "").upper()
         if status in {"COMPLETED", "OK"}:
             res = requests.get(response_url, headers=headers, timeout=60)

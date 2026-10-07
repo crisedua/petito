@@ -11,7 +11,7 @@ const EXAMPLES = [
 ];
 
 const FEATURES = [
-  { icon: Zap, label: "90 segundos" },
+  { icon: Zap, label: "Listo en ~2 min" },
   { icon: MessageCircleHeart, label: "Voz de tu mascota" },
   { icon: Sparkles, label: "3 escenas con IA" },
   { icon: Music, label: "Con musiquita" },
@@ -96,7 +96,7 @@ export default function Landing() {
         </div>
 
         <div className="mt-6 flex items-center justify-center gap-2 text-sm text-muted-foreground">
-          <Sparkles className="w-4 h-4 text-accent" /> Gratis por ahora · Sin cuenta · Listo en 90s
+          <Sparkles className="w-4 h-4 text-accent" /> Gratis por ahora · Sin cuenta · Listo en ~2 min
         </div>
       </div>
 

@@ -150,10 +150,22 @@ async def run_pipeline(story_id: str):
 
             jobs = [one_scene(sc, i * 4) for i, sc in enumerate(scenes_cfg)]
             images = await asyncio.gather(*jobs, return_exceptions=True)
+            results = dict(zip(range(len(scenes_cfg)), images))
+
+            # second pass: retry the ones the proxy dropped, one at a time
+            missing = [i for i, img in results.items() if isinstance(img, Exception)]
+            for i in missing:
+                logger.warning(f"Bonus scene {i} failed, retrying: {results[i]}")
+                await asyncio.sleep(5)
+                try:
+                    results[i] = await one_scene(scenes_cfg[i], 0)
+                except Exception as e:
+                    logger.warning(f"Bonus scene {i} skipped: {e}")
+
             ok = 0
-            for sc, img in zip(scenes_cfg, images):
+            for i, sc in enumerate(scenes_cfg):
+                img = results[i]
                 if isinstance(img, Exception):
-                    logger.warning(f"Bonus scene skipped: {img}")
                     continue
                 ok += 1
                 bonus_results.append((sc, img))

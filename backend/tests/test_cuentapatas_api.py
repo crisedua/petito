@@ -39,15 +39,18 @@ def test_config():
     assert d["payment_mode"] == "demo"
     assert d["bonus_enabled"] is True
     assert d["free_mode"] is True, f"expected free_mode=true got {d.get('free_mode')}"
+    assert d["bonus_scenes_count"] == 3, f"expected 3 bonus scenes, got {d.get('bonus_scenes_count')}"
     assert len(d["themes"]) == 5
     assert len(d["traits"]) == 7
+    theme_keys = {t["key"] for t in d["themes"]}
+    assert theme_keys == {"mi_ano", "mis_aventuras", "un_dia", "dieciochero", "navidad"}
 
 
 # ---------------- full pipeline (FREE MODE) ----------------
 @pytest.fixture(scope="module")
 def generated_story(device_id):
     payload = {"pet_name": "TestPatas", "species": "perro",
-               "traits": ["regalon", "chistoso"], "theme": "dieciochero"}
+               "traits": ["regalon", "chistoso"], "theme": "mis_aventuras"}
     r = requests.post(f"{API}/stories", json=payload,
                       headers={"X-Device-Id": device_id}, timeout=30)
     assert r.status_code == 200, r.text
@@ -65,7 +68,7 @@ def generated_story(device_id):
                       headers={"X-Device-Id": device_id}, timeout=30)
     assert r.status_code == 200, r.text
 
-    deadline = time.time() + 180
+    deadline = time.time() + 240
     status, data = None, None
     while time.time() < deadline:
         r = requests.get(f"{API}/stories/{sid}", timeout=30)
@@ -83,11 +86,19 @@ def test_pipeline_free_mode(generated_story):
     _, data = generated_story
     assert data["title"]
     assert data["paid"] is True, "FREE_MODE should mark story as paid=true"
+    assert data.get("music") == "aventura", f"expected music=aventura for mis_aventuras, got {data.get('music')}"
     slides = data["slides"]
     assert len(slides) >= 4
     assert slides[0]["kind"] == "title"
     kinds = [s["kind"] for s in slides]
     assert "closing" in kinds
+    # 3 bonus slides
+    bonus = [s for s in slides if s["kind"] == "bonus"]
+    assert len(bonus) == 3, f"expected 3 bonus slides, got {len(bonus)}"
+    captions = [b.get("caption", "") for b in bonus]
+    assert len(set(captions)) == 3, f"bonus captions should be distinct: {captions}"
+    for c in captions:
+        assert c and len(c) > 5, f"bonus caption empty/short: {c!r}"
     # ALL slides must be unlocked and must NOT serve _locked variants
     for s in slides:
         assert s["locked"] is False, f"slide {s['order']} is locked in free mode"
@@ -112,8 +123,23 @@ def test_public_slug_page(generated_story):
     body = r.json()
     assert body["id"] == sid
     assert body["paid"] is True
+    assert body.get("music") == "aventura"
+    bonus = [s for s in body["slides"] if s["kind"] == "bonus"]
+    assert len(bonus) == 3
     for s in body["slides"]:
         assert s["locked"] is False
+
+
+def test_existing_demo_slug_navidad():
+    """Review-provided seed story /h/fcbaa7ca92 (tema navidad, 3 bonus)."""
+    r = requests.get(f"{API}/stories/slug/fcbaa7ca92", timeout=30)
+    assert r.status_code == 200
+    d = r.json()
+    assert d.get("music") == "navidad"
+    bonus = [s for s in d["slides"] if s["kind"] == "bonus"]
+    assert len(bonus) == 3
+    captions = {b.get("caption") for b in bonus}
+    assert len(captions) == 3
 
 
 # ---------------- rate limiting (3/day/device) ----------------
