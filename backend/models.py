@@ -24,27 +24,112 @@ THEMES = {
     "mi_ano": {
         "label": "Mi año",
         "emoji": "📅",
-        "bonus_prompt": "a warm cinematic portrait celebrating a whole year of memories, soft golden confetti and cozy home background, like a year-in-review cover",
+        "music": "alegre",
+        "bonus_scenes": [
+            {
+                "prompt": "a warm cinematic portrait celebrating a whole year of memories, soft golden confetti and bokeh lights, cozy home background, like a year-in-review cover",
+                "sticker": "¡Mi añito!",
+                "caption": "Así se ve un año entero de ser el regalón de la casa.",
+            },
+            {
+                "prompt": "a dreamy painterly portrait surrounded by floating polaroid photo frames and soft pastel flowers, nostalgic scrapbook mood",
+                "sticker": "¡Puro recuerdo!",
+                "caption": "Cada foto mía es un recuerdito que guardo con la patita.",
+            },
+            {
+                "prompt": "a glamorous awards-night portrait wearing a tiny bow tie, standing on a red carpet with golden spotlights and a small trophy",
+                "sticker": "¡Mascota del año!",
+                "caption": "Y el premio a la mascota más chora del año es para {name}.",
+            },
+        ],
     },
     "mis_aventuras": {
         "label": "Mis aventuras",
         "emoji": "🏕️",
-        "bonus_prompt": "an epic outdoor adventure scene, exploring Chilean nature, mountains and forest trail, adventurous explorer vibe with a small backpack",
+        "music": "aventura",
+        "bonus_scenes": [
+            {
+                "prompt": "an epic outdoor adventure scene exploring Chilean nature, andean mountains and forest trail, adventurous explorer vibe with a small backpack",
+                "sticker": "¡A la aventura!",
+                "caption": "Me arranqué a la cordillera, ando en modo explorador aperrado.",
+            },
+            {
+                "prompt": "a sunny Chilean coast beach scene, standing on a surfboard with ocean waves and sunset light, playful summer vibe",
+                "sticker": "¡Puro verano!",
+                "caption": "Le tomé el gusto al mar: ahora soy mascota surfista.",
+            },
+            {
+                "prompt": "riding in a vintage 4x4 jeep on a dusty Atacama desert road, goggles on and a scarf flying in the wind, golden hour",
+                "sticker": "¡Todoterreno!",
+                "caption": "Con {name} al volante, hasta el desierto queda chico.",
+            },
+        ],
     },
     "un_dia": {
         "label": "Un día en mi vida",
         "emoji": "☀️",
-        "bonus_prompt": "a cozy slice-of-life scene at home, sunny morning light through a window, relaxed and homely Chilean house background",
+        "music": "tierno",
+        "bonus_scenes": [
+            {
+                "prompt": "a cozy slice-of-life scene at home, sunny morning light through a window, relaxed and homely Chilean house background",
+                "sticker": "¡Buenos días!",
+                "caption": "Despierto, me estiro y empiezo mi turno de ser adorable.",
+            },
+            {
+                "prompt": "napping wrapped in a fluffy blanket on a sofa, warm lamp light, super cozy evening mood",
+                "sticker": "¡Modo siesta!",
+                "caption": "Mi trabajo favorito: la siesta de las cuatro, sin interrupciones.",
+            },
+            {
+                "prompt": "sitting at a Chilean kitchen table set for once, with pan amasado, avocado and a cup of tea, hopeful begging expression",
+                "sticker": "¡Hora de la once!",
+                "caption": "Sonó la tetera y {name} apareció altiro, pura casualidad.",
+            },
+        ],
     },
     "dieciochero": {
         "label": "Dieciochero",
         "emoji": "🇨🇱",
-        "bonus_prompt": "dressed as a Chilean huaso for Fiestas Patrias, wearing a chupalla straw hat and a colorful chamanto poncho, festive ramada background with chilean flags, empanadas and asado",
+        "music": "cueca",
+        "bonus_scenes": [
+            {
+                "prompt": "dressed as a Chilean huaso for Fiestas Patrias, wearing a chupalla straw hat and a colorful chamanto poncho, festive ramada background with chilean flags",
+                "sticker": "¡Viva Chile!",
+                "caption": "Me puse la chupalla y salí a celebrar como buen huaso.",
+            },
+            {
+                "prompt": "dancing cueca holding a white handkerchief in the air, inside a ramada decorated with chilean flags and paper streamers, happy crowd blurred behind",
+                "sticker": "¡Pie de cueca!",
+                "caption": "Un pie de cueca y quedo listo para la segunda empanada.",
+            },
+            {
+                "prompt": "next to a Chilean asado and empanadas stall, holding an empanada, colorful volantín kites flying in the blue sky",
+                "sticker": "¡Empanada mía!",
+                "caption": "Esa empanada tenía mi nombre: {name}, bien clarito.",
+            },
+        ],
     },
     "navidad": {
         "label": "Navidad",
         "emoji": "🎄",
-        "bonus_prompt": "wearing a cute Santa Claus hat and a small festive scarf, cozy Christmas scene with a decorated tree and warm lights in the background",
+        "music": "navidad",
+        "bonus_scenes": [
+            {
+                "prompt": "wearing a cute Santa Claus hat and a small festive scarf, cozy Christmas scene with a decorated tree and warm lights in the background",
+                "sticker": "¡Feliz Navidad!",
+                "caption": "Me puse el gorrito y ahora soy ayudante oficial del Viejito.",
+            },
+            {
+                "prompt": "wearing soft reindeer antlers in a magical snowy forest at night with warm glowing lights and gentle snowflakes",
+                "sticker": "¡Reno regalón!",
+                "caption": "Dicen que soy el reno más regalón del trineo.",
+            },
+            {
+                "prompt": "dressed as a little Christmas elf surrounded by colorful gift boxes next to a fireplace with stockings",
+                "sticker": "¡Puro regalo!",
+                "caption": "Abrí un regalo sin permiso, pero {name} igual es un angelito.",
+            },
+        ],
     },
 }
 

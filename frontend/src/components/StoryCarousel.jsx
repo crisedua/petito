@@ -1,13 +1,50 @@
-import { useState, useRef } from "react";
-import { ChevronLeft, ChevronRight, Lock } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { ChevronLeft, ChevronRight, Lock, Volume2, VolumeX, Play, Pause } from "lucide-react";
 import { mediaUrl } from "@/lib/api";
+import { createMusicPlayer } from "@/lib/music";
 
-export const StoryCarousel = ({ slides = [], paid = false, onUnlock }) => {
+const SLIDE_MS = 5000;
+
+export const StoryCarousel = ({ slides = [], paid = false, onUnlock, theme = "mi_ano", music = true }) => {
   const [idx, setIdx] = useState(0);
+  const [muted, setMuted] = useState(() => localStorage.getItem("cp_music_muted") === "1");
+  const [playing, setPlaying] = useState(true);
   const touchX = useRef(null);
+  const playerRef = useRef(null);
   const n = slides.length;
-  if (!n) return null;
   const slide = slides[idx];
+  const blocked = !!(slide?.locked && !paid);
+
+  // background music: starts muted-safe, resumes on first gesture (autoplay policy)
+  useEffect(() => {
+    if (!music || muted || !n) return;
+    const p = createMusicPlayer(theme);
+    if (!p) return;
+    playerRef.current = p;
+    p.start(1);
+    const onGesture = () => p.resume();
+    document.addEventListener("pointerdown", onGesture);
+    return () => {
+      document.removeEventListener("pointerdown", onGesture);
+      p.stop();
+      playerRef.current = null;
+    };
+  }, [music, muted, theme, n]);
+
+  // auto-advance like Instagram stories
+  useEffect(() => {
+    if (!playing || n <= 1 || blocked) return;
+    const t = setTimeout(() => {
+      setIdx((i) => {
+        if (i + 1 < n) return i + 1;
+        setPlaying(false);
+        return i;
+      });
+    }, SLIDE_MS);
+    return () => clearTimeout(t);
+  }, [idx, playing, n, blocked]);
+
+  if (!n) return null;
 
   const go = (dir) => setIdx((i) => Math.min(n - 1, Math.max(0, i + dir)));
 
@@ -22,8 +59,15 @@ export const StoryCarousel = ({ slides = [], paid = false, onUnlock }) => {
   const handleTap = (e) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
-    if (slide.locked && !paid) { onUnlock && onUnlock(); return; }
+    if (blocked) { onUnlock && onUnlock(); return; }
     go(x < rect.width / 2 ? -1 : 1);
+  };
+
+  const toggleMute = () => {
+    setMuted((m) => {
+      localStorage.setItem("cp_music_muted", m ? "0" : "1");
+      return !m;
+    });
   };
 
   return (
@@ -53,7 +97,7 @@ export const StoryCarousel = ({ slides = [], paid = false, onUnlock }) => {
           data-testid={`story-slide-${idx}`}
         />
 
-        {slide.locked && !paid && (
+        {blocked && (
           <button
             className="absolute inset-0 z-10 flex flex-col items-center justify-end pb-24 bg-black/10"
             onClick={(e) => { e.stopPropagation(); onUnlock && onUnlock(); }}
@@ -64,6 +108,29 @@ export const StoryCarousel = ({ slides = [], paid = false, onUnlock }) => {
             </div>
           </button>
         )}
+
+        {/* playback controls */}
+        <div className="absolute bottom-3 right-3 z-20 flex gap-2">
+          {music && (
+            <button
+              onClick={(e) => { e.stopPropagation(); toggleMute(); }}
+              className="w-9 h-9 rounded-full bg-black/35 backdrop-blur text-white grid place-items-center active:scale-90 transition-transform"
+              data-testid="story-music-toggle"
+              aria-label={muted ? "Activar música" : "Silenciar música"}
+              title={muted ? "Activar música" : "Silenciar música"}
+            >
+              {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+            </button>
+          )}
+          <button
+            onClick={(e) => { e.stopPropagation(); setPlaying((p) => !p); }}
+            className="w-9 h-9 rounded-full bg-black/35 backdrop-blur text-white grid place-items-center active:scale-90 transition-transform"
+            data-testid="story-autoplay-toggle"
+            aria-label={playing ? "Pausar" : "Reproducir"}
+          >
+            {playing ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+          </button>
+        </div>
 
         {/* side controls */}
         <button
@@ -86,7 +153,7 @@ export const StoryCarousel = ({ slides = [], paid = false, onUnlock }) => {
         </button>
       </div>
       <p className="mt-3 text-sm text-muted-foreground font-medium" data-testid="story-slide-counter">
-        {idx + 1} / {n}
+        {idx + 1} / {n} · {muted ? "música apagada" : "con música 🎵"}
       </p>
     </div>
   );

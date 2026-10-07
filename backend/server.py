@@ -31,6 +31,7 @@ PRICE_CLP = int(os.environ.get("STORY_PRICE_CLP", "3990"))
 USD_TO_CLP = float(os.environ.get("USD_TO_CLP", "950"))
 FREE_PER_DAY = int(os.environ.get("FREE_PREVIEWS_PER_DAY", "3"))
 BONUS_ENABLED = os.environ.get("BONUS_SCENES_ENABLED", "true").lower() == "true"
+BONUS_SCENES_COUNT = max(1, min(3, int(os.environ.get("BONUS_SCENES_COUNT", "3"))))
 FREE_MODE = os.environ.get("FREE_MODE", "true").lower() == "true"
 RETENTION_DAYS = int(os.environ.get("PHOTO_RETENTION_DAYS", "7"))
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
@@ -88,6 +89,7 @@ def story_public(story: Story, slides, paid: bool):
         "id": story.id, "slug": story.share_slug, "pet_name": story.pet_name,
         "species": story.species, "traits": story.traits, "theme": story.theme,
         "theme_label": THEMES.get(story.theme, {}).get("label", story.theme),
+        "music": THEMES.get(story.theme, {}).get("music", "alegre"),
         "status": story.status, "progress_step": story.progress_step,
         "progress_pct": story.progress_pct, "title": story.title,
         "price_clp": story.price_clp, "paid": paid, "email": story.email,
@@ -130,23 +132,35 @@ async def run_pipeline(story_id: str):
 
         best_file = photos[best_idx]["file"] if best_idx < len(photos) else photos[0]["file"]
 
-        # Stage 3: bonus scene (optional)
-        bonus_img = None
+        # Stage 3: bonus scenes (optional, several in parallel)
+        bonus_results = []
         if story.bonus_enabled and BONUS_ENABLED:
+            scenes_cfg = theme["bonus_scenes"][:BONUS_SCENES_COUNT]
             await db.stories.update_one({"id": story_id}, {"$set": {
-                "progress_step": "Creando una escena mágica de tu mascota...", "progress_pct": 65}})
-            try:
-                data_uri = storage.image_to_data_uri(story_id, best_file)
-                t0 = time.monotonic()
-                bonus_img = await asyncio.to_thread(
+                "progress_step": f"Creando {len(scenes_cfg)} escenas mágicas de tu mascota...",
+                "progress_pct": 65}})
+            data_uri = storage.image_to_data_uri(story_id, best_file)
+            t0 = time.monotonic()
+
+            async def one_scene(scene_cfg, delay):
+                await asyncio.sleep(delay)
+                return await asyncio.to_thread(
                     ai_pipeline.generate_bonus_scene, data_uri, story.pet_name,
-                    SPECIES.get(story.species, "mascota"), theme["bonus_prompt"])
-                await log_generation(story_id, "bonus_scene", ai_pipeline.FAL_MODEL, images=1,
-                                     cost_usd=ai_pipeline.FAL_IMG_COST,
+                    SPECIES.get(story.species, "mascota"), scene_cfg["prompt"])
+
+            jobs = [one_scene(sc, i * 4) for i, sc in enumerate(scenes_cfg)]
+            images = await asyncio.gather(*jobs, return_exceptions=True)
+            ok = 0
+            for sc, img in zip(scenes_cfg, images):
+                if isinstance(img, Exception):
+                    logger.warning(f"Bonus scene skipped: {img}")
+                    continue
+                ok += 1
+                bonus_results.append((sc, img))
+            if ok:
+                await log_generation(story_id, "bonus_scenes", ai_pipeline.FAL_MODEL, images=ok,
+                                     cost_usd=ai_pipeline.FAL_IMG_COST * ok,
                                      duration_ms=int((time.monotonic() - t0) * 1000))
-            except Exception as e:
-                logger.warning(f"Bonus scene skipped: {e}")
-                bonus_img = None
 
         # Stage 4: render
         await db.stories.update_one({"id": story_id}, {"$set": {
@@ -188,11 +202,11 @@ async def run_pipeline(story_id: str):
             slides.append(await add_slide("photo", img, order, caption=cap))
             order += 1
 
-        # bonus slide
-        if bonus_img is not None:
-            cap = f"¡{story.pet_name} edición especial {theme['label']}!"
-            img = await asyncio.to_thread(renderer.photo_slide, bonus_img, cap, "¡Pura magia!",
-                                          story.pet_name, BRAND_NAME, story.theme, 0)
+        # bonus slides
+        for bi, (sc, bonus_img) in enumerate(bonus_results):
+            cap = sc["caption"].replace("{name}", story.pet_name)
+            img = await asyncio.to_thread(renderer.photo_slide, bonus_img, cap, sc["sticker"],
+                                          story.pet_name, BRAND_NAME, story.theme, bi)
             slides.append(await add_slide("bonus", img, order, caption=cap))
             order += 1
 
@@ -222,6 +236,7 @@ async def config():
     return {
         "price_clp": PRICE_CLP, "brand_name": BRAND_NAME, "brand_url": BRAND_URL,
         "payment_mode": provider.mode, "bonus_enabled": BONUS_ENABLED, "free_mode": FREE_MODE,
+        "bonus_scenes_count": BONUS_SCENES_COUNT,
         "free_per_day": FREE_PER_DAY, "retention_days": RETENTION_DAYS,
         "themes": [{"key": k, "label": v["label"], "emoji": v["emoji"]} for k, v in THEMES.items()],
         "traits": models.TRAITS,

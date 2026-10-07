@@ -165,12 +165,18 @@ def generate_bonus_scene(best_photo_data_uri, pet_name, species, bonus_prompt, t
         "output_format": "jpeg",
         "aspect_ratio": "9:16",
     }
-    submit = requests.post(
-        f"{FAL_CONTROL}/proxy", headers={**headers, "X-Fal-Target-Url": f"https://queue.fal.run/{FAL_MODEL}"},
-        json=payload, timeout=60,
-    )
-    if submit.status_code == 402:
-        raise RuntimeError("INSUFFICIENT_CREDITS")
+    submit = None
+    for attempt in range(4):
+        submit = requests.post(
+            f"{FAL_CONTROL}/proxy", headers={**headers, "X-Fal-Target-Url": f"https://queue.fal.run/{FAL_MODEL}"},
+            json=payload, timeout=60,
+        )
+        if submit.status_code == 402:
+            raise RuntimeError("INSUFFICIENT_CREDITS")
+        if submit.status_code in (429, 500, 502, 503, 504) and attempt < 3:
+            time.sleep(3 * (attempt + 1))
+            continue
+        break
     submit.raise_for_status()
     sub = submit.json()
     status_url = _trusted_queue_url(sub["status_url"])

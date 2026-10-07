@@ -305,7 +305,8 @@ def _polaroid_slide(img, caption, sticker, pet_name, brand, style):
     # sticker + name chip
     if sticker:
         badge = _sticker(draw, sticker, 0, 0, style, rot=6)
-        bg.alpha_composite(badge, (W // 2 - badge.width // 2 + 150, 300))
+        bx = min(W // 2 - badge.width // 2 + 150, W - badge.width - 40)
+        bg.alpha_composite(badge, (max(40, bx), 300))
 
     chip_f = body_font(34, 800)
     name = pet_name.upper()

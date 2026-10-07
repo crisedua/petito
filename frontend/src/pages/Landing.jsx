@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { PawPrint, Zap, MessageCircleHeart, Sparkles, ArrowRight, Share2 } from "lucide-react";
+import { PawPrint, Zap, MessageCircleHeart, Sparkles, ArrowRight, Share2, Music } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const EXAMPLES = [
@@ -11,8 +11,10 @@ const EXAMPLES = [
 ];
 
 const FEATURES = [
-  { icon: Zap, label: "60 segundos" },
+  { icon: Zap, label: "90 segundos" },
   { icon: MessageCircleHeart, label: "Voz de tu mascota" },
+  { icon: Sparkles, label: "3 escenas con IA" },
+  { icon: Music, label: "Con musiquita" },
   { icon: PawPrint, label: "Humor chileno" },
   { icon: Share2, label: "Listo pa' compartir" },
 ];
@@ -94,7 +96,7 @@ export default function Landing() {
         </div>
 
         <div className="mt-6 flex items-center justify-center gap-2 text-sm text-muted-foreground">
-          <Sparkles className="w-4 h-4 text-accent" /> Gratis por ahora · Sin cuenta · Listo en 60s
+          <Sparkles className="w-4 h-4 text-accent" /> Gratis por ahora · Sin cuenta · Listo en 90s
         </div>
       </div>
 

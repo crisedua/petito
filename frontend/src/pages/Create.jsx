@@ -251,7 +251,7 @@ function StepPhotos({ files, setFiles, onBack, onGenerate, busy }) {
       </div>
       <BottomBar>
         <Button onClick={onGenerate} disabled={busy || files.length < 1} className="w-full h-14 text-base font-display font-semibold rounded-2xl shadow-lg shadow-primary/30" data-testid="generate-story-button">
-          {busy ? <><Loader2 className="w-5 h-5 animate-spin mr-2" /> Preparando...</> : <>¡Generar historia en 60s! ✨</>}
+          {busy ? <><Loader2 className="w-5 h-5 animate-spin mr-2" /> Preparando...</> : <>¡Generar historia en 90s! ✨</>}
         </Button>
       </BottomBar>
     </Screen>
@@ -364,7 +364,7 @@ function StepResult({ story, setStory, storyId, slug, cfg, price, nav }) {
         <h2 className="font-display font-bold text-xl text-neutral-900 text-center mb-1" data-testid="result-title">{story?.title}</h2>
         <p className="text-center text-sm text-muted-foreground mb-4">{story?.theme_label} · {story?.pet_name}</p>
 
-        <StoryCarousel slides={story?.slides || []} paid={paid} onUnlock={() => document.getElementById("paywall")?.scrollIntoView({ behavior: "smooth" })} />
+        <StoryCarousel slides={story?.slides || []} paid={paid} theme={story?.theme} onUnlock={() => document.getElementById("paywall")?.scrollIntoView({ behavior: "smooth" })} />
 
         {paid ? (
           <div className="mt-6 grid grid-cols-2 gap-3" data-testid="share-hub">
