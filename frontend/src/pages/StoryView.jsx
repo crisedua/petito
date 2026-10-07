@@ -75,14 +75,7 @@ export default function StoryView() {
       <div className="flex-1 px-5 pt-4 pb-32 overflow-y-auto no-scrollbar">
         <h1 className="font-display font-bold text-xl text-center text-neutral-900">{story.title}</h1>
         <p className="text-center text-sm text-muted-foreground mb-4">{story.theme_label} · {story.pet_name}</p>
-        <StoryCarousel slides={story.slides} paid={story.paid} theme={story.theme} onUnlock={() => nav("/crear")} />
-
-        {story.bonus_pending && (
-          <div className="mt-4 flex items-center justify-center gap-2 text-sm text-primary font-semibold bg-primary/10 rounded-2xl py-3 px-4" data-testid="bonus-pending-banner">
-            <Loader2 className="w-4 h-4 animate-spin" />
-            Creando escenas mágicas... aparecerán solitas ✨
-          </div>
-        )}
+        <StoryCarousel slides={story.slides} paid={story.paid} theme={story.theme} bonusPending={story.bonus_pending} petName={story.pet_name} onUnlock={() => nav("/crear")} />
 
         {story.paid ? (
           <div className="mt-6 grid grid-cols-2 gap-3">

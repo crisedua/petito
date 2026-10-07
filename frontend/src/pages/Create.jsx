@@ -377,14 +377,7 @@ function StepResult({ story, setStory, storyId, slug, cfg, price, nav }) {
         <h2 className="font-display font-bold text-xl text-neutral-900 text-center mb-1" data-testid="result-title">{story?.title}</h2>
         <p className="text-center text-sm text-muted-foreground mb-4">{story?.theme_label} · {story?.pet_name}</p>
 
-        <StoryCarousel slides={story?.slides || []} paid={paid} theme={story?.theme} onUnlock={() => document.getElementById("paywall")?.scrollIntoView({ behavior: "smooth" })} />
-
-        {story?.bonus_pending && (
-          <div className="mt-4 flex items-center justify-center gap-2 text-sm text-primary font-semibold bg-primary/10 rounded-2xl py-3 px-4" data-testid="bonus-pending-banner">
-            <Loader2 className="w-4 h-4 animate-spin" />
-            Creando escenas mágicas de {story?.pet_name}... aparecerán solitas ✨
-          </div>
-        )}
+        <StoryCarousel slides={story?.slides || []} paid={paid} theme={story?.theme} bonusPending={story?.bonus_pending} petName={story?.pet_name} onUnlock={() => document.getElementById("paywall")?.scrollIntoView({ behavior: "smooth" })} />
 
         {paid ? (
           <div className="mt-6 grid grid-cols-2 gap-3" data-testid="share-hub">

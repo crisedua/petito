@@ -1,19 +1,35 @@
 import { useState, useRef, useEffect } from "react";
-import { ChevronLeft, ChevronRight, Lock, Volume2, VolumeX, Play, Pause } from "lucide-react";
+import { ChevronLeft, ChevronRight, Lock, Volume2, VolumeX, Play, Pause, Sparkles, Loader2 } from "lucide-react";
 import { mediaUrl } from "@/lib/api";
 import { createMusicPlayer } from "@/lib/music";
 
 const SLIDE_MS = 5000;
 
-export const StoryCarousel = ({ slides = [], paid = false, onUnlock, theme = "mi_ano", music = true }) => {
+export const StoryCarousel = ({ slides = [], paid = false, onUnlock, theme = "mi_ano", music = true, bonusPending = false, petName = "" }) => {
   const [idx, setIdx] = useState(0);
   const [muted, setMuted] = useState(() => localStorage.getItem("cp_music_muted") === "1");
   const [playing, setPlaying] = useState(true);
   const touchX = useRef(null);
   const playerRef = useRef(null);
-  const n = slides.length;
-  const slide = slides[idx];
+
+  // While AI scenes are still rendering, show a placeholder slide right before
+  // the closing slide so the story doesn't look "finished" prematurely.
+  const display = (() => {
+    if (!bonusPending) return slides;
+    const ph = { placeholder: true, kind: "pending" };
+    const ci = slides.findIndex((s) => s.kind === "closing");
+    return ci >= 0
+      ? [...slides.slice(0, ci), ph, ...slides.slice(ci)]
+      : [...slides, ph];
+  })();
+
+  const n = display.length;
+  const slide = display[Math.min(idx, n - 1)] || {};
   const blocked = !!(slide?.locked && !paid);
+
+  useEffect(() => {
+    if (idx > n - 1) setIdx(Math.max(0, n - 1));
+  }, [n, idx]);
 
   // background music: starts muted-safe, resumes on first gesture (autoplay policy)
   useEffect(() => {
@@ -73,29 +89,41 @@ export const StoryCarousel = ({ slides = [], paid = false, onUnlock, theme = "mi
   return (
     <div className="w-full flex flex-col items-center" data-testid="story-carousel-container">
       <div
-        className="relative w-full max-w-[380px] rounded-[1.75rem] overflow-hidden shadow-2xl bg-stone-900 select-none"
-        style={{ aspectRatio: "9 / 16" }}
+        className="relative h-[58vh] max-h-[600px] w-auto max-w-full aspect-[9/16] rounded-[1.75rem] overflow-hidden shadow-2xl bg-stone-900 select-none"
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
         onClick={handleTap}
       >
         {/* progress segments */}
         <div className="absolute top-3 left-3 right-3 z-20 flex gap-1.5">
-          {slides.map((_, i) => (
+          {display.map((_, i) => (
             <div key={i} className="h-1 flex-1 rounded-full bg-white/35 overflow-hidden">
               <div className={`h-full rounded-full bg-white transition-all duration-300 ${i <= idx ? "w-full" : "w-0"}`} />
             </div>
           ))}
         </div>
 
-        <img
-          src={mediaUrl(slide.image_url)}
-          alt={`Diapositiva ${idx + 1}`}
-          className="w-full h-full object-cover animate-pop"
-          draggable={false}
-          key={slide.image_url}
-          data-testid={`story-slide-${idx}`}
-        />
+        {slide.placeholder ? (
+          <div className="w-full h-full flex flex-col items-center justify-center text-center px-8 bg-gradient-to-br from-primary to-accent" data-testid="story-slide-pending">
+            <div className="relative mb-5">
+              <Sparkles className="w-12 h-12 text-white/90" />
+              <Loader2 className="w-6 h-6 text-white absolute -right-2 -bottom-1 animate-spin" />
+            </div>
+            <p className="font-display font-bold text-xl text-white leading-snug">
+              Pintando escenas mágicas{petName ? ` de ${petName}` : ""}...
+            </p>
+            <p className="text-sm text-white/85 mt-2">Aparecerán aquí solitas en unos segundos ✨</p>
+          </div>
+        ) : (
+          <img
+            src={mediaUrl(slide.image_url)}
+            alt={`Diapositiva ${idx + 1}`}
+            className="w-full h-full object-cover animate-pop"
+            draggable={false}
+            key={slide.image_url}
+            data-testid={`story-slide-${idx}`}
+          />
+        )}
 
         {blocked && (
           <button
