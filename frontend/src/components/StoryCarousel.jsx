@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { ChevronLeft, ChevronRight, Lock, Volume2, VolumeX, Play, Pause, Sparkles, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Lock, Volume2, VolumeX, Play, Pause, Sparkles, Loader2, RotateCcw } from "lucide-react";
 import { mediaUrl } from "@/lib/api";
 import { createMusicPlayer } from "@/lib/music";
 
@@ -70,7 +70,17 @@ export const StoryCarousel = ({ slides = [], paid = false, onUnlock, theme = "mi
 
   if (!n) return null;
 
+  const atEnd = idx >= n - 1;
+  const finished = atEnd && !playing && !blocked;
+
   const go = (dir) => setIdx((i) => Math.min(n - 1, Math.max(0, i + dir)));
+
+  const replay = () => { setIdx(0); setPlaying(true); };
+
+  const togglePlay = () => {
+    if (!playing && atEnd) { replay(); return; }
+    setPlaying((p) => !p);
+  };
 
   const onTouchStart = (e) => { touchX.current = e.touches[0].clientX; };
   const onTouchEnd = (e) => {
@@ -136,6 +146,18 @@ export const StoryCarousel = ({ slides = [], paid = false, onUnlock, theme = "mi
           />
         )}
 
+        {finished && (
+          <div className="absolute inset-x-0 bottom-16 z-20 flex justify-center animate-pop">
+            <button
+              onClick={(e) => { e.stopPropagation(); replay(); }}
+              className="bg-white text-primary font-display font-semibold text-sm px-5 py-2.5 rounded-full shadow-lg flex items-center gap-2"
+              data-testid="story-replay-button"
+            >
+              <RotateCcw className="w-4 h-4" /> Ver de nuevo
+            </button>
+          </div>
+        )}
+
         {blocked && (
           <button
             className="absolute inset-0 z-10 flex flex-col items-center justify-end pb-24 bg-black/10"
@@ -162,12 +184,12 @@ export const StoryCarousel = ({ slides = [], paid = false, onUnlock, theme = "mi
             </button>
           )}
           <button
-            onClick={(e) => { e.stopPropagation(); setPlaying((p) => !p); }}
+            onClick={(e) => { e.stopPropagation(); togglePlay(); }}
             className="w-9 h-9 rounded-full bg-black/35 backdrop-blur text-white grid place-items-center active:scale-90 transition-transform"
             data-testid="story-autoplay-toggle"
-            aria-label={playing ? "Pausar" : "Reproducir"}
+            aria-label={playing ? "Pausar" : (atEnd ? "Ver de nuevo" : "Reproducir")}
           >
-            {playing ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+            {playing ? <Pause className="w-4 h-4" /> : (atEnd ? <RotateCcw className="w-4 h-4" /> : <Play className="w-4 h-4" />)}
           </button>
         </div>
 
