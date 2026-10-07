@@ -1,0 +1,82 @@
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fredoka:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: #efe7db;
+}
+
+@layer base {
+  :root {
+    --background: 34 43% 96%;
+    --foreground: 24 10% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 24 10% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 24 10% 10%;
+    --primary: 9 71% 58%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 36 30% 92%;
+    --secondary-foreground: 24 10% 15%;
+    --muted: 36 25% 90%;
+    --muted-foreground: 30 6% 42%;
+    --accent: 36 92% 55%;
+    --accent-foreground: 24 30% 12%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 33 25% 86%;
+    --input: 33 25% 86%;
+    --ring: 9 71% 58%;
+    --radius: 1rem;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  body { @apply bg-background text-foreground; }
+}
+
+.font-display { font-family: 'Fredoka', sans-serif; }
+.font-script { font-family: 'Caveat', cursive; }
+
+.mobile-frame {
+  max-width: 28rem;
+  margin: 0 auto;
+  min-height: 100vh;
+  min-height: 100dvh;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: #FAF6F0;
+  box-shadow: 0 0 60px rgba(0,0,0,0.12);
+}
+
+.paw-pattern {
+  background-color: #E05A47;
+  background-image: radial-gradient(circle at 20% 30%, rgba(255,255,255,0.08) 0 12px, transparent 13px),
+                    radial-gradient(circle at 80% 70%, rgba(255,255,255,0.06) 0 16px, transparent 17px);
+}
+
+@keyframes float-up {
+  0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+  10% { opacity: 0.8; }
+  100% { transform: translateY(-20vh) rotate(360deg); opacity: 0; }
+}
+.floating-paw { position: absolute; animation: float-up linear infinite; }
+
+@keyframes pop-in {
+  0% { transform: scale(0.8); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.animate-pop { animation: pop-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+*::selection { background: #F5A623; color: #1a1918; }

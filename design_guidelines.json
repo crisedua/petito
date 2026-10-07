@@ -1,0 +1,245 @@
+{
+  "project_name": "Cuentapatas - Pet Story MVP",
+  "positioning_line": "Tu mascota cuenta su historia.",
+  "app_type": "mobile_web_app (PWA)",
+  "language_and_tone": "Español de Chile (warm, friendly, humorous, pet voice: regalón, choro, aperrado, glotón, flojo)",
+  "design_archetype": "Fusion of Organic Earthy (Warm Sand/Terracotta) + Vibrant Play (Chilean Sunshine & Pet Warmth)",
+  "typography": {
+    "heading_font": "Cabinet Grotesk / Outfit / Fredoka (rounded, warm, high personality display for headlines)",
+    "body_font": "Plus Jakarta Sans / DM Sans (clean, highly readable mobile-first sans-serif)",
+    "accent_font": "Caveat / Merienda (handwritten notes, pet voice quotes, sound effect overlays like '¡Woof!', '¡Miau!')",
+    "font_files_import": "@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fredoka:wght@500;600;700&display=swap');",
+    "hierarchy": {
+      "h1": "text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight leading-tight",
+      "h2": "text-2xl sm:text-3xl font-bold tracking-tight",
+      "h3": "text-xl sm:text-2xl font-semibold",
+      "h4": "text-lg sm:text-xl font-medium",
+      "body": "text-base leading-relaxed text-stone-700 dark:text-stone-300",
+      "caption": "text-xs sm:text-sm font-medium tracking-wide uppercase text-stone-500",
+      "pet_quote": "font-accent text-xl sm:text-2xl text-amber-600 dark:text-amber-400 rotate-[-1deg]"
+    }
+  },
+  "colors": {
+    "background_light": "#FAF6F0",
+    "background_card_light": "#FFFFFF",
+    "background_dark": "#161311",
+    "background_card_dark": "#231F1C",
+    "primary": "#E05A47",
+    "primary_hover": "#C94533",
+    "primary_light": "#FDF0EE",
+    "secondary_gold": "#F5A623",
+    "accent_sage": "#8FA89B",
+    "accent_rose": "#F4A261",
+    "neutral_dark": "#1A1918",
+    "neutral_muted": "#6E6A66",
+    "border_subtle": "#E8E2D9",
+    "border_dark": "#36312C",
+    "chile_flag_blue": "#0039A6",
+    "chile_flag_red": "#D52B1E",
+    "watermark_overlay": "rgba(0, 0, 0, 0.45)",
+    "forbidden_colors": [
+      "#7351B7",
+      "#1B93A4"
+    ]
+  },
+  "layout_and_spacing": {
+    "container_max_width": "max-w-md mx-auto min-h-screen relative flex flex-col bg-[#FAF6F0] dark:bg-[#161311] shadow-2xl border-x border-stone-200 dark:border-stone-800",
+    "padding_system": "px-4 sm:px-6 py-4",
+    "bento_grid_style": "grid grid-cols-1 sm:grid-cols-2 gap-4",
+    "vertical_story_dimensions": "aspect-[9/16] w-full max-w-[380px] h-[640px] rounded-3xl overflow-hidden relative shadow-2xl border-4 border-white/20",
+    "bottom_nav_and_actions": "fixed bottom-0 left-0 right-0 max-w-md mx-auto p-4 backdrop-blur-xl bg-white/80 dark:bg-stone-900/80 border-t border-stone-200/50 dark:border-stone-800/50 z-40"
+  },
+  "key_user_flows_and_screens": [
+    {
+      "step": 1,
+      "screen_name": "Landing View",
+      "components": [
+        "Hero header with warm Chilean badge: '🇨🇱 Cuentapatas: Tu mascota cuenta su historia'",
+        "Headline & Subtitle with high emotional impact",
+        "Interactive live 9:16 vertical preview story card (auto-playing sample story of 'Charly el Quilteris')",
+        "Feature badges: '60 segundos ⚡', 'Voz de tu mascota 🐶🐱', 'Humor chileno 🇨🇱', 'Sin suscripciones 💳'",
+        "CTA main button: 'Crea la historia de tu mascota (3.990 CLP)'",
+        "Example stories carousel/toggle (Perro, Gato, Exótico)"
+      ]
+    },
+    {
+      "step": 2,
+      "screen_name": "Pet Info Form",
+      "components": [
+        "Pet Name Input with animated paw icon",
+        "Species Selector Pill Tabs: 🐶 Perro | 🐱 Gato | 🐹 Otro",
+        "Personality Traits Selector (Multi-select Chips): [regalón 👑, glotón 🦴, flojo 💤, aventurero 🌲, mañoso 😼, guardián 🛡️, payaso 🤡]",
+        "Custom trait input field for Chilean slang like 'choro', 'chascón', 'cachupín'",
+        "Step indicator (Paso 1 de 4)",
+        "Next button: 'Continuar a Elegir Tema →'"
+      ]
+    },
+    {
+      "step": 3,
+      "screen_name": "Theme Selection Cards",
+      "components": [
+        "5 Beautiful visual theme cards with subtle borders and icon badges:",
+        "1. Mi año 📅 (Resumen anual de siestas y travesuras)",
+        "2. Mis aventuras 🏕️ (Expediciones al patio y la plaza)",
+        "3. Un día en mi vida ☀️ (Rutina secreta de comer y dormir)",
+        "4. Dieciochero 🇨🇱 (Tiki tiki ti: asados, empanadas y cueca)",
+        "5. Navidad 🎄 (Modo duende pascuero mañoso)",
+        "Selected card indicator with glow ring and checkmark"
+      ]
+    },
+    {
+      "step": 4,
+      "screen_name": "Photo Picker (Gallery)",
+      "components": [
+        "Native file input button supporting multi-file selection (up to 20 photos)",
+        "Drag & drop upload area with friendly pet illustration",
+        "Thumbnail grid showing uploaded photos with count indicator (e.g., '12 / 20 fotos')",
+        "Individual photo card with delete 'X' button, reorder index badge, and image preview",
+        "Validation notice: 'Elige entre 3 y 20 fotos para mejores resultados'",
+        "CTA Button: '¡Generar Historia en 60s! ✨'"
+      ]
+    },
+    {
+      "step": 5,
+      "screen_name": "Fun Progress Screen",
+      "components": [
+        "Full-screen immersive background with floating animated paw prints and sparkles",
+        "Step-by-step progress pipeline with checkmarks & active loader:",
+        "• Stage 1: 'Eligiendo tus mejores fotos...'",
+        "• Stage 2: 'Analizando las miradas pillas...'",
+        "• Stage 3: 'Escribiendo en idioma perruno/gatuno con humor chileno...'",
+        "• Stage 4: 'Diseñando las diapositivas de Instagram...'",
+        "Progress bar (0% to 100% over 5-8 seconds simulated demo acceleration)",
+        "Fun pet quote ticker changing every 2 seconds ('¡No olviden poner la parte donde pido pancito!')"
+      ]
+    },
+    {
+      "step": 6,
+      "screen_name": "Story Viewer Carousel (Preview & Watermark)",
+      "components": [
+        "Vertical 9:16 Instagram Story style carousel",
+        "Progress segments at the top (dash line indicators for slide 1 to N)",
+        "Slide 1 & 2: Full resolution, clean, unwatermarked free preview",
+        "Slide 3+: Blurred image overlay with prominent lock icon & watermark pattern 'VISTA PREVIA - CUENTAPATAS'",
+        "Pet voice captions styled inside dynamic floating speech bubbles or semi-transparent bottom cards",
+        "Swipe left/right gestures + tap left/right side controls",
+        "Sound / Music toggle indicator (simulated Chilean acoustic guitar or ambient synth tone)",
+        "Paywall trigger banner at slide 3 bottom: 'Desbloquea las N diapositivas por $3.990 CLP'"
+      ]
+    },
+    {
+      "step": 7,
+      "screen_name": "Paywall Modal / Screen",
+      "components": [
+        "Price banner: '3.990 CLP' (Pago único, sin suscripciones)",
+        "Value bullet points: '✅ Historia completa sin marcas de agua', '✅ Descarga todas las fotos en HD 1080x1920', '✅ Formato listo para Instagram Stories y Reels', '✅ Enlace listo para enviar por WhatsApp'",
+        "Payment method options: Webpay Plus 🇨🇱, Mercado Pago, BancoEstado / CuentaRUT mock, Credit/Debit Card",
+        "Simulated 1-click test checkout button: 'Pagar $3.990 CLP con Webpay' (instant unlock for demo)",
+        "Email input field for optional receipt and backup download link"
+      ]
+    },
+    {
+      "step": 8,
+      "screen_name": "Unlocked Story & Sharing Hub",
+      "components": [
+        "Full clean 9:16 Instagram Story carousel with all slides unlocked",
+        "Primary Action Grid:",
+        "• 📥 'Descargar todas las diapositivas (ZIP / Galería)'",
+        "• 🟢 'Compartir en WhatsApp' (opens native Web Share or direct WhatsApp api link with pet quote)",
+        "• 📸 'Subir a Instagram Stories / Reels'",
+        "• 🔗 'Copiar enlace público de la historia'",
+        "Email input save confirmation & re-create CTA button"
+      ]
+    },
+    {
+      "step": 9,
+      "screen_name": "Admin Dashboard (/admin)",
+      "components": [
+        "Password protection gate (Simple key input for quick verification)",
+        "KPI Metrics Cards Grid:",
+        "• Total Stories Created (e.g. 142)",
+        "• Paid Conversion Rate (e.g. 34.8%)",
+        "• Total Revenue (e.g. 494.760 CLP)",
+        "• Avg. AI Cost per Story (e.g. $0.08 USD / ~75 CLP)",
+        "Stories Data Table with columns: [ID, Pet Name, Species, Theme, Photo Count, Paid Status (Yes/No), Created Date, Actions (View, Unlock Toggle)]",
+        "Filter tabs: Todas, Pagadas, Pendientes",
+        "Preview Story Drawer modal"
+      ]
+    }
+  ],
+  "image_urls": {
+    "dogs": [
+      {
+        "url": "https://images.unsplash.com/photo-1591208333284-825682219525?crop=entropy&cs=srgb&fm=jpg&q=85",
+        "alt": "Brown dog wearing sunglasses",
+        "category": "perro_payaso"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1690876821983-cbb72ac167a8?crop=entropy&cs=srgb&fm=jpg&q=85",
+        "alt": "Happy white dog sitting on green grass",
+        "category": "perro_aventurero"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1656839631462-1adf96d4320f?crop=entropy&cs=srgb&fm=jpg&q=85",
+        "alt": "Fluffy golden dog smiling",
+        "category": "perro_regalon"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1633567460370-da1ae0124748?crop=entropy&cs=srgb&fm=jpg&q=85",
+        "alt": "Close up smiling happy dog",
+        "category": "perro_gloton"
+      }
+    ],
+    "cats": [
+      {
+        "url": "https://images.unsplash.com/photo-1536589961747-e239b2abbec2?crop=entropy&cs=srgb&fm=jpg&q=85",
+        "alt": "Short-haired ginger and white cat",
+        "category": "gato_regalon"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1498100152307-ce63fd6c5424?crop=entropy&cs=srgb&fm=jpg&q=85",
+        "alt": "Tuxedo cat with intense eyes",
+        "category": "gato_manoso"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1515002246390-7bf7e8f87b54?crop=entropy&cs=srgb&fm=jpg&q=85",
+        "alt": "Brown tabby cat close up",
+        "category": "gato_guardian"
+      }
+    ]
+  },
+  "testing_attributes": {
+    "rule": "Every button, input, tab, card, slide, and modal MUST contain a data-testid attribute in kebab-case.",
+    "examples": [
+      "data-testid=\"landing-hero-cta\"",
+      "data-testid=\"pet-name-input\"",
+      "data-testid=\"species-tab-perro\"",
+      "data-testid=\"trait-chip-regalon\"",
+      "data-testid=\"theme-card-dieciochero\"",
+      "data-testid=\"photo-upload-input\"",
+      "data-testid=\"generate-story-button\"",
+      "data-testid=\"story-carousel-container\"",
+      "data-testid=\"story-slide-next-button\"",
+      "data-testid=\"paywall-modal-trigger\"",
+      "data-testid=\"paywall-webpay-button\"",
+      "data-testid=\"share-whatsapp-button\"",
+      "data-testid=\"download-slides-button\"",
+      "data-testid=\"admin-login-password-input\"",
+      "data-testid=\"admin-login-submit\"",
+      "data-testid=\"admin-stories-table\""
+    ]
+  },
+  "instructions_to_main_agent": [
+    "Build the frontend using React js components with Tailwind CSS.",
+    "Ensure mobile-first design targeting responsive width (max-w-md for mobile frame view or full fluid viewport on actual mobile devices).",
+    "Implement gesture support for the Instagram-story carousel (touch drag / swipe left & right, tap sides for previous/next).",
+    "All components must be written in .js / .jsx files.",
+    "Include PWA manifest and service worker registration capability so the app prompts 'Añadir a pantalla de inicio' in browsers.",
+    "Use Sonner for toast notifications when copying share links or downloading images.",
+    "For icons, use lucide-react or @phosphor-icons/react.",
+    "Make the Chile national theme ('Dieciochero 🇨🇱') super authentic with warm festive accents and Chilean phrases like '¡Tiki tiki ti!', 'Aperrado', 'Regalón máximo'.",
+    "Provide a simulated instant Webpay payment completion flow for 3.990 CLP with real state updates.",
+    "Store generated stories in localStorage / mock backend state so user can refresh and view their story or test admin analytics.",
+    "Make admin dashboard accessible via footer link or /admin route with password 'cuentapatas2026'."
+  ]
+}
