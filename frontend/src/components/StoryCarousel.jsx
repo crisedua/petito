@@ -9,8 +9,16 @@ export const StoryCarousel = ({ slides = [], paid = false, onUnlock, theme = "mi
   const [idx, setIdx] = useState(0);
   const [muted, setMuted] = useState(() => localStorage.getItem("cp_music_muted") === "1");
   const [playing, setPlaying] = useState(true);
+  const [slowHint, setSlowHint] = useState(false);
   const touchX = useRef(null);
   const playerRef = useRef(null);
+
+  // after a while waiting for AI scenes, reassure the user it's still working
+  useEffect(() => {
+    if (!bonusPending) { setSlowHint(false); return; }
+    const t = setTimeout(() => setSlowHint(true), 45000);
+    return () => clearTimeout(t);
+  }, [bonusPending]);
 
   // While AI scenes are still rendering, show a placeholder slide right before
   // the closing slide so the story doesn't look "finished" prematurely.
@@ -113,6 +121,9 @@ export const StoryCarousel = ({ slides = [], paid = false, onUnlock, theme = "mi
               Pintando escenas mágicas{petName ? ` de ${petName}` : ""}...
             </p>
             <p className="text-sm text-white/85 mt-2">Aparecerán aquí solitas en unos segundos ✨</p>
+            {slowHint && (
+              <p className="text-xs text-white/75 mt-4 max-w-[240px]">La magia IA a veces tarda un par de minutos... ¡ya casi! 🐾</p>
+            )}
           </div>
         ) : (
           <img
