@@ -17,7 +17,7 @@ import renderer
 import ai_pipeline
 import narration
 import payments
-from models import Story, Slide, StoryCreate, THEMES, SPECIES, now_utc, iso_now, new_id
+from models import Story, Slide, StoryCreate, SurveyResponse, SurveySubmit, THEMES, SPECIES, now_utc, iso_now, new_id
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / ".env")
@@ -478,6 +478,20 @@ async def media(story_id: str, name: str):
     return Response(content=data, media_type=mime)
 
 
+# ---------------- survey (willingness to pay) ----------------
+@api_router.post("/survey")
+async def submit_survey(payload: SurveySubmit, x_device_id: str = Header(default="")):
+    answer = "yes" if str(payload.answer).lower() in ("yes", "si", "sí", "true", "1") else "no"
+    device = (x_device_id or "").strip()
+    if device:
+        existing = await db.survey_responses.find_one({"device_id": device})
+        if existing:
+            return {"ok": True, "already": True}
+    resp = SurveyResponse(device_id=device, story_id=payload.story_id, answer=answer, price_clp=9900)
+    await db.survey_responses.insert_one(resp.model_dump())
+    return {"ok": True, "already": False}
+
+
 # ---------------- admin ----------------
 class AdminLogin(BaseModel):
     password: str
@@ -513,6 +527,19 @@ async def admin_metrics(authorization: str = Header(default="")):
         "total_ai_cost_clp": round(total_cost * USD_TO_CLP),
         "avg_cost_clp": round(total_cost * USD_TO_CLP / total) if total else 0,
         "usd_to_clp": USD_TO_CLP, "cost_guardrail_clp": 600,
+    }
+
+
+@api_router.get("/admin/survey")
+async def admin_survey(authorization: str = Header(default="")):
+    check_admin(authorization)
+    total = await db.survey_responses.count_documents({})
+    yes = await db.survey_responses.count_documents({"answer": "yes"})
+    no = total - yes
+    return {
+        "total": total, "yes": yes, "no": no,
+        "yes_pct": round(yes / total * 100, 1) if total else 0.0,
+        "price_clp": 9900,
     }
 
 

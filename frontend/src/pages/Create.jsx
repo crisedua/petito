@@ -13,6 +13,7 @@ import {
 } from "@/lib/api";
 import { StoryCarousel } from "@/components/StoryCarousel";
 import { InviteButton } from "@/components/InviteButton";
+import { SurveyCard } from "@/components/SurveyCard";
 
 const SPECIES = [
   { key: "perro", label: "Perro", emoji: "🐶" },
@@ -433,6 +434,8 @@ function StepResult({ story, setStory, storyId, slug, cfg, price, nav }) {
               className="mt-4 h-12 rounded-xl bg-background" data-testid="email-input" />
           </div>
         )}
+
+        <SurveyCard storyId={storyId} />
       </div>
 
       {!paid && (

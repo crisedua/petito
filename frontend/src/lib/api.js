@@ -36,7 +36,9 @@ export const getStoryBySlug = (slug) => api.get(`/stories/slug/${slug}`).then((r
 export const payDemo = (id) => api.post(`/stories/${id}/pay-demo`).then((r) => r.data);
 export const checkout = (id) => api.post(`/stories/${id}/checkout`).then((r) => r.data);
 export const saveEmail = (id, email) => api.post(`/stories/${id}/email`, { email }).then((r) => r.data);
+export const submitSurvey = (storyId, answer) => api.post("/survey", { story_id: storyId, answer }).then((r) => r.data);
 
 export const adminLogin = (password) => api.post("/admin/login", { password }).then((r) => r.data);
 export const adminMetrics = (token) => api.get("/admin/metrics", { headers: { Authorization: `Bearer ${token}` } }).then((r) => r.data);
+export const adminSurvey = (token) => api.get("/admin/survey", { headers: { Authorization: `Bearer ${token}` } }).then((r) => r.data);
 export const adminStories = (token, filter = "all") => api.get(`/admin/stories?filter=${filter}`, { headers: { Authorization: `Bearer ${token}` } }).then((r) => r.data);

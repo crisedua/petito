@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Loader2, Lock, TrendingUp, DollarSign, FileText, Percent, PawPrint } from "lucide-react";
+import { Loader2, Lock, TrendingUp, DollarSign, FileText, Percent, PawPrint, MessageCircleQuestion } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { adminLogin, adminMetrics, adminStories } from "@/lib/api";
+import { adminLogin, adminMetrics, adminStories, adminSurvey } from "@/lib/api";
 
 const clp = (n) => new Intl.NumberFormat("es-CL").format(n || 0);
 
@@ -15,12 +15,13 @@ export default function Admin() {
   const [busy, setBusy] = useState(false);
   const [metrics, setMetrics] = useState(null);
   const [rows, setRows] = useState([]);
+  const [survey, setSurvey] = useState(null);
   const [filter, setFilter] = useState("all");
 
   const load = async (t, f = filter) => {
     try {
-      const [m, s] = await Promise.all([adminMetrics(t), adminStories(t, f)]);
-      setMetrics(m); setRows(s);
+      const [m, s, sv] = await Promise.all([adminMetrics(t), adminStories(t, f), adminSurvey(t)]);
+      setMetrics(m); setRows(s); setSurvey(sv);
     } catch { localStorage.removeItem("cp_admin_token"); setToken(""); toast.error("Sesión expirada"); }
   };
 
@@ -85,6 +86,26 @@ export default function Admin() {
           <div className="mt-3 text-xs text-muted-foreground bg-white rounded-2xl border border-border p-3">
             Costo IA total: <b>${clp(metrics.total_ai_cost_clp)} CLP</b> · Guardrail objetivo: &lt; ${metrics.cost_guardrail_clp} CLP por historia
             {metrics.avg_cost_clp > metrics.cost_guardrail_clp && <span className="text-destructive font-semibold"> · ⚠️ sobre el objetivo</span>}
+          </div>
+        )}
+
+        {survey && (
+          <div className="mt-3 bg-white rounded-2xl border border-border p-4" data-testid="admin-survey-card">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-9 h-9 rounded-xl grid place-items-center bg-primary/10 text-primary"><MessageCircleQuestion className="w-5 h-5" /></div>
+              <div>
+                <div className="font-display font-semibold text-neutral-900 leading-tight">Encuesta: ¿Pagarías ${clp(survey.price_clp)}/año?</div>
+                <div className="text-xs text-muted-foreground">{survey.total} respuesta{survey.total === 1 ? "" : "s"}</div>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="bg-emerald-50 rounded-xl py-2"><div className="font-display font-bold text-xl text-emerald-600" data-testid="admin-survey-yes">{survey.yes}</div><div className="text-[11px] text-muted-foreground">Sí</div></div>
+              <div className="bg-red-50 rounded-xl py-2"><div className="font-display font-bold text-xl text-red-500" data-testid="admin-survey-no">{survey.no}</div><div className="text-[11px] text-muted-foreground">No</div></div>
+              <div className="bg-primary/10 rounded-xl py-2"><div className="font-display font-bold text-xl text-primary" data-testid="admin-survey-pct">{survey.yes_pct}%</div><div className="text-[11px] text-muted-foreground">dirían Sí</div></div>
+            </div>
+            <div className="mt-3 h-2 rounded-full bg-red-100 overflow-hidden">
+              <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${survey.yes_pct}%` }} />
+            </div>
           </div>
         )}
 

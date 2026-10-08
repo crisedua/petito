@@ -189,3 +189,19 @@ class Slide(BaseModel):
     locked_file: str = ""  # blurred/watermarked variant
     locked: bool = False
     created_at: str = Field(default_factory=iso_now)
+
+
+class SurveyResponse(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    id: str = Field(default_factory=new_id)
+    device_id: str = ""
+    story_id: str = ""
+    answer: str = "no"  # "yes" | "no"
+    price_clp: int = 9900
+    created_at: str = Field(default_factory=iso_now)
+
+
+class SurveySubmit(BaseModel):
+    story_id: str = ""
+    answer: str  # "yes" | "no"
