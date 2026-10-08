@@ -12,9 +12,11 @@ export const SurveyCard = ({ storyId }) => {
   if (status === "hidden") return null;
 
   const answer = async (value) => {
-    localStorage.setItem(DONE_KEY, "1");
     setStatus("thanks");
-    try { await submitSurvey(storyId, value); } catch { /* opinión igual guardada localmente */ }
+    try {
+      await submitSurvey(storyId, value);
+      localStorage.setItem(DONE_KEY, "1");  // only gate once the response is saved
+    } catch { /* no persistimos el flag: podrá reaparecer más adelante */ }
     setTimeout(() => setStatus("hidden"), 2800);
   };
 
