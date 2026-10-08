@@ -25,8 +25,8 @@ mongo_url = os.environ["MONGO_URL"]
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ["DB_NAME"]]
 
-BRAND_NAME = os.environ.get("BRAND_NAME", "Cuentapatas")
-BRAND_URL = os.environ.get("BRAND_URL", "cuentapatas.cl")
+BRAND_NAME = os.environ.get("BRAND_NAME", "Petito")
+BRAND_URL = os.environ.get("BRAND_URL", "petito.pro")
 PRICE_CLP = int(os.environ.get("STORY_PRICE_CLP", "3990"))
 USD_TO_CLP = float(os.environ.get("USD_TO_CLP", "950"))
 FREE_PER_DAY = int(os.environ.get("FREE_PREVIEWS_PER_DAY", "3"))
@@ -244,7 +244,7 @@ async def run_pipeline(story_id: str):
 # ---------------- routes ----------------
 @api_router.get("/")
 async def root():
-    return {"app": "Cuentapatas", "status": "ok"}
+    return {"app": "Petito", "status": "ok"}
 
 
 @api_router.get("/config")

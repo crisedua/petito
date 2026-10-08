@@ -1,4 +1,4 @@
-const CACHE = "cuentapatas-v1";
+const CACHE = "petito-v1";
 const CORE = ["/", "/index.html", "/manifest.json"];
 
 self.addEventListener("install", (e) => {

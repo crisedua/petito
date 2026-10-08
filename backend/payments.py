@@ -43,7 +43,7 @@ class MercadoPagoProvider:
     async def create_checkout(self, story_id: str, slug: str) -> dict:
         body = {
             "items": [{
-                "id": story_id, "title": "Historia Cuentapatas",
+                "id": story_id, "title": "Historia Petito",
                 "quantity": 1, "currency_id": "CLP", "unit_price": PRICE_CLP,
             }],
             "external_reference": story_id,

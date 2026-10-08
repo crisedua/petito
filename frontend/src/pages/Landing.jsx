@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { PawPrint, Zap, MessageCircleHeart, Sparkles, ArrowRight, Share2, Music } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { InviteButton } from "@/components/InviteButton";
 
 const EXAMPLES = [
   { img: "https://images.unsplash.com/photo-1591208333284-825682219525?crop=entropy&cs=srgb&fm=jpg&q=85&w=800", cap: "¡Llegué pal Dieciocho más regalón que nunca, poh!", badge: "Dieciochero 🇨🇱" },
@@ -38,9 +39,9 @@ export default function Landing() {
           <div className="w-8 h-8 rounded-full bg-primary grid place-items-center">
             <PawPrint className="w-5 h-5 text-white" />
           </div>
-          Cuentapatas
+          Petito
         </div>
-        <span className="text-xs font-semibold tracking-wide text-muted-foreground bg-white px-3 py-1.5 rounded-full border border-border">🇨🇱 Hecho en Chile</span>
+        <InviteButton />
       </div>
 
       <div className="flex-1 px-5 pt-6 pb-40">

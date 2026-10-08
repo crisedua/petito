@@ -12,6 +12,7 @@ import {
   getConfig, createStory, uploadPhotos, generateStory, getStory, payDemo, checkout, saveEmail, mediaUrl,
 } from "@/lib/api";
 import { StoryCarousel } from "@/components/StoryCarousel";
+import { InviteButton } from "@/components/InviteButton";
 
 const SPECIES = [
   { key: "perro", label: "Perro", emoji: "🐶" },
@@ -111,7 +112,7 @@ function Header({ onBack, stepText }) {
         </button>
       ) : <div className="w-9" />}
       <div className="flex-1 text-center text-xs font-semibold tracking-wide text-muted-foreground uppercase">{stepText}</div>
-      <div className="w-9" />
+      <InviteButton />
     </div>
   );
 }
@@ -354,7 +355,7 @@ function StepResult({ story, setStory, storyId, slug, cfg, price, nav }) {
         const blob = await res.blob();
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
-        a.download = `cuentapatas-${story.pet_name}-${i + 1}.jpg`;
+        a.download = `petito-${story.pet_name}-${i + 1}.jpg`;
         document.body.appendChild(a); a.click(); a.remove();
         await new Promise((r) => setTimeout(r, 250));
       } catch { /* skip */ }
@@ -362,9 +363,9 @@ function StepResult({ story, setStory, storyId, slug, cfg, price, nav }) {
   };
 
   const shareNative = async () => {
-    const text = `¡Mira la historia de ${story.pet_name} en Cuentapatas! 🐾`;
+    const text = `¡Mira la historia de ${story.pet_name} en Petito! 🐾`;
     if (navigator.share) {
-      try { await navigator.share({ title: "Cuentapatas", text, url: shareUrl }); } catch { /* cancelled */ }
+      try { await navigator.share({ title: "Petito", text, url: shareUrl }); } catch { /* cancelled */ }
     } else {
       window.open(`https://wa.me/?text=${encodeURIComponent(text + " " + shareUrl)}`, "_blank");
     }

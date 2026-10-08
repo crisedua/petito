@@ -5,6 +5,7 @@ import { Loader2, PawPrint, Download, Share2, Copy, ArrowRight } from "lucide-re
 import { Button } from "@/components/ui/button";
 import { getStoryBySlug, mediaUrl } from "@/lib/api";
 import { StoryCarousel } from "@/components/StoryCarousel";
+import { InviteButton } from "@/components/InviteButton";
 
 export default function StoryView() {
   const { slug } = useParams();
@@ -40,7 +41,7 @@ export default function StoryView() {
         const blob = await res.blob();
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
-        a.download = `cuentapatas-${story.pet_name}-${i + 1}.jpg`;
+        a.download = `petito-${story.pet_name}-${i + 1}.jpg`;
         document.body.appendChild(a); a.click(); a.remove();
         await new Promise((r) => setTimeout(r, 250));
       } catch { /* skip */ }
@@ -48,8 +49,8 @@ export default function StoryView() {
   };
 
   const shareNative = async () => {
-    const text = `¡Mira la historia de ${story.pet_name} en Cuentapatas! 🐾`;
-    if (navigator.share) { try { await navigator.share({ title: "Cuentapatas", text, url: shareUrl }); } catch {} }
+    const text = `¡Mira la historia de ${story.pet_name} en Petito! 🐾`;
+    if (navigator.share) { try { await navigator.share({ title: "Petito", text, url: shareUrl }); } catch {} }
     else window.open(`https://wa.me/?text=${encodeURIComponent(text + " " + shareUrl)}`, "_blank");
   };
 
@@ -69,8 +70,9 @@ export default function StoryView() {
       <div className="flex items-center justify-between px-5 pt-5">
         <button onClick={() => nav("/")} className="flex items-center gap-2 font-display font-semibold text-primary">
           <div className="w-8 h-8 rounded-full bg-primary grid place-items-center"><PawPrint className="w-5 h-5 text-white" /></div>
-          Cuentapatas
+          Petito
         </button>
+        <InviteButton />
       </div>
       <div className="flex-1 px-5 pt-4 pb-32 overflow-y-auto no-scrollbar">
         <h1 className="font-display font-bold text-xl text-center text-neutral-900">{story.title}</h1>

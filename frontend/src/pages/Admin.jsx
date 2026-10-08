@@ -41,7 +41,7 @@ export default function Admin() {
         <div className="w-full">
           <div className="flex flex-col items-center mb-6">
             <div className="w-14 h-14 rounded-2xl bg-primary grid place-items-center mb-3"><Lock className="w-7 h-7 text-white" /></div>
-            <h1 className="font-display font-bold text-2xl">Panel Cuentapatas</h1>
+            <h1 className="font-display font-bold text-2xl">Panel Petito</h1>
             <p className="text-sm text-muted-foreground">Acceso restringido</p>
           </div>
           <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
