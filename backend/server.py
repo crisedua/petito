@@ -15,6 +15,7 @@ import models
 import storage
 import renderer
 import ai_pipeline
+import narration
 import payments
 from models import Story, Slide, StoryCreate, THEMES, SPECIES, now_utc, iso_now, new_id
 
@@ -84,6 +85,7 @@ def story_public(story: Story, slides, paid: bool):
             "order": s.order, "kind": s.kind, "caption": s.caption,
             "locked": locked,
             "image_url": f"/api/media/{story.id}/{fname}" if fname else None,
+            "audio_url": f"/api/media/{story.id}/{s.audio_file}" if (s.audio_file and not locked) else None,
         })
     return {
         "id": story.id, "slug": story.share_slug, "pet_name": story.pet_name,
@@ -92,6 +94,7 @@ def story_public(story: Story, slides, paid: bool):
         "music": THEMES.get(story.theme, {}).get("music", "alegre"),
         "status": story.status, "progress_step": story.progress_step,
         "progress_pct": story.progress_pct, "bonus_pending": story.bonus_pending,
+        "narration_pending": story.narration_pending, "voice_id": story.voice_id,
         "title": story.title,
         "price_clp": story.price_clp, "paid": paid, "email": story.email,
         "error": story.error, "slides": out, "brand_url": BRAND_URL,
@@ -122,6 +125,45 @@ async def _add_slide(story_id, kind, image, order, caption="", lockable=True):
     return sl
 
 
+# cap concurrent ElevenLabs calls (BYOK accounts have modest concurrency limits)
+_narr_sem = None
+
+
+def _get_narr_sem():
+    global _narr_sem
+    if _narr_sem is None:
+        _narr_sem = asyncio.Semaphore(3)
+    return _narr_sem
+
+
+def _write_bytes(story_id, fname, data):
+    with open(storage.file_path(story_id, fname), "wb") as f:
+        f.write(data)
+
+
+async def narrate_slide(story_id, order, text, voice_id):
+    """Generate narration mp3 for one slide and attach it. Best-effort (skips on error)."""
+    if not narration.NARRATION_ENABLED or not text or not text.strip():
+        return False
+    try:
+        async with _get_narr_sem():
+            audio = await asyncio.to_thread(narration.generate_narration, text, voice_id)
+    except Exception as e:
+        logger.warning(f"Narration slide {order} skipped: {e}")
+        return False
+    fn = f"narration_{order}.mp3"
+    await asyncio.to_thread(_write_bytes, story_id, fn, audio)
+    await db.slides.update_one({"story_id": story_id, "order": order}, {"$set": {"audio_file": fn}})
+    return True
+
+
+async def narrate_core(story, title, captions):
+    jobs = [narrate_slide(story.id, 0, title, story.voice_id)]
+    for i, cap in enumerate(captions):
+        jobs.append(narrate_slide(story.id, 1 + i, cap, story.voice_id))
+    await asyncio.gather(*jobs, return_exceptions=True)
+
+
 async def generate_bonus_scenes(story, photos, theme, best_file):
     """Runs AFTER the core story is live; streams each magic scene into the carousel."""
     import time
@@ -146,6 +188,7 @@ async def generate_bonus_scenes(story, photos, theme, best_file):
             images[i] = retried[idx]
 
     ok = 0
+    created = []
     for i, sc in enumerate(scenes_cfg):
         img = images[i]
         if isinstance(img, Exception):
@@ -155,6 +198,7 @@ async def generate_bonus_scenes(story, photos, theme, best_file):
         rendered = await asyncio.to_thread(renderer.photo_slide, img, cap, sc["sticker"],
                                            story.pet_name, BRAND_NAME, story.theme, i)
         await _add_slide(story.id, "bonus", rendered, BONUS_ORDER_BASE + i, caption=cap)
+        created.append((BONUS_ORDER_BASE + i, cap))
         ok += 1
 
     if ok:
@@ -163,6 +207,7 @@ async def generate_bonus_scenes(story, photos, theme, best_file):
                              duration_ms=int((time.monotonic() - t0) * 1000))
     await db.stories.update_one({"id": story.id}, {"$set": {
         "bonus_pending": False, "progress_step": "¡Tu historia está lista!"}})
+    return created
 
 
 async def run_pipeline(story_id: str):
@@ -224,21 +269,36 @@ async def run_pipeline(story_id: str):
         await _add_slide(story_id, "closing", img, CLOSING_ORDER)
 
         bonus_will_run = bool(story.bonus_enabled and BONUS_ENABLED)
+        narrate_will_run = narration.NARRATION_ENABLED
         await db.stories.update_one({"id": story_id}, {"$set": {
             "status": "preview_ready", "title": title, "progress_pct": 100,
-            "bonus_pending": bonus_will_run,
+            "bonus_pending": bonus_will_run, "narration_pending": narrate_will_run,
             "progress_step": "Agregando escenas mágicas..." if bonus_will_run else "¡Tu historia está lista!"}})
-        logger.info(f"Story {story_id} core ready (bonus_pending={bonus_will_run})")
+        logger.info(f"Story {story_id} core ready (bonus={bonus_will_run}, narration={narrate_will_run})")
 
-        # Stage 4: bonus scenes stream in while the user already enjoys the story
+        # Stage 4: narration + bonus scenes stream in while the user enjoys the story
+        async def bonus_branch():
+            created = await generate_bonus_scenes(story, photos, theme, best_file)
+            if narrate_will_run and created:
+                await asyncio.gather(
+                    *[narrate_slide(story_id, order, cap, story.voice_id) for order, cap in created],
+                    return_exceptions=True)
+
+        tasks = []
+        if narrate_will_run:
+            tasks.append(narrate_core(story, title, captions))
         if bonus_will_run:
-            await generate_bonus_scenes(story, photos, theme, best_file)
-            logger.info(f"Story {story_id} bonus scenes done")
+            tasks.append(bonus_branch())
+        if tasks:
+            await asyncio.gather(*tasks, return_exceptions=True)
+        if narrate_will_run:
+            await db.stories.update_one({"id": story_id}, {"$set": {"narration_pending": False}})
+        logger.info(f"Story {story_id} fully done (bonus+narration)")
     except Exception as e:
         logger.exception(f"Pipeline failed for {story_id}")
         await db.stories.update_one({"id": story_id}, {"$set": {
             "status": "failed", "error": str(e), "progress_step": "Algo salió mal",
-            "progress_pct": 0, "bonus_pending": False}})
+            "progress_pct": 0, "bonus_pending": False, "narration_pending": False}})
 
 
 # ---------------- routes ----------------
@@ -253,6 +313,9 @@ async def config():
         "price_clp": PRICE_CLP, "brand_name": BRAND_NAME, "brand_url": BRAND_URL,
         "payment_mode": provider.mode, "bonus_enabled": BONUS_ENABLED, "free_mode": FREE_MODE,
         "bonus_scenes_count": BONUS_SCENES_COUNT,
+        "narration_enabled": narration.NARRATION_ENABLED,
+        "voices": narration.VOICES,
+        "narration_default_voice": narration.DEFAULT_VOICE_ID,
         "free_per_day": FREE_PER_DAY, "retention_days": RETENTION_DAYS,
         "themes": [{"key": k, "label": v["label"], "emoji": v["emoji"]} for k, v in THEMES.items()],
         "traits": models.TRAITS,
@@ -269,6 +332,7 @@ async def create_story(payload: StoryCreate, x_device_id: str = Header(default="
         traits=[t for t in payload.traits if t in models.TRAITS][:3],
         theme=payload.theme, email=payload.email, device_id=x_device_id,
         price_clp=PRICE_CLP, bonus_enabled=BONUS_ENABLED,
+        voice_id=narration.valid_voice(payload.voice_id or narration.DEFAULT_VOICE_ID),
     )
     await db.stories.insert_one(story.model_dump())
     return {"id": story.id, "slug": story.share_slug}
@@ -410,7 +474,8 @@ async def media(story_id: str, name: str):
     path = storage.file_path(story_id, name)
     if not path.exists():
         raise HTTPException(404, "No encontrado")
-    return FileResponse(path, media_type="image/jpeg")
+    mime = "audio/mpeg" if name.lower().endswith(".mp3") else "image/jpeg"
+    return FileResponse(path, media_type=mime)
 
 
 # ---------------- admin ----------------

@@ -1,17 +1,27 @@
 import { useState, useRef, useEffect } from "react";
-import { ChevronLeft, ChevronRight, Lock, Volume2, VolumeX, Play, Pause, Sparkles, Loader2, RotateCcw } from "lucide-react";
+import { ChevronLeft, ChevronRight, Lock, Volume2, VolumeX, Play, Pause, Sparkles, Loader2, RotateCcw, Captions, CaptionsOff, Repeat } from "lucide-react";
 import { mediaUrl } from "@/lib/api";
 import { createMusicPlayer } from "@/lib/music";
 
 const SLIDE_MS = 5000;
 
-export const StoryCarousel = ({ slides = [], paid = false, onUnlock, theme = "mi_ano", music = true, bonusPending = false, petName = "" }) => {
+export const StoryCarousel = ({ slides = [], paid = false, onUnlock, theme = "mi_ano", music = true, narration = true, bonusPending = false, petName = "" }) => {
   const [idx, setIdx] = useState(0);
   const [muted, setMuted] = useState(() => localStorage.getItem("cp_music_muted") === "1");
+  const [narrationMuted, setNarrationMuted] = useState(() => localStorage.getItem("cp_narration_muted") === "1");
   const [playing, setPlaying] = useState(true);
   const [slowHint, setSlowHint] = useState(false);
   const touchX = useRef(null);
   const playerRef = useRef(null);
+  const playingRef = useRef(playing);
+  useEffect(() => { playingRef.current = playing; }, [playing]);
+  const nRef = useRef(0);
+  const audioElRef = useRef(null);
+  if (audioElRef.current === null && typeof window !== "undefined" && window.Audio) {
+    audioElRef.current = new window.Audio();
+    audioElRef.current.preload = "auto";
+  }
+  useEffect(() => () => { const a = audioElRef.current; if (a) { a.onended = null; a.pause(); } }, []);
 
   // after a while waiting for AI scenes, reassure the user it's still working
   useEffect(() => {
@@ -32,6 +42,7 @@ export const StoryCarousel = ({ slides = [], paid = false, onUnlock, theme = "mi
   })();
 
   const n = display.length;
+  nRef.current = n;
   const slide = display[Math.min(idx, n - 1)] || {};
   const blocked = !!(slide?.locked && !paid);
 
@@ -55,18 +66,45 @@ export const StoryCarousel = ({ slides = [], paid = false, onUnlock, theme = "mi
     };
   }, [music, muted, theme, n]);
 
-  // auto-advance like Instagram stories
+  const narrateOn = narration && !narrationMuted;
+  const slideAudio = (!slide?.placeholder && slide?.audio_url && narrateOn) ? slide.audio_url : null;
+
+  // narration: read the current slide's phrase aloud; music ducks while it speaks
   useEffect(() => {
-    if (!playing || n <= 1 || blocked) return;
-    const t = setTimeout(() => {
-      setIdx((i) => {
-        if (i + 1 < n) return i + 1;
-        setPlaying(false);
-        return i;
-      });
-    }, SLIDE_MS);
+    const a = audioElRef.current;
+    if (!a || !slideAudio) return;
+    a.pause();
+    a.src = mediaUrl(slideAudio);
+    a.currentTime = 0;
+    playerRef.current?.setVolume?.(0.28);
+    const advanceEnd = () => {
+      playerRef.current?.setVolume?.(1);
+      if (playingRef.current) setIdx((i) => (i + 1 < nRef.current ? i + 1 : (setPlaying(false), i)));
+    };
+    a.onended = advanceEnd;
+    a.onerror = advanceEnd;
+    const safety = setTimeout(() => { if (playingRef.current) advanceEnd(); }, 16000);
+    if (playingRef.current) { const p = a.play(); if (p && p.catch) p.catch(() => {}); }
+    return () => {
+      clearTimeout(safety);
+      a.onended = null; a.onerror = null; a.pause();
+      playerRef.current?.setVolume?.(1);
+    };
+  }, [idx, slideAudio]);
+
+  // advance: narration drives it when present; otherwise a timer. Also syncs pause/play.
+  useEffect(() => {
+    if (n <= 1 || blocked) return;
+    const a = audioElRef.current;
+    if (slideAudio) {
+      if (playing) { const p = a?.play(); if (p && p.catch) p.catch(() => {}); }
+      else { a?.pause(); }
+      return;
+    }
+    if (!playing) return;
+    const t = setTimeout(() => setIdx((i) => (i + 1 < n ? i + 1 : (setPlaying(false), i))), SLIDE_MS);
     return () => clearTimeout(t);
-  }, [idx, playing, n, blocked]);
+  }, [idx, playing, n, blocked, slideAudio]);
 
   if (!n) return null;
 
@@ -102,6 +140,24 @@ export const StoryCarousel = ({ slides = [], paid = false, onUnlock, theme = "mi
       localStorage.setItem("cp_music_muted", m ? "0" : "1");
       return !m;
     });
+  };
+
+  const toggleNarration = () => {
+    setNarrationMuted((m) => {
+      localStorage.setItem("cp_narration_muted", m ? "0" : "1");
+      return !m;
+    });
+  };
+
+  const repeatPhrase = (e) => {
+    e && e.stopPropagation();
+    const a = audioElRef.current;
+    if (a && slideAudio) {
+      a.currentTime = 0;
+      playerRef.current?.setVolume?.(0.28);
+      const p = a.play();
+      if (p && p.catch) p.catch(() => {});
+    }
   };
 
   return (
@@ -172,6 +228,28 @@ export const StoryCarousel = ({ slides = [], paid = false, onUnlock, theme = "mi
 
         {/* playback controls */}
         <div className="absolute bottom-3 right-3 z-20 flex gap-2">
+          {narration && (
+            <button
+              onClick={(e) => { e.stopPropagation(); toggleNarration(); }}
+              className="w-9 h-9 rounded-full bg-black/35 backdrop-blur text-white grid place-items-center active:scale-90 transition-transform"
+              data-testid="story-narration-toggle"
+              aria-label={narrationMuted ? "Activar narración" : "Silenciar narración"}
+              title={narrationMuted ? "Activar narración" : "Silenciar narración"}
+            >
+              {narrationMuted ? <CaptionsOff className="w-4 h-4" /> : <Captions className="w-4 h-4" />}
+            </button>
+          )}
+          {slideAudio && (
+            <button
+              onClick={repeatPhrase}
+              className="w-9 h-9 rounded-full bg-black/35 backdrop-blur text-white grid place-items-center active:scale-90 transition-transform"
+              data-testid="story-repeat-phrase"
+              aria-label="Repetir la frase"
+              title="Repetir la frase"
+            >
+              <Repeat className="w-4 h-4" />
+            </button>
+          )}
           {music && (
             <button
               onClick={(e) => { e.stopPropagation(); toggleMute(); }}
@@ -214,7 +292,7 @@ export const StoryCarousel = ({ slides = [], paid = false, onUnlock, theme = "mi
         </button>
       </div>
       <p className="mt-3 text-sm text-muted-foreground font-medium" data-testid="story-slide-counter">
-        {idx + 1} / {n} · {muted ? "música apagada" : "con música 🎵"}
+        {idx + 1} / {n} · {narrateOn ? "con voz 🎙️" : (muted ? "música apagada" : "con música 🎵")}
       </p>
     </div>
   );

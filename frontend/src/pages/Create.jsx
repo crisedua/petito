@@ -48,8 +48,14 @@ export default function Create() {
   const [slug, setSlug] = useState(null);
   const [story, setStory] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [voiceId, setVoiceId] = useState("");
 
-  useEffect(() => { getConfig().then(setCfg).catch(() => toast.error("No se pudo cargar la configuración")); }, []);
+  useEffect(() => {
+    getConfig().then((c) => {
+      setCfg(c);
+      setVoiceId(c.narration_default_voice || c.voices?.[0]?.id || "");
+    }).catch(() => toast.error("No se pudo cargar la configuración"));
+  }, []);
 
   const toggleTrait = (t) =>
     setTraits((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : prev.length >= 3 ? (toast.info("Máximo 3 rasgos"), prev) : [...prev, t]));
@@ -65,7 +71,7 @@ export default function Create() {
           traits={traits} toggleTrait={toggleTrait} onNext={() => (petName.trim() ? setStep("theme") : toast.error("Ponle nombre a tu mascota 🐾"))} />
       )}
       {step === "theme" && (
-        <StepTheme key="theme" cfg={cfg} theme={theme} setTheme={setTheme} onBack={() => setStep("info")}
+        <StepTheme key="theme" cfg={cfg} theme={theme} setTheme={setTheme} voiceId={voiceId} setVoiceId={setVoiceId} onBack={() => setStep("info")}
           onNext={() => (theme ? setStep("photos") : toast.error("Elige un tema"))} />
       )}
       {step === "photos" && (
@@ -74,7 +80,7 @@ export default function Create() {
             if (files.length < 1) return toast.error("Sube al menos 1 foto");
             setBusy(true);
             try {
-              const s = await createStory({ pet_name: petName, species, traits, theme });
+              const s = await createStory({ pet_name: petName, species, traits, theme, voice_id: voiceId });
               setStoryId(s.id); setSlug(s.slug);
               await uploadPhotos(s.id, files.map((f) => f.file));
               await generateStory(s.id);
@@ -165,7 +171,7 @@ function StepInfo({ nav, petName, setPetName, species, setSpecies, traits, toggl
 }
 
 /* ---------------- Step: theme ---------------- */
-function StepTheme({ cfg, theme, setTheme, onBack, onNext }) {
+function StepTheme({ cfg, theme, setTheme, voiceId, setVoiceId, onBack, onNext }) {
   return (
     <Screen>
       <Header stepText="Paso 2 de 4 · El tema" onBack={onBack} />
@@ -184,6 +190,23 @@ function StepTheme({ cfg, theme, setTheme, onBack, onNext }) {
             </button>
           ))}
         </div>
+
+        {cfg.narration_enabled && cfg.voices?.length > 0 && (
+          <div className="mt-7" data-testid="voice-selector">
+            <label className="block text-sm font-semibold text-neutral-700 mb-1">
+              Voz que narra la historia 🎙️ <span className="text-muted-foreground font-normal">(opcional)</span>
+            </label>
+            <p className="text-xs text-muted-foreground mb-2">Tu mascota leerá sus frases en voz alta, lento y claro.</p>
+            <div className="flex flex-wrap gap-2">
+              {cfg.voices.map((v) => (
+                <button key={v.id} onClick={() => setVoiceId(v.id)} data-testid={`voice-chip-${v.id}`}
+                  className={`px-4 py-2.5 rounded-full border-2 text-sm font-semibold transition-all ${voiceId === v.id ? "border-primary bg-primary text-white" : "border-border bg-white text-neutral-700"}`}>
+                  {v.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
       <BottomBar>
         <Button onClick={onNext} className="w-full h-14 text-base font-display font-semibold rounded-2xl" data-testid="theme-next-button">
@@ -316,18 +339,18 @@ function StepResult({ story, setStory, storyId, slug, cfg, price, nav }) {
 
   const refresh = async () => setStory(await getStory(storyId));
 
-  // Stream the magic AI scenes in as they finish (progressive preview)
+  // Stream the magic AI scenes + narration in as they finish (progressive preview)
   useEffect(() => {
-    if (!story?.bonus_pending) return;
+    if (!story?.bonus_pending && !story?.narration_pending) return;
     const poll = setInterval(async () => {
       try {
         const s = await getStory(storyId);
         setStory(s);
-        if (!s.bonus_pending) clearInterval(poll);
+        if (!s.bonus_pending && !s.narration_pending) clearInterval(poll);
       } catch { /* keep polling */ }
     }, 3000);
     return () => clearInterval(poll);
-  }, [story?.bonus_pending, storyId]);
+  }, [story?.bonus_pending, story?.narration_pending, storyId]);
 
   const unlock = async () => {
     setBusy(true);
@@ -378,7 +401,7 @@ function StepResult({ story, setStory, storyId, slug, cfg, price, nav }) {
         <h2 className="font-display font-bold text-xl text-neutral-900 text-center mb-1" data-testid="result-title">{story?.title}</h2>
         <p className="text-center text-sm text-muted-foreground mb-4">{story?.theme_label} · {story?.pet_name}</p>
 
-        <StoryCarousel slides={story?.slides || []} paid={paid} theme={story?.theme} bonusPending={story?.bonus_pending} petName={story?.pet_name} onUnlock={() => document.getElementById("paywall")?.scrollIntoView({ behavior: "smooth" })} />
+        <StoryCarousel slides={story?.slides || []} paid={paid} theme={story?.theme} narration={cfg.narration_enabled} bonusPending={story?.bonus_pending} petName={story?.pet_name} onUnlock={() => document.getElementById("paywall")?.scrollIntoView({ behavior: "smooth" })} />
 
         {paid ? (
           <div className="mt-6 grid grid-cols-2 gap-3" data-testid="share-hub">

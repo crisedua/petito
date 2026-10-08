@@ -17,18 +17,18 @@ export default function StoryView() {
     getStoryBySlug(slug).then(setStory).catch(() => toast.error("Historia no encontrada")).finally(() => setLoading(false));
   }, [slug]);
 
-  // Stream the magic AI scenes in as they finish
+  // Stream the magic AI scenes + narration in as they finish
   useEffect(() => {
-    if (!story?.bonus_pending) return;
+    if (!story?.bonus_pending && !story?.narration_pending) return;
     const poll = setInterval(async () => {
       try {
         const s = await getStoryBySlug(slug);
         setStory(s);
-        if (!s.bonus_pending) clearInterval(poll);
+        if (!s.bonus_pending && !s.narration_pending) clearInterval(poll);
       } catch { /* keep polling */ }
     }, 3000);
     return () => clearInterval(poll);
-  }, [story?.bonus_pending, slug]);
+  }, [story?.bonus_pending, story?.narration_pending, slug]);
 
   const shareUrl = window.location.href;
 
@@ -77,7 +77,7 @@ export default function StoryView() {
       <div className="flex-1 px-5 pt-4 pb-32 overflow-y-auto no-scrollbar">
         <h1 className="font-display font-bold text-xl text-center text-neutral-900">{story.title}</h1>
         <p className="text-center text-sm text-muted-foreground mb-4">{story.theme_label} · {story.pet_name}</p>
-        <StoryCarousel slides={story.slides} paid={story.paid} theme={story.theme} bonusPending={story.bonus_pending} petName={story.pet_name} onUnlock={() => nav("/crear")} />
+        <StoryCarousel slides={story.slides} paid={story.paid} theme={story.theme} narration={(story.slides || []).some((s) => s.audio_url) || story.narration_pending} bonusPending={story.bonus_pending} petName={story.pet_name} onUnlock={() => nav("/crear")} />
 
         {story.paid ? (
           <div className="mt-6 grid grid-cols-2 gap-3">

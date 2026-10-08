@@ -144,6 +144,7 @@ class StoryCreate(BaseModel):
     traits: List[str] = []
     theme: str
     email: Optional[str] = None
+    voice_id: Optional[str] = None
 
 
 class Story(BaseModel):
@@ -160,6 +161,8 @@ class Story(BaseModel):
     progress_step: str = ""
     progress_pct: int = 0
     bonus_pending: bool = False
+    narration_pending: bool = False
+    voice_id: Optional[str] = None
     title: Optional[str] = None
     price_clp: int = 3990
     paid_at: Optional[str] = None
@@ -182,6 +185,7 @@ class Slide(BaseModel):
     caption: str = ""
     kind: str = "photo"  # title, photo, bonus, closing
     image_file: str = ""  # clean rendered file name
+    audio_file: str = ""  # narration mp3 file name
     locked_file: str = ""  # blurred/watermarked variant
     locked: bool = False
     created_at: str = Field(default_factory=iso_now)

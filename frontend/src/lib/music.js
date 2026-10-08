@@ -274,6 +274,13 @@ export const createMusicPlayer = (theme) => {
     get running() {
       return ctx.state === "running";
     },
+    setVolume(v) {
+      try {
+        master.gain.cancelScheduledValues(ctx.currentTime);
+        master.gain.setValueAtTime(master.gain.value, ctx.currentTime);
+        master.gain.linearRampToValueAtTime(Math.max(0.0001, v), ctx.currentTime + 0.3);
+      } catch (e) { /* ignore */ }
+    },
     stop() {
       stopped = true;
       if (timer) clearInterval(timer);
