@@ -5,7 +5,7 @@ from pathlib import Path
 from datetime import datetime, timezone, timedelta
 
 from fastapi import FastAPI, APIRouter, UploadFile, File, HTTPException, Header, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import Response
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -108,7 +108,7 @@ CLOSING_ORDER = 9999
 
 
 def _save_jpg(story_id, image, fname, q=90):
-    image.save(storage.file_path(story_id, fname), "JPEG", quality=q)
+    storage.save_image(story_id, fname, image, q)
 
 
 async def _add_slide(story_id, kind, image, order, caption="", lockable=True):
@@ -137,8 +137,7 @@ def _get_narr_sem():
 
 
 def _write_bytes(story_id, fname, data):
-    with open(storage.file_path(story_id, fname), "wb") as f:
-        f.write(data)
+    storage.save_bytes(story_id, fname, data, "audio/mpeg")
 
 
 async def narrate_slide(story_id, order, text, voice_id):
@@ -168,7 +167,7 @@ async def generate_bonus_scenes(story, photos, theme, best_file):
     """Runs AFTER the core story is live; streams each magic scene into the carousel."""
     import time
     scenes_cfg = theme["bonus_scenes"][:BONUS_SCENES_COUNT]
-    data_uri = storage.image_to_data_uri(story.id, best_file)
+    data_uri = await asyncio.to_thread(storage.image_to_data_uri, story.id, best_file)
     t0 = time.monotonic()
 
     async def one_scene(scene_cfg):
@@ -224,7 +223,7 @@ async def run_pipeline(story_id: str):
         # Stage 1: selection
         await db.stories.update_one({"id": story_id}, {"$set": {
             "progress_step": "Eligiendo tus mejores fotos...", "progress_pct": 25}})
-        b64s = [storage.image_to_b64(story_id, p["file"]) for p in photos]
+        b64s = await asyncio.gather(*[asyncio.to_thread(storage.image_to_b64, story_id, p["file"]) for p in photos])
         t0 = time.monotonic()
         sel, best_idx, usage = await ai_pipeline.select_photos(
             b64s, story.pet_name, SPECIES.get(story.species, "mascota"), story.traits, theme["label"])
@@ -351,7 +350,7 @@ async def upload_photos(story_id: str, files: list[UploadFile] = File(...)):
         if not raw:
             continue
         try:
-            name = storage.save_original(story_id, i, raw)
+            name = await asyncio.to_thread(storage.save_original, story_id, i, raw)
         except Exception:
             continue
         saved.append({"id": new_id(), "story_id": story_id, "index": i, "file": name,
@@ -471,11 +470,12 @@ async def mp_webhook(request: Request):
 async def media(story_id: str, name: str):
     if ".." in name or "/" in name:
         raise HTTPException(400, "Nombre inválido")
-    path = storage.file_path(story_id, name)
-    if not path.exists():
+    try:
+        data, content_type = await asyncio.to_thread(storage.get_bytes, story_id, name)
+    except Exception:
         raise HTTPException(404, "No encontrado")
-    mime = "audio/mpeg" if name.lower().endswith(".mp3") else "image/jpeg"
-    return FileResponse(path, media_type=mime)
+    mime = "audio/mpeg" if name.lower().endswith(".mp3") else (content_type or "image/jpeg")
+    return Response(content=data, media_type=mime)
 
 
 # ---------------- admin ----------------
@@ -546,6 +546,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.on_event("startup")
+async def _init_storage():
+    try:
+        await asyncio.to_thread(storage.init_storage)
+        logger.info("Object storage initialized")
+    except Exception as e:
+        logger.error(f"Object storage init failed: {e}")
 
 
 @app.on_event("shutdown")
