@@ -11,17 +11,26 @@ export const StoryCarousel = ({ slides = [], paid = false, onUnlock, theme = "mi
   const [narrationMuted, setNarrationMuted] = useState(() => localStorage.getItem("cp_narration_muted") === "1");
   const [playing, setPlaying] = useState(true);
   const [slowHint, setSlowHint] = useState(false);
+  const [started, setStarted] = useState(false);
+  const [soundBlocked, setSoundBlocked] = useState(false);
   const touchX = useRef(null);
   const playerRef = useRef(null);
   const playingRef = useRef(playing);
   useEffect(() => { playingRef.current = playing; }, [playing]);
+  const startedRef = useRef(false);
+  const justStartedRef = useRef(false);
   const nRef = useRef(0);
   const audioElRef = useRef(null);
   if (audioElRef.current === null && typeof window !== "undefined" && window.Audio) {
     audioElRef.current = new window.Audio();
     audioElRef.current.preload = "auto";
   }
-  useEffect(() => () => { const a = audioElRef.current; if (a) { a.onended = null; a.pause(); } }, []);
+  useEffect(() => () => {
+    const a = audioElRef.current;
+    if (a) { a.onended = null; a.pause(); }
+    playerRef.current?.stop?.();
+    playerRef.current = null;
+  }, []);
 
   // after a while waiting for AI scenes, reassure the user it's still working
   useEffect(() => {
@@ -50,51 +59,89 @@ export const StoryCarousel = ({ slides = [], paid = false, onUnlock, theme = "mi
     if (idx > n - 1) setIdx(Math.max(0, n - 1));
   }, [n, idx]);
 
-  // background music: starts muted-safe, resumes on first gesture (autoplay policy)
-  useEffect(() => {
-    if (!music || muted || !n) return;
-    const p = createMusicPlayer(theme);
-    if (!p) return;
-    playerRef.current = p;
-    p.start(1);
-    const onGesture = () => p.resume();
-    document.addEventListener("pointerdown", onGesture);
-    return () => {
-      document.removeEventListener("pointerdown", onGesture);
-      p.stop();
-      playerRef.current = null;
-    };
-  }, [music, muted, theme, n]);
-
   const narrateOn = narration && !narrationMuted;
-  const slideAudio = (!slide?.placeholder && slide?.audio_url && narrateOn) ? slide.audio_url : null;
+  const audioOf = (s) => (s && !s.placeholder && s.audio_url && narrateOn) ? s.audio_url : null;
+  const slideAudio = audioOf(slide);
+
+  const narrationEnded = () => {
+    playerRef.current?.setVolume?.(1);
+    if (playingRef.current) setIdx((i) => (i + 1 < nRef.current ? i + 1 : (setPlaying(false), i)));
+  };
+
+  const ensureMusic = () => {
+    if (!music || muted) return;
+    if (!playerRef.current) {
+      const p = createMusicPlayer(theme);
+      playerRef.current = p;
+      p?.start(1);
+    }
+    playerRef.current?.resume?.();
+  };
+
+  const playAudioEl = (url) => {
+    const a = audioElRef.current;
+    if (!a || !url) return;
+    a.pause();
+    a.src = mediaUrl(url);
+    a.currentTime = 0;
+    playerRef.current?.setVolume?.(0.28);
+    a.onended = narrationEnded;
+    a.onerror = narrationEnded;
+    const p = a.play();
+    if (p && p.catch) p.catch(() => {});
+  };
+
+  const checkSound = () => {
+    const musicOn = music && !muted;
+    const musicRunning = !musicOn || !!playerRef.current?.running;
+    const narrFirst = audioOf(display[0]);
+    const narrPlaying = !narrFirst || (audioElRef.current && !audioElRef.current.paused);
+    setSoundBlocked(!(musicRunning && narrPlaying));
+  };
+
+  // start everything on the first explicit tap (satisfies browser autoplay policy)
+  const startPlayback = (e) => {
+    e && e.stopPropagation();
+    if (startedRef.current) return;
+    startedRef.current = true;
+    setStarted(true);
+    setIdx(0);
+    setPlaying(true);
+    ensureMusic();
+    const first = audioOf(display[0]);
+    if (first) { justStartedRef.current = true; playAudioEl(first); }
+    setTimeout(checkSound, 700);
+  };
+
+  const activateSound = (e) => {
+    e && e.stopPropagation();
+    ensureMusic();
+    const a = audioElRef.current;
+    if (a && a.paused && slideAudio) { const p = a.play(); if (p && p.catch) p.catch(() => {}); }
+    setTimeout(checkSound, 500);
+  };
 
   // narration: read the current slide's phrase aloud; music ducks while it speaks
   useEffect(() => {
     const a = audioElRef.current;
-    if (!a || !slideAudio) return;
-    a.pause();
-    a.src = mediaUrl(slideAudio);
-    a.currentTime = 0;
-    playerRef.current?.setVolume?.(0.28);
-    const advanceEnd = () => {
-      playerRef.current?.setVolume?.(1);
-      if (playingRef.current) setIdx((i) => (i + 1 < nRef.current ? i + 1 : (setPlaying(false), i)));
-    };
-    a.onended = advanceEnd;
-    a.onerror = advanceEnd;
-    const safety = setTimeout(() => { if (playingRef.current) advanceEnd(); }, 16000);
-    if (playingRef.current) { const p = a.play(); if (p && p.catch) p.catch(() => {}); }
+    if (!a || !slideAudio || !started) return;
+    if (justStartedRef.current) {
+      justStartedRef.current = false;  // slide 0 audio was already launched in the tap gesture
+      const safety = setTimeout(() => { if (playingRef.current) narrationEnded(); }, 16000);
+      return () => clearTimeout(safety);
+    }
+    playAudioEl(slideAudio);
+    const safety = setTimeout(() => { if (playingRef.current) narrationEnded(); }, 16000);
     return () => {
       clearTimeout(safety);
       a.onended = null; a.onerror = null; a.pause();
       playerRef.current?.setVolume?.(1);
     };
-  }, [idx, slideAudio]);
+  }, [idx, slideAudio, started]);
 
   // advance: narration drives it when present; otherwise a timer. Also syncs pause/play.
   useEffect(() => {
-    if (n <= 1 || blocked) return;
+    if (!started || n <= 1 || blocked) return;
     const a = audioElRef.current;
     if (slideAudio) {
       if (playing) { const p = a?.play(); if (p && p.catch) p.catch(() => {}); }
@@ -104,12 +151,12 @@ export const StoryCarousel = ({ slides = [], paid = false, onUnlock, theme = "mi
     if (!playing) return;
     const t = setTimeout(() => setIdx((i) => (i + 1 < n ? i + 1 : (setPlaying(false), i))), SLIDE_MS);
     return () => clearTimeout(t);
-  }, [idx, playing, n, blocked, slideAudio]);
+  }, [idx, playing, n, blocked, slideAudio, started]);
 
   if (!n) return null;
 
   const atEnd = idx >= n - 1;
-  const finished = atEnd && !playing && !blocked;
+  const finished = atEnd && !playing && !blocked && started;
 
   const go = (dir) => setIdx((i) => Math.min(n - 1, Math.max(0, i + dir)));
 
@@ -129,6 +176,7 @@ export const StoryCarousel = ({ slides = [], paid = false, onUnlock, theme = "mi
   };
 
   const handleTap = (e) => {
+    if (!started) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
     if (blocked) { onUnlock && onUnlock(); return; }
@@ -137,8 +185,11 @@ export const StoryCarousel = ({ slides = [], paid = false, onUnlock, theme = "mi
 
   const toggleMute = () => {
     setMuted((m) => {
-      localStorage.setItem("cp_music_muted", m ? "0" : "1");
-      return !m;
+      const next = !m;
+      localStorage.setItem("cp_music_muted", next ? "1" : "0");
+      if (next) { playerRef.current?.stop?.(); playerRef.current = null; }
+      else if (startedRef.current) { ensureMusic(); setTimeout(checkSound, 400); }
+      return next;
     });
   };
 
@@ -226,6 +277,34 @@ export const StoryCarousel = ({ slides = [], paid = false, onUnlock, theme = "mi
           </button>
         )}
 
+        {/* tap-to-play gate (browser autoplay policy needs a user gesture) */}
+        {!started && (
+          <button
+            onClick={startPlayback}
+            className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-4 bg-black/45 backdrop-blur-[2px]"
+            data-testid="story-start-button"
+            aria-label="Tocar para reproducir con sonido"
+          >
+            <span className="w-20 h-20 rounded-full bg-white grid place-items-center shadow-xl animate-pop">
+              <Play className="w-9 h-9 text-primary ml-1" />
+            </span>
+            <span className="bg-white text-primary font-display font-semibold text-sm px-5 py-2.5 rounded-full shadow-lg">
+              Tocar para reproducir con sonido
+            </span>
+          </button>
+        )}
+
+        {/* fallback if the browser silenced the audio after start */}
+        {started && soundBlocked && (
+          <button
+            onClick={activateSound}
+            className="absolute top-9 left-1/2 -translate-x-1/2 z-30 bg-white text-primary font-display font-semibold text-xs px-4 py-2 rounded-full shadow-lg flex items-center gap-1.5 animate-pop"
+            data-testid="story-activate-sound"
+          >
+            <Volume2 className="w-4 h-4" /> Activar sonido
+          </button>
+        )}
+
         {/* playback controls */}
         <div className="absolute bottom-3 right-3 z-20 flex gap-2">
           {narration && (
@@ -292,7 +371,9 @@ export const StoryCarousel = ({ slides = [], paid = false, onUnlock, theme = "mi
         </button>
       </div>
       <p className="mt-3 text-sm text-muted-foreground font-medium" data-testid="story-slide-counter">
-        {idx + 1} / {n} · {narrateOn ? "con voz 🎙️" : (muted ? "música apagada" : "con música 🎵")}
+        {!started
+          ? "Toca para reproducir con sonido 🔊"
+          : `${idx + 1} / ${n} · ${narrateOn ? "con voz 🎙️" : (muted ? "música apagada" : "con música 🎵")}`}
       </p>
     </div>
   );

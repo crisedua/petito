@@ -1,61 +1,55 @@
-# Petito · Narración de la historia con la voz de la mascota (más lenta)
+# Petito · Que la voz (y la música) se escuchen al reproducir
 
-La mascota "cuenta" su propia historia: cada frase de las diapositivas se lee en voz alta mientras avanza el carrusel.
-La narración va más lenta y clara, con voz de acento español nativo (ElevenLabs), queda integrada en la historia y suena también para quien abra el enlace compartido.
+La historia debe sonar: la narración de la mascota y la musiquita de fondo tienen que escucharse al ver la historia, tanto en el sitio publicado como en los enlaces compartidos.
+Hoy no se escucha nada porque los navegadores bloquean el audio automático hasta que la persona toca la pantalla, y la app no está pidiendo ese toque ni arrancando el sonido con él.
+
+## Por qué pasa (diagnóstico)
+- En el reporte: no se escucha NI música ni voz, y la persona no tocó la pantalla. La música se genera en el propio navegador (no depende del servidor), así que si tampoco suena, la causa no es el servidor ni el almacenamiento: es la regla de "no autoplay con sonido" de los navegadores (Safari de iPhone y los de computador la aplican estricto).
+- La app intenta sonar sola; el navegador lo bloquea; y no hay un botón visible que diga "toca para escuchar", por lo que queda en silencio.
 
 ## Para quién es
-Dueños de mascotas en Chile que quieren una historia más entretenida y tierna: en vez de solo leer, escuchan a su regalón "narrar" sus frases, ideal para mostrar a la familia o compartir por WhatsApp.
+Dueños de mascotas en Chile que abren su historia (recién creada o por un enlace compartido) y esperan verla y ESCUCHARLA: la voz de su regalón narrando y la música de fondo.
 
 ## Funcionalidad y experiencia
-- **Narración por diapositiva**: cada frase de la historia (la línea en primera persona de la mascota) se lee en voz alta cuando esa diapositiva está en pantalla.
-- **Voz con acento español nativo**: suena natural en español (sin dejo en inglés), gracias a ElevenLabs.
-- **Más lenta**: la voz lee a un ritmo calmado para que se entienda bien y suene cálido, no apurado.
-- **Sincronía con el carrusel**: el avance automático espera a que termine de leerse la frase antes de pasar a la siguiente diapositiva.
-- **Música que acompaña**: la musiquita de fondo baja de volumen mientras la mascota habla y vuelve a subir al terminar la frase.
-- **Controles simples**: un botón para activar o silenciar la narración y otro para repetir la frase de la diapositiva actual. La preferencia (con/sin narración) se recuerda.
-- **Integrada y compartible**: la narración se genera junto con la historia y suena igual cuando alguien abre el enlace compartido.
-- **Voz con personalidad**: al crear, se puede elegir entre un set acotado de voces en español, con una por defecto ya seleccionada.
+- **Arranque con sonido al primer toque**: al abrir la historia aparece un llamado claro (ej. un botón grande "▶ Tocar para reproducir con sonido"). Con ese toque empieza todo: música + voz, desde la primera diapositiva.
+- **Un solo toque despierta ambos audios**: ese mismo gesto activa la música y la narración juntas (es lo que el navegador exige); de ahí en adelante todo fluye solo.
+- **No se pierde el inicio**: la historia no avanza sola hasta que la persona toca para empezar, así nadie se pierde la primera frase.
+- **Respeta las preferencias**: si antes dejó la narración o la música en silencio, se respeta; los botones de silenciar/activar voz y música siguen funcionando igual.
+- **Funciona en el enlace compartido**: quien abre el enlace ve el mismo llamado y, al tocar, escucha la narración y la música.
+- **iPhone y computador**: el arranque por toque está pensado para que funcione en Safari de iPhone (el más estricto) y en navegadores de computador.
+- **Si el sonido quedó apagado**: mientras suena, si por alguna razón el navegador silencia, se muestra un pequeño botón "Activar sonido" para reactivarlo con un toque.
 
 ## Flujo de uso
-1. La persona crea su historia como siempre (mascota, tema, fotos).
-2. La historia se genera incluyendo la narración de cada frase, con la voz por defecto o la que haya elegido.
-3. Al reproducir, la mascota va "contando" cada diapositiva, lento y claro; la música baja mientras habla y el carrusel espera a que termine cada frase.
-4. En cualquier momento puede silenciar/activar la narración o repetir la frase actual.
-5. Al compartir el enlace, quien lo abra escucha la misma narración.
+1. La persona abre su historia (al crearla o por un enlace).
+2. Ve la primera diapositiva con un llamado claro para tocar y escuchar.
+3. Toca una vez: empiezan la música y la voz desde el inicio.
+4. La historia avanza sola, esperando a que cada frase termine de leerse; puede silenciar/activar voz o música, o repetir la frase.
 
 ## Sensación de UI/UX
-- Coherente con Petito: naranja/crema, tipografía redondeada, tono chileno y amable.
-- En el reproductor de la historia, un control de narración (ícono tipo parlante/"contar") junto a los controles de música y play, con micro-animación al tocar.
-- Al crear, un selector de voz compacto (chips o lista) con una opción por defecto; es opcional.
-- Si la narración todavía se está generando, la frase igual se muestra en pantalla y la voz entra apenas está lista (sin bloquear la vista de la historia).
-- No tapa el carrusel ni compite con el logo ni el botón de invitar.
+- Coherente con Petito (naranja/crema, tipografía redondeada, tono chileno).
+- El llamado a tocar es amable y evidente, sin tapar la foto: un botón/affordance centrado con micro-animación ("▶ Tocar para reproducir con sonido").
+- Una vez iniciado, el botón desaparece y quedan los controles normales (voz, repetir, música, play) abajo a la derecha.
+- Nada de textos técnicos ni mensajes de error; solo una invitación simple a tocar.
 
 ## Fases de implementación
 **Fase 1 — MVP (se construye ahora)**
-- Narración por diapositiva de las frases de la mascota (título + frases de fotos + frases de escenas), leída en voz alta.
-- Voz con acento español nativo (ElevenLabs, modelo multilingüe) usando tu propia API key.
-- Velocidad más lenta para una lectura clara y tierna.
-- Generación junto con la historia e integración en el enlace compartido.
-- Música de fondo que baja mientras narra; avance automático que espera a que termine la frase.
-- Activar/silenciar narración (recordado) y repetir la frase actual.
-- Voz por defecto, con un set acotado de voces en español elegible al crear.
+- Detectar que el navegador bloquea el audio automático y mostrar el llamado "Tocar para reproducir con sonido".
+- Con el primer toque, iniciar música + narración juntas desde la primera diapositiva, de forma confiable en iPhone (Safari) y computador.
+- No auto-avanzar hasta que la persona inicie; respetar las preferencias de silencio ya guardadas.
+- Mismo comportamiento en la vista recién creada y en el enlace compartido.
+- Botón "Activar sonido" de respaldo si el audio queda silenciado.
 
-**Fase 2 — Más control (futuro)**
-- Selector de velocidad (normal / lento / muy lento).
-- Resaltar la frase o palabra a medida que se lee.
-- Voz sugerida según el tema de la historia.
+**Fase 2 — Comodidad (futuro)**
+- Recordar que la persona ya "activó el sonido" para que la próxima vez arranque con el mínimo roce posible.
+- Indicador sutil de que la voz está hablando (ondas/el ícono animado) y resaltado de la frase que se lee.
 
-**Fase 3 — Exportar (futuro)**
-- Descargar la narración como audio y/o exportar un video vertical con la voz + la música para subir a redes.
+**Fase 3 — Alcance (futuro)**
+- Botón directo "Compartir con sonido" y, más adelante, exportar un video vertical con voz + música (que ya trae el audio incrustado y evita el tema del autoplay en redes).
 
 ## Supuestos
-- **Proveedor**: ElevenLabs con TU propia API key (no se usa la llave universal de Emergent). La key se guarda como secreto en el backend (nunca en el frontend). Como la compartiste en el chat, conviene rotarla en elevenlabs.io una vez integrada.
-- **Modelo y voz**: modelo multilingüe (eleven_multilingual_v2) con voces nativas de español para buen acento. La velocidad lenta se ajusta en los parámetros de la voz.
-- **Voces ofrecidas**: un set curado (~4) de voces en español con una por defecto de tono cálido/alegre; las voces concretas se eligen de tu cuenta de ElevenLabs al construir. Una voz por historia, elegible al crear.
-- **Qué se narra**: las frases de la mascota (título y captions de las diapositivas de foto y de escenas IA). La diapositiva final de marca (petito.pro) no se narra; solo queda la música.
-- **Cuándo se genera**: la narración se crea como parte de la historia (es texto, rápido), así queda lista al ver la historia y viaja en el enlace compartido. Si alguna frase aún se está generando, se muestra el texto y la voz entra apenas está lista.
-- **Activada por defecto**: la narración viene activada, con un botón para silenciarla; la preferencia se recuerda (igual que el silencio de la música).
-- **Costo**: el uso de voz se descuenta de TU cuenta/créditos de ElevenLabs según su precio por caracteres. El resto de la app sigue gratis para el usuario mientras está en modo gratuito.
-- **Solo audio**: sin boca animada ni lip-sync (confirmado); es la voz leyendo, no un video de la mascota hablando.
-- **Alcance**: disponible al crear y en la vista pública compartida; no aparece en el panel de administración.
-- **Idioma**: toda la interfaz y los textos en español chileno.
+- La causa es la política de autoplay del navegador (no un problema del servidor ni del almacenamiento de audio), porque tampoco suena la música, que es 100% del lado del navegador.
+- El arreglo es solo de experiencia en el reproductor: se agrega el arranque por toque; no cambian las voces, los textos, ni la generación de la historia.
+- Se elige pedir UN toque para iniciar con sonido (lo más confiable en todos los navegadores) en vez de reproducir en silencio y pedir "activar sonido" después; igual se deja el botón de "Activar sonido" como respaldo.
+- La narración sigue activada por defecto y la música también; las preferencias de silencio por separado se mantienen.
+- Aplica tanto a la historia recién creada como a los enlaces compartidos; no aparece en el panel de administración.
+- Todo el texto en español chileno.
