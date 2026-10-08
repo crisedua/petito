@@ -1,0 +1,31 @@
+{
+  "summary": "Frontend-only verification of the 'tap-to-play with sound' gate in StoryCarousel on /h/41a7777a19. All 5 scenarios passed. Autoplay is correctly blocked until user gesture, the tap starts narration audio from slide 0 inside the gesture (confirmed via window.Audio instrumentation showing src=/api/media/.../narration_X.mp3 with paused=false), controls remain functional post-start, the saved cp_narration_muted=1 preference is honored (counter shows 'con música', no narration audio, story still advances via timer), and the replay flow does not re-show the start gate.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/media/<story_id>/<file>", "issue": "For slug 41a7777a19 (story c848ca43), all slide_*.jpg AND narration_*.mp3 return 404. Audio-gate logic still verifies correctly in headless because play() is called with a valid src, but on a real device the user would hear nothing. Likely orphaned media on preview env (not caused by this fix). Reproduce: curl -I https://.../api/media/c848ca43-d91c-4565-a328-4ca908db1251/slide_1.jpg -> 404."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Investigate why media files for story slug 41a7777a19 (c848ca43-d91c-4565-a328-4ca908db1251) 404 on /api/media/* — pre-existing but worth re-seeding the demo story so narration audibly works end-to-end on the preview URL."
+  ],
+  "critical_code_review_comments": [
+    "StoryCarousel.jsx is 381 lines and manages a lot of refs/effects — borderline, consider splitting playback hooks into a useStoryPlayback() custom hook for maintainability.",
+    "Line 24-27: new window.Audio() is created lazily at module/render-time during the first render pass; this is fine because the gesture requirement is satisfied by startPlayback(), but worth adding a short code comment explaining why no DOM <audio> element is used (iOS Safari gesture inheritance).",
+    "narrationEnded handler also triggers on onerror (line 89) which masks real media failures and silently auto-advances — in production this means the 404s above make the story 'play' without any sound. Consider surfacing an error toast / setting soundBlocked=true when audio.error occurs."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a", "frontend": "100%"},
+  "test_credentials": "none (FREE_MODE)",
+  "seed_data_creation": "none — reused /h/41a7777a19 as instructed; no new story created.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Autoplay-gate works. Verified behaviors on /h/41a7777a19: (1) start-button + counter 'Toca para reproducir con sonido 🔊' render and persist for 8s with no auto-advance, no audio; (2) one click on data-testid=story-start-button dismisses overlay, sets counter to '1/8 · con voz 🎙️', and creates an Audio() with src containing /api/media/.../narration_*.mp3 and paused=false (currentTime stays 0 in headless because Chromium cannot decode the mp3 — duration=NaN — but src+play() invocation inside the gesture is the real test); (3) narration/music/repeat/autoplay toggles update localStorage (cp_narration_muted, cp_music_muted) and counter labels; (4) with pre-set cp_narration_muted=1, after tap the counter shows 'con música 🎵', no narration audio is created, timer advances slides every ~5s; (5) at slide 8/8 pause triggers data-testid=story-replay-button; clicking it resets to 1/8 without re-showing the start gate (started state persists — correct). The audio activate-sound fallback (soundBlocked) did not trigger in this environment because play() returned a resolved promise (headless); it would need a real browser test to exercise. Media 404s on the demo story are unrelated to this fix.",
+  "rca of the issue": "N/A — fix verified working. Side note: image/audio 404s for slug 41a7777a19 are a stale demo content issue, not a code bug."
+}
