@@ -1,26 +1,43 @@
 import "@/App.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { Toaster } from "sonner";
+import { AuthProvider } from "@/lib/auth";
+import AuthCallback from "@/components/AuthCallback";
+import RequireAuth from "@/components/RequireAuth";
 import Landing from "@/pages/Landing";
 import Create from "@/pages/Create";
 import Portrait from "@/pages/Portrait";
 import StoryView from "@/pages/StoryView";
 import PortraitView from "@/pages/PortraitView";
+import MyCreations from "@/pages/MyCreations";
 import Admin from "@/pages/Admin";
+
+function AppRoutes() {
+  const location = useLocation();
+  // Process the OAuth callback FIRST (synchronously during render) to avoid race conditions.
+  if (location.hash?.includes("session_id=")) return <AuthCallback />;
+
+  return (
+    <Routes>
+      <Route path="/" element={<Landing />} />
+      <Route path="/crear" element={<RequireAuth subtitle="Inicia sesión para crear la historia de tu mascota 🐾"><Create /></RequireAuth>} />
+      <Route path="/retrato" element={<RequireAuth subtitle="Inicia sesión para crear el retrato de tu mascota 👑"><Portrait /></RequireAuth>} />
+      <Route path="/mis-creaciones" element={<RequireAuth subtitle="Inicia sesión para ver tus historias y retratos"><MyCreations /></RequireAuth>} />
+      <Route path="/h/:slug" element={<StoryView />} />
+      <Route path="/r/:slug" element={<PortraitView />} />
+      <Route path="/admin" element={<Admin />} />
+    </Routes>
+  );
+}
 
 function App() {
   return (
     <div className="App">
       <Toaster position="top-center" richColors />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/crear" element={<Create />} />
-          <Route path="/retrato" element={<Portrait />} />
-          <Route path="/h/:slug" element={<StoryView />} />
-          <Route path="/r/:slug" element={<PortraitView />} />
-          <Route path="/admin" element={<Admin />} />
-        </Routes>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
       </BrowserRouter>
     </div>
   );

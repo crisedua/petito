@@ -153,6 +153,7 @@ class Story(BaseModel):
     id: str = Field(default_factory=new_id)
     share_slug: str = Field(default_factory=new_slug)
     device_id: Optional[str] = None
+    user_id: Optional[str] = None
     pet_name: str
     species: str
     traits: List[str] = []
@@ -261,6 +262,7 @@ class Portrait(BaseModel):
     id: str = Field(default_factory=new_id)
     share_slug: str = Field(default_factory=new_slug)
     device_id: Optional[str] = None
+    user_id: Optional[str] = None
     pet_name: Optional[str] = None
     style: str
     status: str = "draft"  # draft, generating, preview_ready, paid, failed

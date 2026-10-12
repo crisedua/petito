@@ -12,9 +12,11 @@ export function getDeviceId() {
   return id;
 }
 
-export const api = axios.create({ baseURL: API });
+export const api = axios.create({ baseURL: API, withCredentials: true });
 api.interceptors.request.use((config) => {
   config.headers["X-Device-Id"] = getDeviceId();
+  const t = localStorage.getItem("petito_token");
+  if (t) config.headers["Authorization"] = `Bearer ${t}`;
   return config;
 });
 
@@ -51,6 +53,14 @@ export const portraitCheckout = (id) => api.post(`/portraits/${id}/checkout`).th
 export const payPortraitDemo = (id) => api.post(`/portraits/${id}/pay-demo`).then((r) => r.data);
 
 export const adminLogin = (password) => api.post("/admin/login", { password }).then((r) => r.data);
-export const adminMetrics = (token) => api.get("/admin/metrics", { headers: { Authorization: `Bearer ${token}` } }).then((r) => r.data);
-export const adminSurvey = (token) => api.get("/admin/survey", { headers: { Authorization: `Bearer ${token}` } }).then((r) => r.data);
-export const adminStories = (token, filter = "all") => api.get(`/admin/stories?filter=${filter}`, { headers: { Authorization: `Bearer ${token}` } }).then((r) => r.data);
+export const adminMetrics = () => api.get("/admin/metrics").then((r) => r.data);
+export const adminSurvey = () => api.get("/admin/survey").then((r) => r.data);
+export const adminStories = (filter = "all") => api.get(`/admin/stories?filter=${filter}`).then((r) => r.data);
+
+// ---- auth (Emergent Google) ----
+export const postSession = (sessionId) =>
+  api.post("/auth/session", {}, { headers: { "X-Session-ID": sessionId } }).then((r) => r.data);
+export const getMe = () => api.get("/auth/me").then((r) => r.data);
+export const logoutApi = () => api.post("/auth/logout").then((r) => r.data);
+export const myStories = () => api.get("/me/stories").then((r) => r.data);
+export const myPortraits = () => api.get("/me/portraits").then((r) => r.data);

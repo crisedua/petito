@@ -1,56 +1,45 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Loader2, Lock, TrendingUp, DollarSign, FileText, Percent, PawPrint, MessageCircleQuestion } from "lucide-react";
+import { Loader2, ShieldAlert, TrendingUp, DollarSign, FileText, Percent, PawPrint, MessageCircleQuestion } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { adminLogin, adminMetrics, adminStories, adminSurvey } from "@/lib/api";
+import { adminMetrics, adminStories, adminSurvey } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
+import Login from "@/pages/Login";
 
 const clp = (n) => new Intl.NumberFormat("es-CL").format(n || 0);
 
 export default function Admin() {
   const nav = useNavigate();
-  const [token, setToken] = useState(localStorage.getItem("cp_admin_token") || "");
-  const [password, setPassword] = useState("");
-  const [busy, setBusy] = useState(false);
+  const { user, loading, logout } = useAuth();
   const [metrics, setMetrics] = useState(null);
   const [rows, setRows] = useState([]);
   const [survey, setSurvey] = useState(null);
   const [filter, setFilter] = useState("all");
 
-  const load = async (t, f = filter) => {
+  const isAdmin = user?.is_admin;
+
+  const load = async (f = filter) => {
     try {
-      const [m, s, sv] = await Promise.all([adminMetrics(t), adminStories(t, f), adminSurvey(t)]);
+      const [m, s, sv] = await Promise.all([adminMetrics(), adminStories(f), adminSurvey()]);
       setMetrics(m); setRows(s); setSurvey(sv);
-    } catch { localStorage.removeItem("cp_admin_token"); setToken(""); toast.error("Sesión expirada"); }
+    } catch { toast.error("No se pudieron cargar los datos"); }
   };
 
-  useEffect(() => { if (token) load(token); }, []);
-  useEffect(() => { if (token) load(token, filter); /* eslint-disable-next-line */ }, [filter]);
+  useEffect(() => { if (isAdmin) load(filter); /* eslint-disable-next-line */ }, [isAdmin, filter]);
 
-  const login = async () => {
-    setBusy(true);
-    try {
-      const { token: t } = await adminLogin(password);
-      localStorage.setItem("cp_admin_token", t); setToken(t); await load(t);
-    } catch { toast.error("Contraseña incorrecta"); } finally { setBusy(false); }
-  };
+  if (loading) return <div className="mobile-frame grid place-items-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
 
-  if (!token) {
+  if (!user) return <Login returnPath="/admin" subtitle="Inicia sesión con tu Google autorizado para entrar al panel" />;
+
+  if (!isAdmin) {
     return (
-      <div className="mobile-frame grid place-items-center px-6" data-testid="admin-login-screen">
-        <div className="w-full">
-          <div className="flex flex-col items-center mb-6">
-            <div className="w-14 h-14 rounded-2xl bg-primary grid place-items-center mb-3"><Lock className="w-7 h-7 text-white" /></div>
-            <h1 className="font-display font-bold text-2xl">Panel Petito</h1>
-            <p className="text-sm text-muted-foreground">Acceso restringido</p>
-          </div>
-          <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && login()} placeholder="Contraseña"
-            className="h-14 rounded-2xl bg-white text-center" data-testid="admin-login-password-input" />
-          <Button onClick={login} disabled={busy} className="w-full h-14 mt-3 rounded-2xl font-display font-semibold" data-testid="admin-login-submit">
-            {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : "Entrar"}
-          </Button>
+      <div className="mobile-frame grid place-items-center px-8 text-center" data-testid="admin-unauthorized">
+        <div>
+          <div className="w-16 h-16 rounded-2xl bg-red-50 grid place-items-center mx-auto mb-4"><ShieldAlert className="w-8 h-8 text-red-500" /></div>
+          <h1 className="font-display font-bold text-2xl text-neutral-900">No autorizado</h1>
+          <p className="text-sm text-muted-foreground mt-2">La cuenta <b>{user.email}</b> no tiene acceso al panel de administración.</p>
+          <Button onClick={() => { logout(); nav("/"); }} variant="secondary" className="mt-6 rounded-2xl bg-white border border-border" data-testid="admin-switch-account">Cerrar sesión</Button>
           <button onClick={() => nav("/")} className="w-full mt-4 text-xs text-muted-foreground">Volver al inicio</button>
         </div>
       </div>
@@ -68,7 +57,10 @@ export default function Admin() {
     <div className="mobile-frame" data-testid="admin-dashboard">
       <div className="flex items-center justify-between px-5 pt-5">
         <h1 className="font-display font-bold text-xl flex items-center gap-2"><PawPrint className="w-5 h-5 text-primary" /> Admin</h1>
-        <button onClick={() => { localStorage.removeItem("cp_admin_token"); setToken(""); }} className="text-xs text-primary font-semibold" data-testid="admin-logout">Salir</button>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-muted-foreground truncate max-w-[140px]">{user.email}</span>
+          <button onClick={() => { logout(); nav("/"); }} className="text-xs text-primary font-semibold" data-testid="admin-logout">Salir</button>
+        </div>
       </div>
 
       <div className="flex-1 px-5 pt-4 pb-10 overflow-y-auto no-scrollbar">

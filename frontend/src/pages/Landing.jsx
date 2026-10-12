@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { PawPrint, Sparkles, ArrowRight, Film, Crown } from "lucide-react";
+import { PawPrint, Sparkles, ArrowRight, Film, Crown, Images } from "lucide-react";
 import { InviteButton } from "@/components/InviteButton";
+import { ProfileMenu } from "@/components/ProfileMenu";
+import { useAuth } from "@/lib/auth";
 
 const RETRATO_SAMPLE = "https://static.prod-images.emergentagent.com/jobs/55d7bedb-acdf-4650-a697-273c1ee82bf7/images/42f75f4b075be62844c2842e416061b8e10596f349513a4510d5b36c3a79d343.jpeg";
 const HISTORIA_SAMPLE = "https://images.unsplash.com/photo-1591208333284-825682219525?crop=entropy&cs=srgb&fm=jpg&q=85&w=800";
@@ -32,6 +34,7 @@ const CHOICES = [
 
 export default function Landing() {
   const nav = useNavigate();
+  const { user } = useAuth();
   const [tilt, setTilt] = useState(0);
 
   useEffect(() => {
@@ -48,7 +51,10 @@ export default function Landing() {
           </div>
           Petito
         </div>
-        <InviteButton />
+        <div className="flex items-center gap-2">
+          <InviteButton />
+          <ProfileMenu />
+        </div>
       </div>
 
       <div className="flex-1 px-5 pt-6 pb-10 overflow-y-auto no-scrollbar">
@@ -96,8 +102,15 @@ export default function Landing() {
         </div>
 
         <div className="mt-7 flex items-center justify-center gap-2 text-sm text-muted-foreground text-center">
-          <Sparkles className="w-4 h-4 text-accent shrink-0" /> Sin cuenta · Vista previa gratis · Humor y cariño chileno
+          <Sparkles className="w-4 h-4 text-accent shrink-0" /> Sin cuenta para ver · Inicia sesión para crear · Humor chileno
         </div>
+
+        {user && (
+          <button onClick={() => nav("/mis-creaciones")} data-testid="landing-my-creations"
+            className="mt-6 w-full flex items-center justify-center gap-2 h-12 rounded-2xl bg-white border border-border text-sm font-display font-semibold text-neutral-700 active:scale-[0.98] transition-transform">
+            <Images className="w-4 h-4 text-primary" /> Ver mis creaciones
+          </button>
+        )}
 
         <button onClick={() => nav("/admin")} className="w-full mt-8 text-xs text-muted-foreground" data-testid="landing-admin-link">
           Panel de administración

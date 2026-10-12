@@ -4,12 +4,13 @@ import logging
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
 
-from fastapi import FastAPI, APIRouter, UploadFile, File, HTTPException, Header, Request
+from fastapi import FastAPI, APIRouter, UploadFile, File, HTTPException, Header, Request, Depends, Response as FastResponse
 from fastapi.responses import Response
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel
+import httpx
 
 import models
 import storage
@@ -38,6 +39,9 @@ FREE_MODE = os.environ.get("FREE_MODE", "true").lower() == "true"
 RETENTION_DAYS = int(os.environ.get("PHOTO_RETENTION_DAYS", "7"))
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
 ADMIN_TOKEN = os.environ.get("ADMIN_TOKEN", "")
+ADMIN_EMAILS = {e.strip().lower() for e in os.environ.get("ADMIN_EMAILS", "").split(",") if e.strip()}
+EMERGENT_AUTH_URL = "https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data"
+SESSION_DAYS = 7
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("cuentapatas")
@@ -69,6 +73,137 @@ async def get_portrait(portrait_id: str):
 async def get_portrait_by_slug(slug: str):
     doc = await db.portraits.find_one({"share_slug": slug}, {"_id": 0})
     return Portrait(**doc) if doc else None
+
+
+# ---------------- auth (Emergent Google) ----------------
+def _bearer_token(request: Request):
+    token = request.cookies.get("session_token")
+    if not token:
+        auth = request.headers.get("Authorization", "")
+        if auth.startswith("Bearer "):
+            token = auth[7:].strip()
+    return token or None
+
+
+async def _user_from_token(token: str):
+    if not token:
+        return None
+    sess = await db.user_sessions.find_one({"session_token": token}, {"_id": 0})
+    if not sess:
+        return None
+    exp = sess.get("expires_at")
+    if isinstance(exp, str):
+        try:
+            exp = datetime.fromisoformat(exp)
+        except ValueError:
+            return None
+    if exp and exp.tzinfo is None:
+        exp = exp.replace(tzinfo=timezone.utc)
+    if exp and exp < now_utc():
+        return None
+    return await db.users.find_one({"user_id": sess["user_id"]}, {"_id": 0})
+
+
+async def require_user(request: Request):
+    user = await _user_from_token(_bearer_token(request))
+    if not user:
+        raise HTTPException(401, "Inicia sesión para continuar")
+    return user
+
+
+async def optional_user(request: Request):
+    return await _user_from_token(_bearer_token(request))
+
+
+async def require_admin(request: Request):
+    user = await require_user(request)
+    if user.get("email", "").lower() not in ADMIN_EMAILS:
+        raise HTTPException(403, "No autorizado")
+    return user
+
+
+def _user_public(user):
+    return {
+        "user_id": user["user_id"], "email": user["email"],
+        "name": user.get("name"), "picture": user.get("picture"),
+        "is_admin": user.get("email", "").lower() in ADMIN_EMAILS,
+    }
+
+
+@api_router.post("/auth/session")
+async def auth_session(request: Request, response: FastResponse):
+    sid = request.headers.get("X-Session-ID")
+    if not sid:
+        raise HTTPException(400, "Falta session id")
+    try:
+        async with httpx.AsyncClient(timeout=15) as c:
+            r = await c.get(EMERGENT_AUTH_URL, headers={"X-Session-ID": sid})
+        r.raise_for_status()
+        data = r.json()
+    except Exception:
+        raise HTTPException(401, "No se pudo validar la sesión")
+    email = (data.get("email") or "").strip()
+    if not email:
+        raise HTTPException(401, "Sesión inválida")
+    name, picture = data.get("name"), data.get("picture")
+    user = await db.users.find_one({"email": email}, {"_id": 0})
+    if not user:
+        user = {"user_id": f"user_{new_id().replace('-', '')[:12]}", "email": email,
+                "name": name, "picture": picture, "created_at": iso_now()}
+        await db.users.insert_one(dict(user))
+    else:
+        await db.users.update_one({"email": email}, {"$set": {"name": name, "picture": picture}})
+        user["name"], user["picture"] = name, picture
+    token = data.get("session_token") or new_id()
+    await db.user_sessions.insert_one({
+        "user_id": user["user_id"], "session_token": token,
+        "expires_at": (now_utc() + timedelta(days=SESSION_DAYS)).isoformat(),
+        "created_at": iso_now()})
+    response.set_cookie("session_token", token, httponly=True, secure=True,
+                        samesite="none", path="/", max_age=SESSION_DAYS * 24 * 3600)
+    return {"user": _user_public(user), "session_token": token}
+
+
+@api_router.get("/auth/me")
+async def auth_me(user=Depends(require_user)):
+    return _user_public(user)
+
+
+@api_router.post("/auth/logout")
+async def auth_logout(request: Request, response: FastResponse):
+    token = _bearer_token(request)
+    if token:
+        await db.user_sessions.delete_one({"session_token": token})
+    response.delete_cookie("session_token", path="/")
+    return {"ok": True}
+
+
+@api_router.get("/me/stories")
+async def my_stories(user=Depends(require_user)):
+    docs = await db.stories.find({"user_id": user["user_id"], "status": {"$ne": "draft"}},
+                                 {"_id": 0}).sort("created_at", -1).to_list(200)
+    return [{
+        "id": d["id"], "slug": d["share_slug"], "pet_name": d["pet_name"],
+        "title": d.get("title"), "theme_label": THEMES.get(d["theme"], {}).get("label", d["theme"]),
+        "status": d["status"], "paid": d["status"] == "paid" or FREE_MODE,
+        "thumb_url": f"/api/media/{d['id']}/slide_0.jpg",
+        "created_at": d["created_at"],
+    } for d in docs]
+
+
+@api_router.get("/me/portraits")
+async def my_portraits(user=Depends(require_user)):
+    docs = await db.portraits.find({"user_id": user["user_id"],
+                                    "status": {"$in": ["preview_ready", "paid"]}},
+                                   {"_id": 0}).sort("created_at", -1).to_list(200)
+    return [{
+        "id": d["id"], "slug": d["share_slug"], "pet_name": d.get("pet_name"),
+        "style_label": PORTRAIT_STYLES.get(d["style"], {}).get("label", d["style"]),
+        "status": d["status"], "paid": d["status"] == "paid",
+        "thumb_url": f"/api/media/{d['id']}/preview.jpg",
+        "gift_enabled": d.get("gift_enabled", False),
+        "created_at": d["created_at"],
+    } for d in docs]
 
 
 async def log_generation(story_id, step, model, usage=None, images=0, cost_usd=0.0, duration_ms=0):
@@ -336,7 +471,7 @@ async def config():
 
 
 @api_router.post("/stories")
-async def create_story(payload: StoryCreate, x_device_id: str = Header(default="")):
+async def create_story(payload: StoryCreate, x_device_id: str = Header(default=""), user=Depends(require_user)):
     if payload.theme not in THEMES:
         raise HTTPException(400, "Tema inválido")
     story = Story(
@@ -344,6 +479,7 @@ async def create_story(payload: StoryCreate, x_device_id: str = Header(default="
         species=payload.species if payload.species in SPECIES else "otro",
         traits=[t for t in payload.traits if t in models.TRAITS][:3],
         theme=payload.theme, email=payload.email, device_id=x_device_id,
+        user_id=user["user_id"],
         price_clp=PRICE_CLP, bonus_enabled=BONUS_ENABLED,
         voice_id=narration.valid_voice(payload.voice_id or narration.DEFAULT_VOICE_ID),
     )
@@ -515,27 +651,9 @@ async def submit_survey(payload: SurveySubmit, x_device_id: str = Header(default
     return {"ok": True, "already": False}
 
 
-# ---------------- admin ----------------
-class AdminLogin(BaseModel):
-    password: str
-
-
-def check_admin(authorization: str):
-    token = (authorization or "").replace("Bearer ", "").strip()
-    if token != ADMIN_TOKEN or not ADMIN_TOKEN:
-        raise HTTPException(401, "No autorizado")
-
-
-@api_router.post("/admin/login")
-async def admin_login(payload: AdminLogin):
-    if payload.password != ADMIN_PASSWORD or not ADMIN_PASSWORD:
-        raise HTTPException(401, "Contraseña incorrecta")
-    return {"token": ADMIN_TOKEN}
-
-
+# ---------------- admin (Google allowlist) ----------------
 @api_router.get("/admin/metrics")
-async def admin_metrics(authorization: str = Header(default="")):
-    check_admin(authorization)
+async def admin_metrics(user=Depends(require_admin)):
     total = await db.stories.count_documents({"status": {"$ne": "draft"}})
     paid = await db.stories.count_documents({"status": "paid"})
     agg = await db.stories.aggregate([
@@ -554,8 +672,7 @@ async def admin_metrics(authorization: str = Header(default="")):
 
 
 @api_router.get("/admin/survey")
-async def admin_survey(authorization: str = Header(default="")):
-    check_admin(authorization)
+async def admin_survey(user=Depends(require_admin)):
     total = await db.survey_responses.count_documents({})
     yes = await db.survey_responses.count_documents({"answer": "yes"})
     no = total - yes
@@ -567,8 +684,7 @@ async def admin_survey(authorization: str = Header(default="")):
 
 
 @api_router.get("/admin/stories")
-async def admin_stories(authorization: str = Header(default=""), filter: str = "all"):
-    check_admin(authorization)
+async def admin_stories(user=Depends(require_admin), filter: str = "all"):
     q = {"status": {"$ne": "draft"}}
     if filter == "paid":
         q = {"status": "paid"}
@@ -644,12 +760,13 @@ async def run_portrait_pipeline(portrait_id: str):
 
 
 @api_router.post("/portraits")
-async def create_portrait(payload: PortraitCreate, x_device_id: str = Header(default="")):
+async def create_portrait(payload: PortraitCreate, x_device_id: str = Header(default=""), user=Depends(require_user)):
     if payload.style not in PORTRAIT_STYLES:
         raise HTTPException(400, "Estilo inválido")
     p = Portrait(
         pet_name=(payload.pet_name or "").strip()[:40] or None,
-        style=payload.style, device_id=x_device_id, price_clp=PORTRAIT_PRICE_CLP,
+        style=payload.style, device_id=x_device_id, user_id=user["user_id"],
+        price_clp=PORTRAIT_PRICE_CLP,
         gift_enabled=bool(payload.gift_enabled),
         gift_to=(payload.gift_to or "").strip()[:60] or None,
         gift_from=(payload.gift_from or "").strip()[:60] or None,
