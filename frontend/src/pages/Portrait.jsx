@@ -70,7 +70,7 @@ export default function Portrait() {
   return (
     <AnimatePresence mode="wait">
       {step === "photo" && (
-        <StepPhoto key="photo" nav={nav} petName={petName} setPetName={setPetName} file={file} setFile={setFile}
+        <StepPhoto key="photo" nav={nav} cfg={cfg} petName={petName} setPetName={setPetName} file={file} setFile={setFile}
           onNext={() => (file ? setStep("style") : toast.error("Sube una foto de tu mascota 🐾"))} />
       )}
       {step === "style" && (
@@ -116,7 +116,7 @@ function BottomBar({ children }) {
 }
 
 /* ---------------- Step: photo + name ---------------- */
-function StepPhoto({ nav, petName, setPetName, file, setFile, onNext }) {
+function StepPhoto({ nav, cfg, petName, setPetName, file, setFile, onNext }) {
   const inputRef = useRef();
   const pick = (list) => {
     const f = Array.from(list).find((x) => x.type.startsWith("image/"));
@@ -156,7 +156,7 @@ function StepPhoto({ nav, petName, setPetName, file, setFile, onNext }) {
         </div>
 
         <p className="mt-6 text-xs text-muted-foreground flex items-center gap-1.5">
-          <Lock className="w-3.5 h-3.5" /> Tu foto es privada y se borra en {cfgRetention()} días.
+          <Lock className="w-3.5 h-3.5" /> Tu foto es privada y se borra en {cfg?.retention_days || 7} días.
         </p>
       </div>
       <BottomBar>
@@ -167,8 +167,6 @@ function StepPhoto({ nav, petName, setPetName, file, setFile, onNext }) {
     </Screen>
   );
 }
-
-function cfgRetention() { return 7; }
 
 /* ---------------- Step: style + gift ---------------- */
 function StepStyle({ cfg, style, setStyle, gift, setGift, onBack, onNext, busy }) {
@@ -229,9 +227,11 @@ function StepProgress({ portraitId, onReady, onFail }) {
   const [step, setStep] = useState("Preparando...");
   const [pct, setPct] = useState(5);
   const [quote, setQuote] = useState(0);
+  const [slow, setSlow] = useState(false);
 
   useEffect(() => {
     const q = setInterval(() => setQuote((x) => (x + 1) % QUOTES.length), 2200);
+    const slowTimer = setTimeout(() => setSlow(true), 90000);
     const poll = setInterval(async () => {
       try {
         const p = await getPortrait(portraitId);
@@ -241,7 +241,7 @@ function StepProgress({ portraitId, onReady, onFail }) {
         else if (p.status === "failed") { clearInterval(poll); clearInterval(q); onFail(p); }
       } catch { /* keep polling */ }
     }, 2500);
-    return () => { clearInterval(poll); clearInterval(q); };
+    return () => { clearInterval(poll); clearInterval(q); clearTimeout(slowTimer); };
   }, [portraitId]);
 
   return (
@@ -264,6 +264,11 @@ function StepProgress({ portraitId, onReady, onFail }) {
         <motion.p key={quote} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="font-script text-2xl text-white/90 mt-10">
           “{QUOTES[quote]}”
         </motion.p>
+        {slow && (
+          <p className="text-white/80 text-sm mt-6" data-testid="portrait-slow-hint">
+            Está tomando un poco más de lo normal, ya casi queda 🎨
+          </p>
+        )}
       </div>
     </motion.div>
   );

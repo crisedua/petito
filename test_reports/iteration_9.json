@@ -1,0 +1,27 @@
+{
+  "summary": "Full E2E frontend testing of new 'Retrato de realeza' portrait flow at mobile viewport 390x844. All 8 required scenarios passed: landing choice cards navigate correctly, step 1 blocks advance without photo (toast 'Sube una foto de tu mascota'), photo upload + optional name works, step 2 style selection + gift toggle + gift fields work, progress screen polls and transitions, result screen shows watermarked preview with paywall + dedication, demo pay-button instantly unlocks share hub with HD image + download/share/copy, gift link /r/<slug> shows wrapped reveal then dedication + CTA, story flow regression at /crear still loads pet-name-input.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Gift view (/r/:slug)", "issues": ["Portrait image inside gift reveal occasionally renders slowly / appears gray before load completes; consider skeleton/blur-up to avoid blank frame perception. Not functional, just UX polish."]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Portrait.jsx cfgRetention() hardcodes 7 days but config may expose portrait_retention; consider wiring from cfg.",
+    "StepProgress has no timeout cap in UI — if backend stalls, user is stuck forever. Consider surfacing a 'Está tomando más de lo normal' hint after e.g. 120s.",
+    "Image download in StepResult uses fetch + blob which may face CORS issues in production if media host differs; current same-origin via /api/media works but worth noting.",
+    "Portrait.jsx is ~390 lines in a single file with 4 sub-components; within budget but close — split if more steps are added."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (skipped)", "frontend": "100% (8/8 scenarios)"},
+  "test_credentials": "N/A (no auth, device id auto)",
+  "seed_data_creation": "Created a dummy /tmp/pet.jpg (600x800 solid color) for upload. Real portrait generated via fal.ai in ~30-60s.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Portrait flow is stable end-to-end on mobile viewport. Clipboard-based slug capture works for /r/<slug>. Backend media served at /api/media/<id>/preview.jpg and clean_*.jpg. Generation uses real fal.ai so allow ~60-120s on StepProgress.",
+  "rca of the issue": "No issues found."
+}
