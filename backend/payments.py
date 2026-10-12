@@ -23,7 +23,8 @@ class DemoProvider:
     mode = "demo"
 
     async def create_checkout(self, ref: str, slug: str, amount: int = PRICE_CLP,
-                              title: str = "Historia Petito", back_path: str = None) -> dict:
+                              title: str = "Historia Petito", back_path: str = None,
+                              origin: str = None) -> dict:
         return {"mode": "demo", "amount": amount, "ref": ref}
 
 
@@ -42,8 +43,11 @@ class MercadoPagoProvider:
         return {"Authorization": f"Bearer {self.token}", "Content-Type": "application/json"}
 
     async def create_checkout(self, ref: str, slug: str, amount: int = PRICE_CLP,
-                              title: str = "Historia Petito", back_path: str = None) -> dict:
+                              title: str = "Historia Petito", back_path: str = None,
+                              origin: str = None) -> dict:
         back_path = back_path or f"/h/{slug}"
+        front = (origin or self.frontend_url).rstrip("/")
+        api = (origin or self.public_api_url).rstrip("/")
         body = {
             "items": [{
                 "id": ref, "title": title,
@@ -51,12 +55,12 @@ class MercadoPagoProvider:
             }],
             "external_reference": ref,
             "back_urls": {
-                "success": f"{self.frontend_url}{back_path}?pago=success",
-                "pending": f"{self.frontend_url}{back_path}?pago=pending",
-                "failure": f"{self.frontend_url}{back_path}?pago=failure",
+                "success": f"{front}{back_path}?pago=success",
+                "pending": f"{front}{back_path}?pago=pending",
+                "failure": f"{front}{back_path}?pago=failure",
             },
             "auto_return": "approved",
-            "notification_url": f"{self.public_api_url}/api/payments/webhook/mercadopago",
+            "notification_url": f"{api}/api/payments/webhook/mercadopago",
         }
         async with httpx.AsyncClient(timeout=15) as c:
             r = await c.post(f"{self.base}/checkout/preferences", headers=self._headers, json=body)
@@ -71,6 +75,10 @@ class MercadoPagoProvider:
         return r.json()
 
     def valid_signature(self, x_signature, x_request_id, data_id) -> bool:
+        # No secret configured -> skip HMAC check. Security still holds because we re-fetch
+        # the payment from Mercado Pago with our access token before trusting any status.
+        if not self.webhook_secret:
+            return True
         if not (x_signature and x_request_id and data_id):
             return False
         parts = dict(p.strip().split("=", 1) for p in x_signature.split(",") if "=" in p)

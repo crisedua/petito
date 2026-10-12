@@ -11,10 +11,30 @@ export default function PortraitView() {
   const [p, setP] = useState(null);
   const [err, setErr] = useState(false);
   const [opened, setOpened] = useState(false);
+  const [confirming, setConfirming] = useState(false);
 
   useEffect(() => {
     getPortraitBySlug(slug).then((d) => { setP(d); setOpened(!d.gift_enabled); }).catch(() => setErr(true));
   }, [slug]);
+
+  // Returning from Mercado Pago: poll until the webhook confirms payment.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("pago") !== "success") return;
+    if (p?.paid) return;
+    setConfirming(true);
+    let tries = 0;
+    const t = setInterval(async () => {
+      tries += 1;
+      try {
+        const d = await getPortraitBySlug(slug);
+        setP(d);
+        if (d.paid || tries >= 8) { clearInterval(t); setConfirming(false); }
+      } catch { if (tries >= 8) { clearInterval(t); setConfirming(false); } }
+    }, 3000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug, p?.paid]);
 
   if (err) return (
     <div className="mobile-frame items-center justify-center text-center px-8" data-testid="portrait-view-error">
@@ -72,6 +92,12 @@ export default function PortraitView() {
               </div>
               {p.gift_enabled && p.gift_message && (
                 <p className="mt-3 text-center text-sm text-neutral-700 italic">“{p.gift_message}”</p>
+              )}
+
+              {confirming && (
+                <div className="mt-4 flex items-center justify-center gap-2 text-sm text-primary" data-testid="portrait-view-confirming">
+                  <Loader2 className="w-4 h-4 animate-spin" /> Confirmando tu pago...
+                </div>
               )}
 
               {p.paid && (

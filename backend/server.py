@@ -564,13 +564,14 @@ async def save_email(story_id: str, payload: EmailPayload):
 
 
 @api_router.post("/stories/{story_id}/checkout")
-async def checkout(story_id: str):
+async def checkout(story_id: str, request: Request):
     story = await get_story(story_id)
     if not story:
         raise HTTPException(404, "Historia no encontrada")
     if story.status == "paid":
         return {"mode": provider.mode, "already_paid": True}
-    result = await provider.create_checkout(story_id, story.share_slug)
+    origin = request.headers.get("origin") or FRONTEND_URL or None
+    result = await provider.create_checkout(story_id, story.share_slug, origin=origin)
     return result
 
 
@@ -829,14 +830,16 @@ async def read_portrait_by_slug(slug: str):
 
 
 @api_router.post("/portraits/{portrait_id}/checkout")
-async def portrait_checkout(portrait_id: str):
+async def portrait_checkout(portrait_id: str, request: Request):
     p = await get_portrait(portrait_id)
     if not p:
         raise HTTPException(404, "Retrato no encontrado")
     if p.status == "paid":
         return {"mode": provider.mode, "already_paid": True}
+    origin = request.headers.get("origin") or FRONTEND_URL or None
     return await provider.create_checkout(portrait_id, p.share_slug, amount=p.price_clp,
-                                          title="Retrato Petito", back_path=f"/r/{p.share_slug}")
+                                          title="Retrato Petito", back_path=f"/r/{p.share_slug}",
+                                          origin=origin)
 
 
 @api_router.post("/portraits/{portrait_id}/pay-demo")
