@@ -246,14 +246,42 @@ PORTRAIT_STYLES = {
     },
 }
 
+# Memorial / tribute portraits — calm, tasteful, no humor, no ornate frame.
+MEMORIAL_STYLES = {
+    "acuarela": {
+        "label": "Acuarela",
+        "emoji": "🕊️",
+        "desc": "Acuarela suave y serena, delicada y luminosa",
+        "prompt": (
+            "a gentle serene fine-art watercolor painting portrait, soft pastel washes and delicate "
+            "flowing brush strokes, light airy pale background, peaceful loving and calm mood, tender "
+            "soft light, faithfully preserving the pet's real features and sweet expression, no text, "
+            "no frame"
+        ),
+    },
+    "oleo_realista": {
+        "label": "Óleo realista",
+        "emoji": "🖼️",
+        "desc": "Óleo realista que conserva su esencia",
+        "prompt": (
+            "a realistic fine-art oil painting portrait, lifelike faithful detail that preserves the "
+            "pet's real features and gentle expression, soft warm natural lighting, calm neutral muted "
+            "background, dignified serene and tender mood, museum-quality, no text, no frame"
+        ),
+    },
+}
+
 
 class PortraitCreate(BaseModel):
     pet_name: Optional[str] = None
     style: str
+    category: str = "royal"            # "royal" | "memorial"
     gift_enabled: bool = False
     gift_to: Optional[str] = None
     gift_from: Optional[str] = None
     gift_message: Optional[str] = None
+    memorial_dates: Optional[str] = None
+    memorial_caption: Optional[str] = None
 
 
 class Portrait(BaseModel):
@@ -265,6 +293,7 @@ class Portrait(BaseModel):
     user_id: Optional[str] = None
     pet_name: Optional[str] = None
     style: str
+    category: str = "royal"
     status: str = "draft"  # draft, generating, preview_ready, paid, failed
     progress_step: str = ""
     progress_pct: int = 0
@@ -276,6 +305,8 @@ class Portrait(BaseModel):
     gift_to: Optional[str] = None
     gift_from: Optional[str] = None
     gift_message: Optional[str] = None
+    memorial_dates: Optional[str] = None
+    memorial_caption: Optional[str] = None
     ai_cost_usd: float = 0.0
     error: Optional[str] = None
     created_at: str = Field(default_factory=iso_now)

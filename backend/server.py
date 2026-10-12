@@ -18,7 +18,7 @@ import renderer
 import ai_pipeline
 import narration
 import payments
-from models import Story, Slide, StoryCreate, SurveyResponse, SurveySubmit, Portrait, PortraitCreate, TalkingVideo, TalkCreate, THEMES, SPECIES, PORTRAIT_STYLES, now_utc, iso_now, new_id
+from models import Story, Slide, StoryCreate, SurveyResponse, SurveySubmit, Portrait, PortraitCreate, TalkingVideo, TalkCreate, THEMES, SPECIES, PORTRAIT_STYLES, MEMORIAL_STYLES, now_utc, iso_now, new_id
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / ".env")
@@ -31,6 +31,7 @@ BRAND_NAME = os.environ.get("BRAND_NAME", "Petito")
 BRAND_URL = os.environ.get("BRAND_URL", "petito.pro")
 PRICE_CLP = int(os.environ.get("STORY_PRICE_CLP", "3990"))
 PORTRAIT_PRICE_CLP = int(os.environ.get("PORTRAIT_PRICE_CLP", "2990"))
+ALL_PORTRAIT_STYLES = {**PORTRAIT_STYLES, **MEMORIAL_STYLES}
 TALK_PRICE_CLP = int(os.environ.get("TALK_PRICE_CLP", "2990"))
 FREE_TALK_PER_DAY = int(os.environ.get("FREE_TALK_PER_DAY", "2"))
 USD_TO_CLP = float(os.environ.get("USD_TO_CLP", "950"))
@@ -200,7 +201,8 @@ async def my_portraits(user=Depends(require_user)):
                                    {"_id": 0}).sort("created_at", -1).to_list(200)
     return [{
         "id": d["id"], "slug": d["share_slug"], "pet_name": d.get("pet_name"),
-        "style_label": PORTRAIT_STYLES.get(d["style"], {}).get("label", d["style"]),
+        "style_label": ALL_PORTRAIT_STYLES.get(d["style"], {}).get("label", d["style"]),
+        "category": d.get("category", "royal"),
         "status": d["status"], "paid": d["status"] == "paid",
         "thumb_url": f"/api/media/{d['id']}/preview.jpg",
         "gift_enabled": d.get("gift_enabled", False),
@@ -469,6 +471,8 @@ async def config():
         "portrait_price_clp": PORTRAIT_PRICE_CLP,
         "portrait_styles": [{"key": k, "label": v["label"], "emoji": v["emoji"], "desc": v["desc"]}
                             for k, v in PORTRAIT_STYLES.items()],
+        "memorial_styles": [{"key": k, "label": v["label"], "emoji": v["emoji"], "desc": v["desc"]}
+                            for k, v in MEMORIAL_STYLES.items()],
         "talk_price_clp": TALK_PRICE_CLP,
         "free_talk_per_day": FREE_TALK_PER_DAY,
     }
@@ -722,11 +726,13 @@ def portrait_public(p: Portrait):
     paid = p.status == "paid"
     return {
         "id": p.id, "slug": p.share_slug, "pet_name": p.pet_name, "style": p.style,
-        "style_label": PORTRAIT_STYLES.get(p.style, {}).get("label", p.style),
+        "style_label": ALL_PORTRAIT_STYLES.get(p.style, {}).get("label", p.style),
+        "category": p.category,
         "status": p.status, "progress_step": p.progress_step, "progress_pct": p.progress_pct,
         "price_clp": p.price_clp, "paid": paid, "error": p.error,
         "gift_enabled": p.gift_enabled, "gift_to": p.gift_to, "gift_from": p.gift_from,
         "gift_message": p.gift_message, "brand_url": BRAND_URL,
+        "memorial_dates": p.memorial_dates, "memorial_caption": p.memorial_caption,
         "preview_url": f"/api/media/{p.id}/{p.preview_file}" if p.preview_file else None,
         "clean_url": f"/api/media/{p.id}/{p.clean_file}" if (paid and p.clean_file) else None,
     }
@@ -741,7 +747,7 @@ async def run_portrait_pipeline(portrait_id: str):
         photo = await db.portrait_photos.find_one({"portrait_id": portrait_id}, {"_id": 0})
         if not photo:
             raise RuntimeError("No hay foto")
-        style = PORTRAIT_STYLES.get(p.style) or list(PORTRAIT_STYLES.values())[0]
+        style = ALL_PORTRAIT_STYLES.get(p.style) or list(PORTRAIT_STYLES.values())[0]
 
         await db.portraits.update_one({"id": portrait_id}, {"$set": {
             "progress_step": "Preparando el lienzo...", "progress_pct": 20}})
@@ -774,16 +780,20 @@ async def run_portrait_pipeline(portrait_id: str):
 
 @api_router.post("/portraits")
 async def create_portrait(payload: PortraitCreate, x_device_id: str = Header(default=""), user=Depends(require_user)):
-    if payload.style not in PORTRAIT_STYLES:
+    category = "memorial" if payload.category == "memorial" else "royal"
+    valid = MEMORIAL_STYLES if category == "memorial" else PORTRAIT_STYLES
+    if payload.style not in valid:
         raise HTTPException(400, "Estilo inválido")
     p = Portrait(
         pet_name=(payload.pet_name or "").strip()[:40] or None,
-        style=payload.style, device_id=x_device_id, user_id=user["user_id"],
+        style=payload.style, category=category, device_id=x_device_id, user_id=user["user_id"],
         price_clp=PORTRAIT_PRICE_CLP,
-        gift_enabled=bool(payload.gift_enabled),
+        gift_enabled=bool(payload.gift_enabled) and category == "royal",
         gift_to=(payload.gift_to or "").strip()[:60] or None,
         gift_from=(payload.gift_from or "").strip()[:60] or None,
         gift_message=(payload.gift_message or "").strip()[:280] or None,
+        memorial_dates=(payload.memorial_dates or "").strip()[:40] or None,
+        memorial_caption=(payload.memorial_caption or "").strip()[:80] or None,
     )
     await db.portraits.insert_one(p.model_dump())
     return {"id": p.id, "slug": p.share_slug}

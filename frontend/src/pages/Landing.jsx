@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { PawPrint, ArrowRight, Film, Crown, Mic, Images, ImagePlus, Loader2, Volume2 } from "lucide-react";
+import { PawPrint, ArrowRight, Film, Crown, Mic, Images, ImagePlus, Loader2, Volume2, Heart } from "lucide-react";
 import { InviteButton } from "@/components/InviteButton";
 import { ProfileMenu } from "@/components/ProfileMenu";
 import { useAuth } from "@/lib/auth";
@@ -121,6 +121,16 @@ export default function Landing() {
               </div>
             </motion.button>
           ))}
+
+          <motion.button whileTap={{ scale: 0.98 }} onClick={() => nav("/recuerdo")} data-testid="landing-choice-recuerdo"
+            className="relative w-full flex items-center gap-3 p-3 rounded-2xl bg-white border border-slate-200 text-left">
+            <div className="w-12 h-12 rounded-xl bg-slate-100 grid place-items-center text-slate-500 shrink-0"><Heart className="w-6 h-6" /></div>
+            <div className="flex-1">
+              <div className="font-display font-bold text-slate-700">Retrato recuerdo</div>
+              <div className="text-xs text-slate-400">Un homenaje sereno para quien siempre estará contigo</div>
+            </div>
+            <ArrowRight className="w-5 h-5 text-slate-400" />
+          </motion.button>
         </div>
 
         {user && (

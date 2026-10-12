@@ -87,9 +87,18 @@ export default function PortraitView() {
                   Para {p.gift_to}{p.gift_from ? `, de ${p.gift_from}` : ""}
                 </p>
               )}
+              {p.category === "memorial" && (
+                <div className="text-center mb-1" data-testid="portrait-view-memorial">
+                  {p.pet_name && <p className="font-script text-3xl text-slate-700">{p.pet_name}</p>}
+                  {p.memorial_dates && <p className="text-sm text-slate-400 -mt-1">{p.memorial_dates}</p>}
+                </div>
+              )}
               <div className="relative w-full rounded-3xl overflow-hidden bg-stone-900 border-4 border-white shadow-2xl mx-auto" style={{ aspectRatio: "3 / 4", maxWidth: 360 }} data-testid="portrait-view-image">
                 {imgUrl && <img src={imgUrl} alt="Retrato" className="w-full h-full object-cover" />}
               </div>
+              {p.category === "memorial" && p.memorial_caption && (
+                <p className="mt-3 text-center font-script text-2xl text-slate-600">“{p.memorial_caption}”</p>
+              )}
               {p.gift_enabled && p.gift_message && (
                 <p className="mt-3 text-center text-sm text-neutral-700 italic">“{p.gift_message}”</p>
               )}
