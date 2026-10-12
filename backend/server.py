@@ -911,7 +911,7 @@ async def run_talk_pipeline(video_id: str):
         await db.videos.update_one({"id": video_id}, {"$set": {
             "progress_step": "Escuchando a tu mascota...", "progress_pct": 20}})
         photo_b64 = await asyncio.to_thread(storage.image_to_b64, video_id, photo["file"], 512)
-        line, species, usage = await ai_pipeline.write_pet_line(photo_b64, v.pet_name, long)
+        line, species, usage = await ai_pipeline.write_pet_line(photo_b64, v.pet_name, "long" if long else "mini")
         await db.videos.update_one({"id": video_id}, {"$set": {"line": line, "species": species}})
         if usage:
             await log_generation(video_id, "talk_line", ai_pipeline.CLAUDE_MODEL, usage=usage,
@@ -926,7 +926,7 @@ async def run_talk_pipeline(video_id: str):
         await db.videos.update_one({"id": video_id}, {"$set": {
             "progress_step": "Dándole voz a tu mascota...", "progress_pct": 60}})
         orig = await asyncio.to_thread(storage.load_image, video_id, photo["file"])
-        out_w = 720 if long else 512
+        out_w = 720 if long else 384
         src = await asyncio.to_thread(renderer.talk_source, orig, True, out_w, BRAND_NAME)
         await asyncio.to_thread(storage.save_image, video_id, "source.jpg", src, 90)
 
@@ -936,7 +936,7 @@ async def run_talk_pipeline(video_id: str):
         vid_bytes = await asyncio.to_thread(ai_pipeline.generate_talking_video, image_url, audio_url)
         await asyncio.to_thread(storage.save_bytes, video_id, "preview.mp4", vid_bytes, "video/mp4")
 
-        dur = 8 if long else 5
+        dur = 8 if long else 3
         await log_generation(video_id, "talk_video", ai_pipeline.TALK_MODEL, images=0,
                              cost_usd=ai_pipeline.FAL_VIDEO_COST_PER_SEC * dur,
                              duration_ms=int((_t.monotonic() - t0) * 1000))

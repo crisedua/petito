@@ -229,15 +229,16 @@ def generate_talking_video(image_url, audio_url, timeout=600):
     return dl.content
 
 
-async def write_pet_line(photo_b64, pet_name=None, long=False):
-    """Claude vision: identify species and write ONE funny Chilean first-person line."""
+async def write_pet_line(photo_b64, pet_name=None, length="short"):
+    """Claude vision: identify species and write ONE funny Chilean first-person line.
+    length: 'mini' (~3s, free preview), 'short', or 'long' (~8s, full video)."""
     system = (
         "Eres un comediante chileno que le pone voz a las mascotas. Hablas en primera persona "
         "como si fueras la mascota de la foto. Español de Chile, cálido y chistoso, con modismos "
         "suaves (regalón, pancito, choro, aperrado, bacán, al tiro), sin groserías ni humor "
         "ofensivo. Respondes SOLO JSON válido."
     )
-    words = "20 a 26" if long else "11 a 15"
+    words = {"mini": "6 a 9", "short": "11 a 15", "long": "20 a 26"}.get(length, "11 a 15")
     name_txt = f"Mi nombre es {pet_name}. " if pet_name else ""
     prompt = (
         f"Mira la foto de esta mascota. {name_txt}"
