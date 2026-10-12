@@ -1,39 +1,46 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { PawPrint, Zap, MessageCircleHeart, Sparkles, ArrowRight, Share2, Music } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { PawPrint, Sparkles, ArrowRight, Film, Crown } from "lucide-react";
 import { InviteButton } from "@/components/InviteButton";
 
-const EXAMPLES = [
-  { img: "https://images.unsplash.com/photo-1591208333284-825682219525?crop=entropy&cs=srgb&fm=jpg&q=85&w=800", cap: "¡Llegué pal Dieciocho más regalón que nunca, poh!", badge: "Dieciochero 🇨🇱" },
-  { img: "https://images.unsplash.com/photo-1656839631462-1adf96d4320f?crop=entropy&cs=srgb&fm=jpg&q=85&w=800", cap: "Mi cara de 'dame pancito' nunca falla, humano.", badge: "Un día en mi vida ☀️" },
-  { img: "https://images.unsplash.com/photo-1690876821983-cbb72ac167a8?crop=entropy&cs=srgb&fm=jpg&q=85&w=800", cap: "Aventurero nivel plaza: corrí, olí y conquisté.", badge: "Mis aventuras 🏕️" },
-];
+const RETRATO_SAMPLE = "https://static.prod-images.emergentagent.com/jobs/55d7bedb-acdf-4650-a697-273c1ee82bf7/images/42f75f4b075be62844c2842e416061b8e10596f349513a4510d5b36c3a79d343.jpeg";
+const HISTORIA_SAMPLE = "https://images.unsplash.com/photo-1591208333284-825682219525?crop=entropy&cs=srgb&fm=jpg&q=85&w=800";
 
-const FEATURES = [
-  { icon: Zap, label: "Primera vista en segundos" },
-  { icon: MessageCircleHeart, label: "Voz de tu mascota" },
-  { icon: Sparkles, label: "3 escenas con IA" },
-  { icon: Music, label: "Con musiquita" },
-  { icon: PawPrint, label: "Humor chileno" },
-  { icon: Share2, label: "Listo pa' compartir" },
+const CHOICES = [
+  {
+    key: "retrato",
+    to: "/retrato",
+    icon: Crown,
+    title: "Crear retrato",
+    desc: "Una pintura de realeza con marco dorado. Vista previa gratis.",
+    img: RETRATO_SAMPLE,
+    badge: "Nuevo ✨",
+    accent: "from-amber-500/90 to-orange-600/90",
+  },
+  {
+    key: "historia",
+    to: "/crear",
+    icon: Film,
+    title: "Crear historia",
+    desc: "Un carrusel vertical con frases en la voz de tu mascota.",
+    img: HISTORIA_SAMPLE,
+    badge: "Clásico",
+    accent: "from-rose-500/90 to-primary/90",
+  },
 ];
 
 export default function Landing() {
   const nav = useNavigate();
-  const [ex, setEx] = useState(0);
+  const [tilt, setTilt] = useState(0);
 
   useEffect(() => {
-    const t = setInterval(() => setEx((e) => (e + 1) % EXAMPLES.length), 2600);
+    const t = setInterval(() => setTilt((x) => (x + 1) % 2), 2200);
     return () => clearInterval(t);
   }, []);
 
-  const cur = EXAMPLES[ex];
-
   return (
     <div className="mobile-frame" data-testid="landing-screen">
-      {/* top bar */}
       <div className="flex items-center justify-between px-5 pt-5">
         <div className="flex items-center gap-2 font-display font-semibold text-primary">
           <div className="w-8 h-8 rounded-full bg-primary grid place-items-center">
@@ -44,73 +51,55 @@ export default function Landing() {
         <InviteButton />
       </div>
 
-      <div className="flex-1 px-5 pt-6 pb-40">
+      <div className="flex-1 px-5 pt-6 pb-10 overflow-y-auto no-scrollbar">
         <motion.h1
           initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
           className="font-display font-bold text-4xl leading-[1.08] tracking-tight text-neutral-900"
           data-testid="landing-headline"
         >
-          Tu mascota <span className="text-primary">cuenta su historia</span>.
+          Tu mascota, <span className="text-primary">de película</span>.
         </motion.h1>
         <motion.p
           initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.08 }}
           className="mt-3 text-base text-muted-foreground leading-relaxed"
         >
-          Sube fotos de tu regalón y recibe una historia vertical con frases en su voz y humor bien chileno. Lista pa' la Insta y el WhatsApp.
+          Elige qué quieres crear hoy con tu regalón. Dos formas de hacerlo brillar 🐾
         </motion.p>
 
-        {/* example story */}
-        <div className="mt-7 flex justify-center">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, delay: 0.15 }}
-            className="relative w-[230px] rounded-[1.6rem] overflow-hidden shadow-2xl bg-stone-900 border-4 border-white"
-            style={{ aspectRatio: "9 / 16" }}
-            data-testid="landing-example-story"
-          >
-            <motion.img key={cur.img} src={cur.img} alt="Ejemplo" className="w-full h-full object-cover"
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }} />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/20" />
-            <div className="absolute top-3 left-3 right-3 flex gap-1">
-              {EXAMPLES.map((_, i) => (
-                <div key={i} className="h-1 flex-1 rounded-full bg-white/40 overflow-hidden">
-                  <div className={`h-full bg-white transition-all duration-[2600ms] ${i === ex ? "w-full" : "w-0"}`} />
+        <div className="mt-6 space-y-4">
+          {CHOICES.map((c, i) => (
+            <motion.button
+              key={c.key}
+              onClick={() => nav(c.to)}
+              data-testid={`landing-choice-${c.key}`}
+              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.15 + i * 0.1 }}
+              whileTap={{ scale: 0.97 }}
+              className="relative w-full h-44 rounded-[1.6rem] overflow-hidden shadow-xl border-4 border-white text-left group"
+            >
+              <img src={c.img} alt={c.title} className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-active:scale-105" />
+              <div className={`absolute inset-0 bg-gradient-to-tr ${c.accent} mix-blend-multiply opacity-80`} />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+              <span className="absolute top-3 right-3 text-[11px] font-semibold text-neutral-900 bg-white/90 px-2.5 py-1 rounded-full">{c.badge}</span>
+              <div className="absolute bottom-0 left-0 right-0 p-4">
+                <div className="flex items-center gap-2 text-white">
+                  <div className="w-9 h-9 rounded-full bg-white/25 backdrop-blur grid place-items-center">
+                    <c.icon className="w-5 h-5" />
+                  </div>
+                  <span className="font-display font-bold text-xl">{c.title}</span>
+                  <ArrowRight className="w-5 h-5 ml-auto" />
                 </div>
-              ))}
-            </div>
-            <span className="absolute top-7 left-3 text-[11px] font-semibold text-white bg-primary/90 px-2.5 py-1 rounded-full">{cur.badge}</span>
-            <p className="absolute bottom-4 left-3 right-3 font-display font-semibold text-white text-[15px] leading-snug drop-shadow">
-              {cur.cap}
-            </p>
-          </motion.div>
-        </div>
-
-        {/* features */}
-        <div className="mt-7 grid grid-cols-2 gap-2.5">
-          {FEATURES.map((f) => (
-            <div key={f.label} className="flex items-center gap-2 bg-white rounded-2xl px-3.5 py-3 border border-border">
-              <div className="w-8 h-8 rounded-full bg-accent/20 grid place-items-center shrink-0">
-                <f.icon className="w-4 h-4 text-primary" />
+                <p className="mt-1.5 text-sm text-white/90 leading-snug">{c.desc}</p>
               </div>
-              <span className="text-sm font-semibold text-neutral-800">{f.label}</span>
-            </div>
+            </motion.button>
           ))}
         </div>
 
-        <div className="mt-6 flex items-center justify-center gap-2 text-sm text-muted-foreground">
-          <Sparkles className="w-4 h-4 text-accent" /> Gratis por ahora · Sin cuenta · Primera vista en segundos
+        <div className="mt-7 flex items-center justify-center gap-2 text-sm text-muted-foreground text-center">
+          <Sparkles className="w-4 h-4 text-accent shrink-0" /> Sin cuenta · Vista previa gratis · Humor y cariño chileno
         </div>
-      </div>
 
-      {/* sticky CTA */}
-      <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto p-4 pb-6 bg-gradient-to-t from-[#FAF6F0] via-[#FAF6F0] to-transparent">
-        <Button
-          onClick={() => nav("/crear")}
-          className="w-full h-14 text-base font-display font-semibold rounded-2xl shadow-lg shadow-primary/30"
-          data-testid="landing-hero-cta"
-        >
-          Crea la historia de tu mascota <ArrowRight className="w-5 h-5 ml-1" />
-        </Button>
-        <button onClick={() => nav("/admin")} className="w-full mt-3 text-xs text-muted-foreground" data-testid="landing-admin-link">
+        <button onClick={() => nav("/admin")} className="w-full mt-8 text-xs text-muted-foreground" data-testid="landing-admin-link">
           Panel de administración
         </button>
       </div>

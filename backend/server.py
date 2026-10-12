@@ -17,7 +17,7 @@ import renderer
 import ai_pipeline
 import narration
 import payments
-from models import Story, Slide, StoryCreate, SurveyResponse, SurveySubmit, THEMES, SPECIES, now_utc, iso_now, new_id
+from models import Story, Slide, StoryCreate, SurveyResponse, SurveySubmit, Portrait, PortraitCreate, THEMES, SPECIES, PORTRAIT_STYLES, now_utc, iso_now, new_id
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / ".env")
@@ -29,6 +29,7 @@ db = client[os.environ["DB_NAME"]]
 BRAND_NAME = os.environ.get("BRAND_NAME", "Petito")
 BRAND_URL = os.environ.get("BRAND_URL", "petito.pro")
 PRICE_CLP = int(os.environ.get("STORY_PRICE_CLP", "3990"))
+PORTRAIT_PRICE_CLP = int(os.environ.get("PORTRAIT_PRICE_CLP", "2990"))
 USD_TO_CLP = float(os.environ.get("USD_TO_CLP", "950"))
 FREE_PER_DAY = int(os.environ.get("FREE_PREVIEWS_PER_DAY", "3"))
 BONUS_ENABLED = os.environ.get("BONUS_SCENES_ENABLED", "true").lower() == "true"
@@ -58,6 +59,16 @@ async def get_story(story_id: str):
 async def get_story_by_slug(slug: str):
     doc = await db.stories.find_one({"share_slug": slug}, {"_id": 0})
     return Story(**doc) if doc else None
+
+
+async def get_portrait(portrait_id: str):
+    doc = await db.portraits.find_one({"id": portrait_id}, {"_id": 0})
+    return Portrait(**doc) if doc else None
+
+
+async def get_portrait_by_slug(slug: str):
+    doc = await db.portraits.find_one({"share_slug": slug}, {"_id": 0})
+    return Portrait(**doc) if doc else None
 
 
 async def log_generation(story_id, step, model, usage=None, images=0, cost_usd=0.0, duration_ms=0):
@@ -318,6 +329,9 @@ async def config():
         "free_per_day": FREE_PER_DAY, "retention_days": RETENTION_DAYS,
         "themes": [{"key": k, "label": v["label"], "emoji": v["emoji"]} for k, v in THEMES.items()],
         "traits": models.TRAITS,
+        "portrait_price_clp": PORTRAIT_PRICE_CLP,
+        "portrait_styles": [{"key": k, "label": v["label"], "emoji": v["emoji"], "desc": v["desc"]}
+                            for k, v in PORTRAIT_STYLES.items()],
     }
 
 
@@ -454,15 +468,24 @@ async def mp_webhook(request: Request):
         return {"received": True}
     payment = await provider.get_payment(payment_id)
     order_id = payment.get("external_reference")
-    story = await get_story(order_id) if order_id else None
-    if not story:
+    if not order_id:
         return {"received": True}
-    approved = (payment.get("status") == "approved" and payment.get("currency_id") == "CLP"
-                and float(payment.get("transaction_amount", 0)) == story.price_clp)
-    if approved:
-        await db.stories.update_one({"id": order_id, "status": {"$ne": "paid"}},
-                                    {"$set": {"status": "paid", "paid_at": iso_now()}})
-        await db.slides.update_many({"story_id": order_id}, {"$set": {"locked": False}})
+    story = await get_story(order_id)
+    if story:
+        approved = (payment.get("status") == "approved" and payment.get("currency_id") == "CLP"
+                    and float(payment.get("transaction_amount", 0)) == story.price_clp)
+        if approved:
+            await db.stories.update_one({"id": order_id, "status": {"$ne": "paid"}},
+                                        {"$set": {"status": "paid", "paid_at": iso_now()}})
+            await db.slides.update_many({"story_id": order_id}, {"$set": {"locked": False}})
+        return {"received": True}
+    portrait = await get_portrait(order_id)
+    if portrait:
+        approved = (payment.get("status") == "approved" and payment.get("currency_id") == "CLP"
+                    and float(payment.get("transaction_amount", 0)) == portrait.price_clp)
+        if approved:
+            await db.portraits.update_one({"id": order_id, "status": {"$ne": "paid"}},
+                                          {"$set": {"status": "paid", "paid_at": iso_now()}})
     return {"received": True}
 
 
@@ -563,6 +586,152 @@ async def admin_stories(authorization: str = Header(default=""), filter: str = "
             "created_at": d["created_at"], "email": d.get("email"),
         })
     return out
+
+
+# ---------------- portraits (royalty portrait: free preview -> paid HD) ----------------
+def portrait_public(p: Portrait):
+    paid = p.status == "paid"
+    return {
+        "id": p.id, "slug": p.share_slug, "pet_name": p.pet_name, "style": p.style,
+        "style_label": PORTRAIT_STYLES.get(p.style, {}).get("label", p.style),
+        "status": p.status, "progress_step": p.progress_step, "progress_pct": p.progress_pct,
+        "price_clp": p.price_clp, "paid": paid, "error": p.error,
+        "gift_enabled": p.gift_enabled, "gift_to": p.gift_to, "gift_from": p.gift_from,
+        "gift_message": p.gift_message, "brand_url": BRAND_URL,
+        "preview_url": f"/api/media/{p.id}/{p.preview_file}" if p.preview_file else None,
+        "clean_url": f"/api/media/{p.id}/{p.clean_file}" if (paid and p.clean_file) else None,
+    }
+
+
+async def run_portrait_pipeline(portrait_id: str):
+    import time
+    p = await get_portrait(portrait_id)
+    if not p:
+        return
+    try:
+        photo = await db.portrait_photos.find_one({"portrait_id": portrait_id}, {"_id": 0})
+        if not photo:
+            raise RuntimeError("No hay foto")
+        style = PORTRAIT_STYLES.get(p.style) or list(PORTRAIT_STYLES.values())[0]
+
+        await db.portraits.update_one({"id": portrait_id}, {"$set": {
+            "progress_step": "Preparando el lienzo...", "progress_pct": 20}})
+        data_uri = await asyncio.to_thread(storage.image_to_data_uri, portrait_id, photo["file"])
+
+        await db.portraits.update_one({"id": portrait_id}, {"$set": {
+            "progress_step": "Pintando a tu mascota...", "progress_pct": 45}})
+        t0 = time.monotonic()
+        clean = await asyncio.to_thread(ai_pipeline.generate_portrait, data_uri, "mascota", style["prompt"])
+
+        await db.portraits.update_one({"id": portrait_id}, {"$set": {
+            "progress_step": "Poniéndole el marco dorado...", "progress_pct": 80}})
+        clean_name = f"clean_{new_id().replace('-', '')[:16]}.jpg"
+        await asyncio.to_thread(storage.save_image, portrait_id, clean_name, clean, 94)
+        preview = await asyncio.to_thread(renderer.portrait_preview, clean, BRAND_NAME)
+        await asyncio.to_thread(storage.save_image, portrait_id, "preview.jpg", preview, 82)
+
+        await log_generation(portrait_id, "portrait", ai_pipeline.FAL_MODEL, images=1,
+                             cost_usd=ai_pipeline.FAL_IMG_COST,
+                             duration_ms=int((time.monotonic() - t0) * 1000))
+        await db.portraits.update_one({"id": portrait_id}, {"$set": {
+            "status": "preview_ready", "preview_file": "preview.jpg", "clean_file": clean_name,
+            "progress_pct": 100, "progress_step": "¡Listo!"}})
+        logger.info(f"Portrait {portrait_id} ready")
+    except Exception as e:
+        logger.exception(f"Portrait pipeline failed for {portrait_id}")
+        await db.portraits.update_one({"id": portrait_id}, {"$set": {
+            "status": "failed", "error": str(e), "progress_step": "Algo salió mal", "progress_pct": 0}})
+
+
+@api_router.post("/portraits")
+async def create_portrait(payload: PortraitCreate, x_device_id: str = Header(default="")):
+    if payload.style not in PORTRAIT_STYLES:
+        raise HTTPException(400, "Estilo inválido")
+    p = Portrait(
+        pet_name=(payload.pet_name or "").strip()[:40] or None,
+        style=payload.style, device_id=x_device_id, price_clp=PORTRAIT_PRICE_CLP,
+        gift_enabled=bool(payload.gift_enabled),
+        gift_to=(payload.gift_to or "").strip()[:60] or None,
+        gift_from=(payload.gift_from or "").strip()[:60] or None,
+        gift_message=(payload.gift_message or "").strip()[:280] or None,
+    )
+    await db.portraits.insert_one(p.model_dump())
+    return {"id": p.id, "slug": p.share_slug}
+
+
+@api_router.post("/portraits/{portrait_id}/photo")
+async def upload_portrait_photo(portrait_id: str, files: list[UploadFile] = File(...)):
+    p = await get_portrait(portrait_id)
+    if not p:
+        raise HTTPException(404, "Retrato no encontrado")
+    if not files:
+        raise HTTPException(400, "Sube una foto")
+    raw = await files[0].read()
+    if not raw:
+        raise HTTPException(400, "Foto vacía")
+    try:
+        name = await asyncio.to_thread(storage.save_original, portrait_id, 0, raw)
+    except Exception:
+        raise HTTPException(400, "No se pudo procesar la foto")
+    await db.portrait_photos.delete_many({"portrait_id": portrait_id})
+    await db.portrait_photos.insert_one({
+        "id": new_id(), "portrait_id": portrait_id, "file": name, "created_at": iso_now()})
+    return {"uploaded": 1}
+
+
+@api_router.post("/portraits/{portrait_id}/generate")
+async def generate_portrait_route(portrait_id: str):
+    p = await get_portrait(portrait_id)
+    if not p:
+        raise HTTPException(404, "Retrato no encontrado")
+    photo = await db.portrait_photos.find_one({"portrait_id": portrait_id})
+    if not photo:
+        raise HTTPException(400, "Sube una foto primero")
+    expires = (now_utc() + timedelta(days=RETENTION_DAYS)).isoformat()
+    await db.portraits.update_one({"id": portrait_id}, {"$set": {
+        "status": "generating", "progress_step": "Preparando...", "progress_pct": 5,
+        "expires_at": expires, "error": None, "ai_cost_usd": 0.0}})
+    asyncio.create_task(run_portrait_pipeline(portrait_id))
+    return {"status": "generating"}
+
+
+@api_router.get("/portraits/{portrait_id}")
+async def read_portrait(portrait_id: str):
+    p = await get_portrait(portrait_id)
+    if not p:
+        raise HTTPException(404, "Retrato no encontrado")
+    return portrait_public(p)
+
+
+@api_router.get("/portraits/slug/{slug}")
+async def read_portrait_by_slug(slug: str):
+    p = await get_portrait_by_slug(slug)
+    if not p:
+        raise HTTPException(404, "Retrato no encontrado")
+    return portrait_public(p)
+
+
+@api_router.post("/portraits/{portrait_id}/checkout")
+async def portrait_checkout(portrait_id: str):
+    p = await get_portrait(portrait_id)
+    if not p:
+        raise HTTPException(404, "Retrato no encontrado")
+    if p.status == "paid":
+        return {"mode": provider.mode, "already_paid": True}
+    return await provider.create_checkout(portrait_id, p.share_slug, amount=p.price_clp,
+                                          title="Retrato Petito", back_path=f"/r/{p.share_slug}")
+
+
+@api_router.post("/portraits/{portrait_id}/pay-demo")
+async def portrait_pay_demo(portrait_id: str):
+    if provider.mode != "demo":
+        raise HTTPException(400, "Pago demo deshabilitado")
+    p = await get_portrait(portrait_id)
+    if not p:
+        raise HTTPException(404, "Retrato no encontrado")
+    await db.portraits.update_one({"id": portrait_id}, {"$set": {
+        "status": "paid", "paid_at": iso_now()}})
+    return {"status": "paid"}
 
 
 app.include_router(api_router)

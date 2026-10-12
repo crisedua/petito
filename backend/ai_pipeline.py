@@ -147,23 +147,18 @@ def _trusted_queue_url(value: str) -> str:
     return value
 
 
-def generate_bonus_scene(best_photo_data_uri, pet_name, species, bonus_prompt, timeout=240):
-    """Blocking fal.ai call via Emergent proxy. Run in a worker thread."""
+def _fal_edit(image_data_uri, prompt, aspect_ratio="9:16", timeout=240):
+    """Blocking fal.ai image-edit call via Emergent proxy. Run in a worker thread."""
     headers = {
         "Authorization": f"Bearer {EMERGENT_LLM_KEY}",
         "Content-Type": "application/json",
     }
-    prompt = (
-        f"Transform this exact {species} into a fun stylized portrait: {bonus_prompt}. "
-        f"Critically preserve the pet's real fur colors, markings, breed and face so it is "
-        f"clearly the same pet. Cute, warm, high quality, vertical composition."
-    )
     payload = {
-        "image_urls": [best_photo_data_uri],
+        "image_urls": [image_data_uri],
         "prompt": prompt,
         "num_images": 1,
         "output_format": "jpeg",
-        "aspect_ratio": "9:16",
+        "aspect_ratio": aspect_ratio,
     }
     submit = None
     last_err = None
@@ -212,6 +207,25 @@ def generate_bonus_scene(best_photo_data_uri, pet_name, species, bonus_prompt, t
             dl.raise_for_status()
             return Image.open(BytesIO(dl.content)).convert("RGB")
         if status in {"FAILED", "CANCELLED", "CANCELED", "ERROR"}:
-            raise RuntimeError(f"Bonus generation failed: {status}")
+            raise RuntimeError(f"Generation failed: {status}")
         time.sleep(2)
-    raise RuntimeError("Bonus generation timed out")
+    raise RuntimeError("Generation timed out")
+
+
+def generate_bonus_scene(best_photo_data_uri, pet_name, species, bonus_prompt, timeout=240):
+    prompt = (
+        f"Transform this exact {species} into a fun stylized portrait: {bonus_prompt}. "
+        f"Critically preserve the pet's real fur colors, markings, breed and face so it is "
+        f"clearly the same pet. Cute, warm, high quality, vertical composition."
+    )
+    return _fal_edit(best_photo_data_uri, prompt, aspect_ratio="9:16", timeout=timeout)
+
+
+def generate_portrait(photo_data_uri, species, style_prompt, timeout=300):
+    prompt = (
+        f"Transform this exact {species} into {style_prompt}. "
+        f"CRITICAL: preserve the pet's real fur colors, markings, breed and facial features so it "
+        f"is unmistakably the same pet. The pet's face must stay clearly visible and centered. "
+        f"Luxurious, elegant, high quality, vertical portrait composition."
+    )
+    return _fal_edit(photo_data_uri, prompt, aspect_ratio="3:4", timeout=timeout)

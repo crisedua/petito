@@ -205,3 +205,76 @@ class SurveyResponse(BaseModel):
 class SurveySubmit(BaseModel):
     story_id: str = ""
     answer: str  # "yes" | "no"
+
+
+# ---------------- Portraits (royalty portrait: free preview -> paid HD) ----------------
+PORTRAIT_STYLES = {
+    "renacentista": {
+        "label": "Renacentista",
+        "emoji": "🎨",
+        "desc": "Óleo clásico, telón oscuro y vestuario de época",
+        "prompt": (
+            "a masterful classical Renaissance oil painting portrait, the pet wearing regal "
+            "Renaissance noble attire such as a velvet robe and a ruffled lace collar, dramatic "
+            "chiaroscuro lighting, dark elegant painted background, visible oil brush strokes, "
+            "museum masterpiece style, displayed inside an ornate hand-carved gilded golden "
+            "baroque frame as if hanging in a palace"
+        ),
+    },
+    "victoriano": {
+        "label": "Victoriano",
+        "emoji": "🎩",
+        "desc": "Atuendo aristócrata: capa, encaje y joyas",
+        "prompt": (
+            "a refined Victorian aristocratic oil painting portrait, the pet dressed as a noble "
+            "aristocrat with a velvet cape, delicate lace, pearls and jewels, dignified regal pose, "
+            "soft classic painted studio background, elegant and stately mood, displayed inside an "
+            "ornate gilded golden frame with carved flourishes"
+        ),
+    },
+    "halloween": {
+        "label": "Halloween",
+        "emoji": "🎃",
+        "desc": "Retrato clásico con toque gótico de Halloween",
+        "prompt": (
+            "a classical oil painting portrait with an elegant gothic Halloween theme, warm "
+            "candlelight and flickering candles, subtle cobwebs, deep moody dark tones, the pet "
+            "wearing a small aristocratic costume, spooky yet refined mansion background, displayed "
+            "inside an ornate gilded golden frame with carved flourishes"
+        ),
+    },
+}
+
+
+class PortraitCreate(BaseModel):
+    pet_name: Optional[str] = None
+    style: str
+    gift_enabled: bool = False
+    gift_to: Optional[str] = None
+    gift_from: Optional[str] = None
+    gift_message: Optional[str] = None
+
+
+class Portrait(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    id: str = Field(default_factory=new_id)
+    share_slug: str = Field(default_factory=new_slug)
+    device_id: Optional[str] = None
+    pet_name: Optional[str] = None
+    style: str
+    status: str = "draft"  # draft, generating, preview_ready, paid, failed
+    progress_step: str = ""
+    progress_pct: int = 0
+    preview_file: str = ""   # low-res watermarked (public)
+    clean_file: str = ""     # HD clean, unguessable name (only exposed when paid)
+    price_clp: int = 2990
+    paid_at: Optional[str] = None
+    gift_enabled: bool = False
+    gift_to: Optional[str] = None
+    gift_from: Optional[str] = None
+    gift_message: Optional[str] = None
+    ai_cost_usd: float = 0.0
+    error: Optional[str] = None
+    created_at: str = Field(default_factory=iso_now)
+    expires_at: Optional[str] = None

@@ -38,6 +38,18 @@ export const checkout = (id) => api.post(`/stories/${id}/checkout`).then((r) => 
 export const saveEmail = (id, email) => api.post(`/stories/${id}/email`, { email }).then((r) => r.data);
 export const submitSurvey = (storyId, answer) => api.post("/survey", { story_id: storyId, answer }).then((r) => r.data);
 
+export const createPortrait = (payload) => api.post("/portraits", payload).then((r) => r.data);
+export const uploadPortraitPhoto = (id, file) => {
+  const fd = new FormData();
+  fd.append("files", file);
+  return api.post(`/portraits/${id}/photo`, fd).then((r) => r.data);
+};
+export const generatePortrait = (id) => api.post(`/portraits/${id}/generate`).then((r) => r.data);
+export const getPortrait = (id) => api.get(`/portraits/${id}`).then((r) => r.data);
+export const getPortraitBySlug = (slug) => api.get(`/portraits/slug/${slug}`).then((r) => r.data);
+export const portraitCheckout = (id) => api.post(`/portraits/${id}/checkout`).then((r) => r.data);
+export const payPortraitDemo = (id) => api.post(`/portraits/${id}/pay-demo`).then((r) => r.data);
+
 export const adminLogin = (password) => api.post("/admin/login", { password }).then((r) => r.data);
 export const adminMetrics = (token) => api.get("/admin/metrics", { headers: { Authorization: `Bearer ${token}` } }).then((r) => r.data);
 export const adminSurvey = (token) => api.get("/admin/survey", { headers: { Authorization: `Bearer ${token}` } }).then((r) => r.data);

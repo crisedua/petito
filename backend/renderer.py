@@ -415,3 +415,36 @@ def make_locked(clean, brand):
     mw = draw.textlength(msg, font=f)
     draw.text((cx - mw / 2, cy + 150), msg, font=f, fill=(255, 255, 255))
     return img.convert("RGB")
+
+
+# ---------------- portrait preview watermark ----------------
+def portrait_preview(clean_img, brand="Petito", max_side=900):
+    """Low-res, watermarked variant of a finished portrait for the free preview/share."""
+    img = clean_img.convert("RGB").copy()
+    img.thumbnail((max_side, max_side), Image.LANCZOS)
+    w, h = img.size
+    base = img.convert("RGBA")
+
+    # tiled diagonal watermark
+    tile_f = _font("Fredoka-Bold.ttf", max(28, w // 14), 600)
+    tmp = Image.new("RGBA", (10, 10))
+    tw = ImageDraw.Draw(tmp).textlength(brand, font=tile_f)
+    stamp = Image.new("RGBA", (int(tw) + 40, int(tile_f.size * 1.6)), (0, 0, 0, 0))
+    sd = ImageDraw.Draw(stamp)
+    sd.text((22, 6), brand, font=tile_f, fill=(255, 255, 255, 70))
+    sd.text((20, 4), brand, font=tile_f, fill=(255, 255, 255, 46))
+    stamp = stamp.rotate(30, expand=True, resample=Image.BICUBIC)
+    step_x = int(stamp.width * 0.9)
+    step_y = int(stamp.height * 1.5)
+    for ry in range(-stamp.height, h + stamp.height, step_y):
+        for rx in range(-stamp.width, w + stamp.width, step_x):
+            base.alpha_composite(stamp, (rx, ry))
+
+    # bold centered brand mark
+    big_f = _font("Fredoka-Bold.ttf", max(44, w // 7), 700)
+    bw = ImageDraw.Draw(base).textlength(brand, font=big_f)
+    bx, by = (w - bw) / 2, h * 0.46
+    d = ImageDraw.Draw(base)
+    d.text((bx + 3, by + 3), brand, font=big_f, fill=(0, 0, 0, 90))
+    d.text((bx, by), brand, font=big_f, fill=(255, 255, 255, 150))
+    return base.convert("RGB")

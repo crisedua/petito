@@ -22,8 +22,9 @@ class DemoProvider:
     """No real charge. Frontend confirms via /pay-demo to unlock instantly."""
     mode = "demo"
 
-    async def create_checkout(self, story_id: str, slug: str) -> dict:
-        return {"mode": "demo", "amount": PRICE_CLP, "story_id": story_id}
+    async def create_checkout(self, ref: str, slug: str, amount: int = PRICE_CLP,
+                              title: str = "Historia Petito", back_path: str = None) -> dict:
+        return {"mode": "demo", "amount": amount, "ref": ref}
 
 
 class MercadoPagoProvider:
@@ -40,17 +41,19 @@ class MercadoPagoProvider:
     def _headers(self):
         return {"Authorization": f"Bearer {self.token}", "Content-Type": "application/json"}
 
-    async def create_checkout(self, story_id: str, slug: str) -> dict:
+    async def create_checkout(self, ref: str, slug: str, amount: int = PRICE_CLP,
+                              title: str = "Historia Petito", back_path: str = None) -> dict:
+        back_path = back_path or f"/h/{slug}"
         body = {
             "items": [{
-                "id": story_id, "title": "Historia Petito",
-                "quantity": 1, "currency_id": "CLP", "unit_price": PRICE_CLP,
+                "id": ref, "title": title,
+                "quantity": 1, "currency_id": "CLP", "unit_price": amount,
             }],
-            "external_reference": story_id,
+            "external_reference": ref,
             "back_urls": {
-                "success": f"{self.frontend_url}/h/{slug}?pago=success",
-                "pending": f"{self.frontend_url}/h/{slug}?pago=pending",
-                "failure": f"{self.frontend_url}/h/{slug}?pago=failure",
+                "success": f"{self.frontend_url}{back_path}?pago=success",
+                "pending": f"{self.frontend_url}{back_path}?pago=pending",
+                "failure": f"{self.frontend_url}{back_path}?pago=failure",
             },
             "auto_return": "approved",
             "notification_url": f"{self.public_api_url}/api/payments/webhook/mercadopago",
@@ -59,7 +62,7 @@ class MercadoPagoProvider:
             r = await c.post(f"{self.base}/checkout/preferences", headers=self._headers, json=body)
         r.raise_for_status()
         data = r.json()
-        return {"mode": "mercadopago", "checkout_url": data["init_point"], "amount": PRICE_CLP}
+        return {"mode": "mercadopago", "checkout_url": data["init_point"], "amount": amount}
 
     async def get_payment(self, payment_id: str) -> dict:
         async with httpx.AsyncClient(timeout=15) as c:
