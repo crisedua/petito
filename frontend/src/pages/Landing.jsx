@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { PawPrint, Sparkles, ArrowRight, Film, Crown, Images } from "lucide-react";
+import { PawPrint, ArrowRight, Film, Crown, Images } from "lucide-react";
 import { InviteButton } from "@/components/InviteButton";
 import { ProfileMenu } from "@/components/ProfileMenu";
 import { useAuth } from "@/lib/auth";
@@ -99,10 +99,6 @@ export default function Landing() {
               </div>
             </motion.button>
           ))}
-        </div>
-
-        <div className="mt-7 flex items-center justify-center gap-2 text-sm text-muted-foreground text-center">
-          <Sparkles className="w-4 h-4 text-accent shrink-0" /> Sin cuenta para ver · Inicia sesión para crear · Humor chileno
         </div>
 
         {user && (
