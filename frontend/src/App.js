@@ -7,8 +7,10 @@ import RequireAuth from "@/components/RequireAuth";
 import Landing from "@/pages/Landing";
 import Create from "@/pages/Create";
 import Portrait from "@/pages/Portrait";
+import Talk from "@/pages/Talk";
 import StoryView from "@/pages/StoryView";
 import PortraitView from "@/pages/PortraitView";
+import TalkView from "@/pages/TalkView";
 import MyCreations from "@/pages/MyCreations";
 import Admin from "@/pages/Admin";
 
@@ -22,9 +24,11 @@ function AppRoutes() {
       <Route path="/" element={<Landing />} />
       <Route path="/crear" element={<RequireAuth subtitle="Inicia sesión para crear la historia de tu mascota 🐾"><Create /></RequireAuth>} />
       <Route path="/retrato" element={<RequireAuth subtitle="Inicia sesión para crear el retrato de tu mascota 👑"><Portrait /></RequireAuth>} />
+      <Route path="/hablar" element={<RequireAuth subtitle="Inicia sesión para crear el video completo de tu mascota 🗣️"><Talk /></RequireAuth>} />
       <Route path="/mis-creaciones" element={<RequireAuth subtitle="Inicia sesión para ver tus historias y retratos"><MyCreations /></RequireAuth>} />
       <Route path="/h/:slug" element={<StoryView />} />
       <Route path="/r/:slug" element={<PortraitView />} />
+      <Route path="/v/:slug" element={<TalkView />} />
       <Route path="/admin" element={<Admin />} />
     </Routes>
   );

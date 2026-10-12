@@ -18,7 +18,7 @@ import renderer
 import ai_pipeline
 import narration
 import payments
-from models import Story, Slide, StoryCreate, SurveyResponse, SurveySubmit, Portrait, PortraitCreate, THEMES, SPECIES, PORTRAIT_STYLES, now_utc, iso_now, new_id
+from models import Story, Slide, StoryCreate, SurveyResponse, SurveySubmit, Portrait, PortraitCreate, TalkingVideo, TalkCreate, THEMES, SPECIES, PORTRAIT_STYLES, now_utc, iso_now, new_id
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / ".env")
@@ -31,6 +31,8 @@ BRAND_NAME = os.environ.get("BRAND_NAME", "Petito")
 BRAND_URL = os.environ.get("BRAND_URL", "petito.pro")
 PRICE_CLP = int(os.environ.get("STORY_PRICE_CLP", "3990"))
 PORTRAIT_PRICE_CLP = int(os.environ.get("PORTRAIT_PRICE_CLP", "2990"))
+TALK_PRICE_CLP = int(os.environ.get("TALK_PRICE_CLP", "2990"))
+FREE_TALK_PER_DAY = int(os.environ.get("FREE_TALK_PER_DAY", "2"))
 USD_TO_CLP = float(os.environ.get("USD_TO_CLP", "950"))
 FREE_PER_DAY = int(os.environ.get("FREE_PREVIEWS_PER_DAY", "3"))
 BONUS_ENABLED = os.environ.get("BONUS_SCENES_ENABLED", "true").lower() == "true"
@@ -467,6 +469,8 @@ async def config():
         "portrait_price_clp": PORTRAIT_PRICE_CLP,
         "portrait_styles": [{"key": k, "label": v["label"], "emoji": v["emoji"], "desc": v["desc"]}
                             for k, v in PORTRAIT_STYLES.items()],
+        "talk_price_clp": TALK_PRICE_CLP,
+        "free_talk_per_day": FREE_TALK_PER_DAY,
     }
 
 
@@ -623,6 +627,13 @@ async def mp_webhook(request: Request):
         if approved:
             await db.portraits.update_one({"id": order_id, "status": {"$ne": "paid"}},
                                           {"$set": {"status": "paid", "paid_at": iso_now()}})
+        return {"received": True}
+    video = await get_talk(order_id)
+    if video:
+        approved = (payment.get("status") == "approved" and payment.get("currency_id") == "CLP"
+                    and float(payment.get("transaction_amount", 0)) == video.price_clp)
+        if approved:
+            await _talk_mark_paid_and_finalize(order_id)
     return {"received": True}
 
 
@@ -634,7 +645,8 @@ async def media(story_id: str, name: str):
         data, content_type = await asyncio.to_thread(storage.get_bytes, story_id, name)
     except Exception:
         raise HTTPException(404, "No encontrado")
-    mime = "audio/mpeg" if name.lower().endswith(".mp3") else (content_type or "image/jpeg")
+    mime = "audio/mpeg" if name.lower().endswith(".mp3") else (
+        "video/mp4" if name.lower().endswith(".mp4") else (content_type or "image/jpeg"))
     return Response(content=data, media_type=mime)
 
 
@@ -852,6 +864,259 @@ async def portrait_pay_demo(portrait_id: str):
     await db.portraits.update_one({"id": portrait_id}, {"$set": {
         "status": "paid", "paid_at": iso_now()}})
     return {"status": "paid"}
+
+
+# ---------------- talking video ("Petito Habla") ----------------
+async def get_talk(video_id: str):
+    doc = await db.videos.find_one({"id": video_id}, {"_id": 0})
+    return TalkingVideo(**doc) if doc else None
+
+
+async def get_talk_by_slug(slug: str):
+    doc = await db.videos.find_one({"share_slug": slug}, {"_id": 0})
+    return TalkingVideo(**doc) if doc else None
+
+
+def talk_public(v: TalkingVideo):
+    paid = v.status == "paid"
+    return {
+        "id": v.id, "slug": v.share_slug, "pet_name": v.pet_name, "mode": v.mode,
+        "status": v.status, "progress_step": v.progress_step, "progress_pct": v.progress_pct,
+        "line": v.line, "price_clp": v.price_clp, "paid": paid, "error": v.error,
+        "brand_url": BRAND_URL,
+        "preview_url": f"/api/media/{v.id}/{v.preview_file}" if v.preview_file else None,
+        "clean_url": f"/api/media/{v.id}/{v.clean_file}" if (paid and v.clean_file) else None,
+        "clean_ready": bool(v.clean_file),
+    }
+
+
+def _origin_from(request: Request):
+    return (request.headers.get("origin") or FRONTEND_URL or "").rstrip("/") or None
+
+
+async def run_talk_pipeline(video_id: str):
+    import time as _t
+    v = await get_talk(video_id)
+    if not v:
+        return
+    long = v.mode == "full"
+    try:
+        photo = await db.talk_photos.find_one({"video_id": video_id}, {"_id": 0})
+        if not photo:
+            raise RuntimeError("No hay foto")
+        base = v.media_base or ""
+        if not base:
+            raise RuntimeError("Falta media_base")
+
+        await db.videos.update_one({"id": video_id}, {"$set": {
+            "progress_step": "Escuchando a tu mascota...", "progress_pct": 20}})
+        photo_b64 = await asyncio.to_thread(storage.image_to_b64, video_id, photo["file"], 512)
+        line, species, usage = await ai_pipeline.write_pet_line(photo_b64, v.pet_name, long)
+        await db.videos.update_one({"id": video_id}, {"$set": {"line": line, "species": species}})
+        if usage:
+            await log_generation(video_id, "talk_line", ai_pipeline.CLAUDE_MODEL, usage=usage,
+                                 cost_usd=ai_pipeline.claude_cost(usage))
+
+        await db.videos.update_one({"id": video_id}, {"$set": {
+            "progress_step": "Buscando la voz perfecta...", "progress_pct": 40}})
+        audio = await asyncio.to_thread(narration.generate_narration, line,
+                                        narration.valid_voice(v.voice_id or narration.DEFAULT_VOICE_ID), 1.0)
+        await asyncio.to_thread(storage.save_bytes, video_id, "audio.mp3", audio, "audio/mpeg")
+
+        await db.videos.update_one({"id": video_id}, {"$set": {
+            "progress_step": "Dándole voz a tu mascota...", "progress_pct": 60}})
+        orig = await asyncio.to_thread(storage.load_image, video_id, photo["file"])
+        out_w = 720 if long else 512
+        src = await asyncio.to_thread(renderer.talk_source, orig, True, out_w, BRAND_NAME)
+        await asyncio.to_thread(storage.save_image, video_id, "source.jpg", src, 90)
+
+        image_url = f"{base}/api/media/{video_id}/source.jpg"
+        audio_url = f"{base}/api/media/{video_id}/audio.mp3"
+        t0 = _t.monotonic()
+        vid_bytes = await asyncio.to_thread(ai_pipeline.generate_talking_video, image_url, audio_url)
+        await asyncio.to_thread(storage.save_bytes, video_id, "preview.mp4", vid_bytes, "video/mp4")
+
+        dur = 8 if long else 5
+        await log_generation(video_id, "talk_video", ai_pipeline.TALK_MODEL, images=0,
+                             cost_usd=ai_pipeline.FAL_VIDEO_COST_PER_SEC * dur,
+                             duration_ms=int((_t.monotonic() - t0) * 1000))
+        await db.videos.update_one({"id": video_id}, {"$set": {
+            "status": "preview_ready", "preview_file": "preview.mp4",
+            "progress_pct": 100, "progress_step": "¡Listo!"}})
+        logger.info(f"Talk video {video_id} preview ready")
+    except Exception as e:
+        logger.exception(f"Talk pipeline failed for {video_id}")
+        msg = "Sin crédito para generar. Agrega saldo a tu Universal Key." if "INSUFFICIENT_CREDITS" in str(e) else str(e)
+        await db.videos.update_one({"id": video_id}, {"$set": {
+            "status": "failed", "error": msg, "progress_step": "Algo salió mal", "progress_pct": 0}})
+
+
+async def run_talk_clean(video_id: str):
+    """After payment: regenerate a CLEAN (no watermark) HD video reusing the same audio."""
+    import time as _t
+    v = await get_talk(video_id)
+    if not v or v.clean_file:
+        return
+    try:
+        photo = await db.talk_photos.find_one({"video_id": video_id}, {"_id": 0})
+        base = v.media_base or ""
+        if not photo or not base or not await asyncio.to_thread(storage.exists, video_id, "audio.mp3"):
+            raise RuntimeError("Faltan recursos para la versión HD")
+        await db.videos.update_one({"id": video_id}, {"$set": {
+            "progress_step": "Creando tu versión HD...", "progress_pct": 50}})
+        orig = await asyncio.to_thread(storage.load_image, video_id, photo["file"])
+        src = await asyncio.to_thread(renderer.talk_source, orig, False, 1080, BRAND_NAME)
+        await asyncio.to_thread(storage.save_image, video_id, "source_hd.jpg", src, 95)
+        image_url = f"{base}/api/media/{video_id}/source_hd.jpg"
+        audio_url = f"{base}/api/media/{video_id}/audio.mp3"
+        t0 = _t.monotonic()
+        vid_bytes = await asyncio.to_thread(ai_pipeline.generate_talking_video, image_url, audio_url)
+        clean_name = f"clean_{new_id().replace('-', '')[:16]}.mp4"
+        await asyncio.to_thread(storage.save_bytes, video_id, clean_name, vid_bytes, "video/mp4")
+        await log_generation(video_id, "talk_video_hd", ai_pipeline.TALK_MODEL, images=0,
+                             cost_usd=ai_pipeline.FAL_VIDEO_COST_PER_SEC * 8,
+                             duration_ms=int((_t.monotonic() - t0) * 1000))
+        await db.videos.update_one({"id": video_id}, {"$set": {
+            "clean_file": clean_name, "progress_pct": 100, "progress_step": "¡HD listo!"}})
+        logger.info(f"Talk video {video_id} HD ready")
+    except Exception:
+        logger.exception(f"Talk HD generation failed for {video_id}")
+
+
+async def _talk_mark_paid_and_finalize(video_id: str):
+    await db.videos.update_one({"id": video_id, "status": {"$ne": "paid"}},
+                               {"$set": {"status": "paid", "paid_at": iso_now()}})
+    asyncio.create_task(run_talk_clean(video_id))
+
+
+@api_router.post("/talk/preview")
+async def talk_preview(request: Request, files: list[UploadFile] = File(...),
+                       x_device_id: str = Header(default="")):
+    """Anonymous free preview: upload 1 photo -> short watermarked talking video. Rate-limited."""
+    if not files:
+        raise HTTPException(400, "Sube una foto")
+    start = now_utc().replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+    used = await db.videos.count_documents({
+        "device_id": x_device_id, "mode": "preview_free", "created_at": {"$gte": start}})
+    if x_device_id and used >= FREE_TALK_PER_DAY:
+        raise HTTPException(429, "Llegaste al límite de adelantos gratis de hoy. ¡Crea el tuyo completo!")
+    raw = await files[0].read()
+    if not raw:
+        raise HTTPException(400, "Foto vacía")
+    v = TalkingVideo(device_id=x_device_id, mode="preview_free", price_clp=TALK_PRICE_CLP,
+                     voice_id=narration.DEFAULT_VOICE_ID, media_base=_origin_from(request),
+                     status="generating", progress_step="Preparando...", progress_pct=5,
+                     expires_at=(now_utc() + timedelta(days=RETENTION_DAYS)).isoformat())
+    await db.videos.insert_one(v.model_dump())
+    try:
+        name = await asyncio.to_thread(storage.save_original, v.id, 0, raw)
+    except Exception:
+        raise HTTPException(400, "No se pudo procesar la foto")
+    await db.talk_photos.insert_one({"id": new_id(), "video_id": v.id, "file": name, "created_at": iso_now()})
+    asyncio.create_task(run_talk_pipeline(v.id))
+    return {"id": v.id, "slug": v.share_slug}
+
+
+@api_router.post("/talk")
+async def create_talk(payload: TalkCreate, request: Request,
+                      x_device_id: str = Header(default=""), user=Depends(require_user)):
+    v = TalkingVideo(
+        device_id=x_device_id, user_id=user["user_id"], mode="full", price_clp=TALK_PRICE_CLP,
+        pet_name=(payload.pet_name or "").strip()[:40] or None,
+        voice_id=narration.valid_voice(payload.voice_id or narration.DEFAULT_VOICE_ID),
+        media_base=_origin_from(request),
+    )
+    await db.videos.insert_one(v.model_dump())
+    return {"id": v.id, "slug": v.share_slug}
+
+
+@api_router.post("/talk/{video_id}/photo")
+async def upload_talk_photo(video_id: str, files: list[UploadFile] = File(...)):
+    v = await get_talk(video_id)
+    if not v:
+        raise HTTPException(404, "Video no encontrado")
+    if not files:
+        raise HTTPException(400, "Sube una foto")
+    raw = await files[0].read()
+    if not raw:
+        raise HTTPException(400, "Foto vacía")
+    try:
+        name = await asyncio.to_thread(storage.save_original, video_id, 0, raw)
+    except Exception:
+        raise HTTPException(400, "No se pudo procesar la foto")
+    await db.talk_photos.delete_many({"video_id": video_id})
+    await db.talk_photos.insert_one({"id": new_id(), "video_id": video_id, "file": name, "created_at": iso_now()})
+    return {"uploaded": 1}
+
+
+@api_router.post("/talk/{video_id}/generate")
+async def generate_talk(video_id: str, request: Request, user=Depends(require_user)):
+    v = await get_talk(video_id)
+    if not v:
+        raise HTTPException(404, "Video no encontrado")
+    photo = await db.talk_photos.find_one({"video_id": video_id})
+    if not photo:
+        raise HTTPException(400, "Sube una foto primero")
+    await db.videos.update_one({"id": video_id}, {"$set": {
+        "status": "generating", "progress_step": "Preparando...", "progress_pct": 5,
+        "error": None, "media_base": _origin_from(request),
+        "expires_at": (now_utc() + timedelta(days=RETENTION_DAYS)).isoformat()}})
+    asyncio.create_task(run_talk_pipeline(video_id))
+    return {"status": "generating"}
+
+
+@api_router.get("/talk/{video_id}")
+async def read_talk(video_id: str):
+    v = await get_talk(video_id)
+    if not v:
+        raise HTTPException(404, "Video no encontrado")
+    return talk_public(v)
+
+
+@api_router.get("/talk/slug/{slug}")
+async def read_talk_by_slug(slug: str):
+    v = await get_talk_by_slug(slug)
+    if not v:
+        raise HTTPException(404, "Video no encontrado")
+    return talk_public(v)
+
+
+@api_router.post("/talk/{video_id}/checkout")
+async def talk_checkout(video_id: str, request: Request):
+    v = await get_talk(video_id)
+    if not v:
+        raise HTTPException(404, "Video no encontrado")
+    if v.status == "paid":
+        return {"mode": provider.mode, "already_paid": True}
+    origin = request.headers.get("origin") or FRONTEND_URL or None
+    return await provider.create_checkout(video_id, v.share_slug, amount=v.price_clp,
+                                          title="Petito Habla", back_path=f"/v/{v.share_slug}",
+                                          origin=origin)
+
+
+@api_router.post("/talk/{video_id}/pay-demo")
+async def talk_pay_demo(video_id: str):
+    if provider.mode != "demo":
+        raise HTTPException(400, "Pago demo deshabilitado")
+    v = await get_talk(video_id)
+    if not v:
+        raise HTTPException(404, "Video no encontrado")
+    await _talk_mark_paid_and_finalize(video_id)
+    return {"status": "paid"}
+
+
+@api_router.get("/me/videos")
+async def my_videos(user=Depends(require_user)):
+    docs = await db.videos.find({"user_id": user["user_id"], "mode": "full",
+                                 "status": {"$in": ["preview_ready", "paid"]}},
+                                {"_id": 0}).sort("created_at", -1).to_list(200)
+    return [{
+        "id": d["id"], "slug": d["share_slug"], "pet_name": d.get("pet_name"),
+        "line": d.get("line"), "status": d["status"], "paid": d["status"] == "paid",
+        "thumb_url": f"/api/media/{d['id']}/source.jpg",
+        "preview_url": f"/api/media/{d['id']}/{d['preview_file']}" if d.get("preview_file") else None,
+        "created_at": d["created_at"],
+    } for d in docs]
 
 
 app.include_router(api_router)

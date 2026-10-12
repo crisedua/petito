@@ -1,22 +1,24 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Loader2, Film, Crown, Gift, Check, Lock, PawPrint, Plus } from "lucide-react";
+import { ArrowLeft, Loader2, Film, Crown, Mic, Gift, Check, Lock, PawPrint, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { myStories, myPortraits, mediaUrl } from "@/lib/api";
+import { myStories, myPortraits, myVideos, mediaUrl } from "@/lib/api";
 
 export default function MyCreations() {
   const nav = useNavigate();
-  const [tab, setTab] = useState("portraits");
+  const [tab, setTab] = useState("videos");
   const [stories, setStories] = useState(null);
   const [portraits, setPortraits] = useState(null);
+  const [videos, setVideos] = useState(null);
 
   useEffect(() => {
     myStories().then(setStories).catch(() => setStories([]));
     myPortraits().then(setPortraits).catch(() => setPortraits([]));
+    myVideos().then(setVideos).catch(() => setVideos([]));
   }, []);
 
-  const loading = stories === null || portraits === null;
+  const loading = stories === null || portraits === null || videos === null;
 
   return (
     <div className="mobile-frame" data-testid="my-creations-screen">
@@ -28,7 +30,7 @@ export default function MyCreations() {
       </div>
 
       <div className="flex gap-2 px-5 mt-5">
-        {[["portraits", "Mis retratos", Crown], ["stories", "Mis historias", Film]].map(([k, l, Icon]) => (
+        {[["videos", "Videos", Mic], ["portraits", "Retratos", Crown], ["stories", "Historias", Film]].map(([k, l, Icon]) => (
           <button key={k} onClick={() => setTab(k)} data-testid={`creations-tab-${k}`}
             className={`flex-1 flex items-center justify-center gap-1.5 py-3 rounded-2xl text-sm font-display font-semibold transition-all ${tab === k ? "bg-primary text-white" : "bg-white border border-border text-neutral-600"}`}>
             <Icon className="w-4 h-4" /> {l}
@@ -39,6 +41,18 @@ export default function MyCreations() {
       <div className="flex-1 px-5 pt-5 pb-10 overflow-y-auto no-scrollbar">
         {loading ? (
           <div className="grid place-items-center py-16"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
+        ) : tab === "videos" ? (
+          videos.length === 0 ? (
+            <Empty icon={Mic} text="Aún no tienes videos" cta="Hacer que hable" onClick={() => nav("/hablar")} />
+          ) : (
+            <div className="grid grid-cols-2 gap-3" data-testid="videos-grid">
+              {videos.map((v) => (
+                <Card key={v.id} onClick={() => nav(`/v/${v.slug}`)} testid={`video-card-${v.id}`}
+                  thumb={mediaUrl(v.thumb_url)} title={v.pet_name || "Video"} subtitle={v.line || "Petito Habla"}
+                  paid={v.paid} badge={Mic} />
+              ))}
+            </div>
+          )
         ) : tab === "portraits" ? (
           portraits.length === 0 ? (
             <Empty icon={Crown} text="Aún no tienes retratos" cta="Crear un retrato" onClick={() => nav("/retrato")} />

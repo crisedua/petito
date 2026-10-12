@@ -64,3 +64,21 @@ export const getMe = () => api.get("/auth/me").then((r) => r.data);
 export const logoutApi = () => api.post("/auth/logout").then((r) => r.data);
 export const myStories = () => api.get("/me/stories").then((r) => r.data);
 export const myPortraits = () => api.get("/me/portraits").then((r) => r.data);
+export const myVideos = () => api.get("/me/videos").then((r) => r.data);
+
+// ---- talking video ("Petito Habla") ----
+export const createTalkPreview = (file) => {
+  const fd = new FormData();
+  fd.append("files", file);
+  return api.post("/talk/preview", fd).then((r) => r.data);
+};
+export const createTalk = (payload) => api.post("/talk", payload).then((r) => r.data);
+export const uploadTalkPhoto = (id, file) => {
+  const fd = new FormData();
+  fd.append("files", file);
+  return api.post(`/talk/${id}/photo`, fd).then((r) => r.data);
+};
+export const generateTalk = (id) => api.post(`/talk/${id}/generate`).then((r) => r.data);
+export const getTalk = (id) => api.get(`/talk/${id}`).then((r) => r.data);
+export const getTalkBySlug = (slug) => api.get(`/talk/slug/${slug}`).then((r) => r.data);
+export const talkCheckout = (id) => api.post(`/talk/${id}/checkout`).then((r) => r.data);

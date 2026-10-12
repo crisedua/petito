@@ -448,3 +448,50 @@ def portrait_preview(clean_img, brand="Petito", max_side=900):
     d.text((bx + 3, by + 3), brand, font=big_f, fill=(0, 0, 0, 90))
     d.text((bx, by), brand, font=big_f, fill=(255, 255, 255, 150))
     return base.convert("RGB")
+
+
+# ---------------- talking-video source frame (9:16, optional Petito watermark) ----------------
+def talk_source(img, watermark=False, out_width=720, brand="Petito"):
+    """Cover-crop a photo to vertical 9:16 and (for the free preview) bake in a Petito watermark.
+    The watermark is baked into the SOURCE so the generated video carries it (no ffmpeg needed)."""
+    img = img.convert("RGB")
+    w, h = img.size
+    target = 9 / 16
+    ar = w / h
+    if ar > target:
+        nw = int(h * target)
+        x = (w - nw) // 2
+        img = img.crop((x, 0, x + nw, h))
+    else:
+        nh = int(w / target)
+        y = (h - nh) // 2
+        img = img.crop((0, y, w, y + nh))
+    out_w = out_width
+    out_h = int(round(out_w * 16 / 9))
+    img = img.resize((out_w, out_h), Image.LANCZOS)
+    if not watermark:
+        return img
+    base = img.convert("RGBA")
+    W2, H2 = base.size
+    # diagonal tiled mark
+    tile_f = _font("Fredoka-Bold.ttf", max(26, W2 // 11), 600)
+    tmp = Image.new("RGBA", (10, 10))
+    tw = ImageDraw.Draw(tmp).textlength(brand, font=tile_f)
+    stamp = Image.new("RGBA", (int(tw) + 40, int(tile_f.size * 1.6)), (0, 0, 0, 0))
+    sd = ImageDraw.Draw(stamp)
+    sd.text((20, 6), brand, font=tile_f, fill=(255, 255, 255, 55))
+    stamp = stamp.rotate(30, expand=True, resample=Image.BICUBIC)
+    step_x = int(stamp.width * 0.95)
+    step_y = int(stamp.height * 1.7)
+    for ry in range(-stamp.height, H2 + stamp.height, step_y):
+        for rx in range(-stamp.width, W2 + stamp.width, step_x):
+            base.alpha_composite(stamp, (rx, ry))
+    # solid bottom brand pill (stays clear of the animated face)
+    big_f = _font("Fredoka-Bold.ttf", max(30, W2 // 9), 700)
+    d = ImageDraw.Draw(base)
+    bw = d.textlength(brand, font=big_f)
+    bx = (W2 - bw) / 2
+    by = H2 - big_f.size * 1.9
+    d.text((bx + 2, by + 2), brand, font=big_f, fill=(0, 0, 0, 110))
+    d.text((bx, by), brand, font=big_f, fill=(255, 255, 255, 235))
+    return base.convert("RGB")

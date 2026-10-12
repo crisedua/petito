@@ -41,10 +41,13 @@ def valid_voice(voice_id: str) -> str:
     return voice_id if voice_id in VALID_VOICE_IDS else DEFAULT_VOICE_ID
 
 
-def generate_narration(text: str, voice_id: str) -> bytes:
+def generate_narration(text: str, voice_id: str, speed: float = None) -> bytes:
     """Blocking ElevenLabs TTS call. Run in a worker thread. Returns MP3 bytes."""
     if not ELEVEN_API_KEY or not text or not text.strip():
         raise RuntimeError("Narration unavailable")
+    settings = dict(_VOICE_SETTINGS)
+    if speed is not None:
+        settings["speed"] = speed
     resp = requests.post(
         f"{_API}/{valid_voice(voice_id)}",
         params={"output_format": "mp3_44100_128"},
@@ -56,7 +59,7 @@ def generate_narration(text: str, voice_id: str) -> bytes:
         json={
             "text": text.strip()[:900],
             "model_id": NARRATION_MODEL,
-            "voice_settings": _VOICE_SETTINGS,
+            "voice_settings": settings,
         },
         timeout=90,
     )

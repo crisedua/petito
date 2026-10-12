@@ -280,3 +280,36 @@ class Portrait(BaseModel):
     error: Optional[str] = None
     created_at: str = Field(default_factory=iso_now)
     expires_at: Optional[str] = None
+
+
+# ---------------- Talking video ("Petito Habla") ----------------
+class TalkCreate(BaseModel):
+    pet_name: Optional[str] = None
+    voice_id: Optional[str] = None
+
+
+class TalkingVideo(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    id: str = Field(default_factory=new_id)
+    share_slug: str = Field(default_factory=new_slug)
+    device_id: Optional[str] = None
+    user_id: Optional[str] = None
+    pet_name: Optional[str] = None
+    species: Optional[str] = None
+    mode: str = "full"          # "preview_free" (anonymous) | "full" (logged in)
+    status: str = "draft"       # draft, generating, preview_ready, finalizing, paid, failed
+    progress_step: str = ""
+    progress_pct: int = 0
+    line: Optional[str] = None
+    voice_id: Optional[str] = None
+    media_base: Optional[str] = None   # public origin to build fal-reachable media URLs
+    audio_file: str = ""
+    preview_file: str = ""      # watermarked mp4 (public)
+    clean_file: str = ""        # HD clean mp4, unguessable name (only exposed when paid)
+    price_clp: int = 2990
+    paid_at: Optional[str] = None
+    ai_cost_usd: float = 0.0
+    error: Optional[str] = None
+    created_at: str = Field(default_factory=iso_now)
+    expires_at: Optional[str] = None

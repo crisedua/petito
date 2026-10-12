@@ -147,18 +147,11 @@ def _trusted_queue_url(value: str) -> str:
     return value
 
 
-def _fal_edit(image_data_uri, prompt, aspect_ratio="9:16", timeout=240):
-    """Blocking fal.ai image-edit call via Emergent proxy. Run in a worker thread."""
+def _fal_queue(endpoint, payload, timeout=300):
+    """Blocking fal.ai queue call via Emergent proxy. Returns the result body JSON."""
     headers = {
         "Authorization": f"Bearer {EMERGENT_LLM_KEY}",
         "Content-Type": "application/json",
-    }
-    payload = {
-        "image_urls": [image_data_uri],
-        "prompt": prompt,
-        "num_images": 1,
-        "output_format": "jpeg",
-        "aspect_ratio": aspect_ratio,
     }
     submit = None
     last_err = None
@@ -166,7 +159,7 @@ def _fal_edit(image_data_uri, prompt, aspect_ratio="9:16", timeout=240):
         try:
             submit = requests.post(
                 f"{FAL_CONTROL}/proxy",
-                headers={**headers, "X-Fal-Target-Url": f"https://queue.fal.run/{FAL_MODEL}"},
+                headers={**headers, "X-Fal-Target-Url": f"https://queue.fal.run/{endpoint}"},
                 json=payload, timeout=60,
             )
         except requests.RequestException as e:
@@ -180,7 +173,7 @@ def _fal_edit(image_data_uri, prompt, aspect_ratio="9:16", timeout=240):
             continue
         break
     if submit is None:
-        raise RuntimeError(f"Bonus submit failed: {last_err}")
+        raise RuntimeError(f"fal submit failed: {last_err}")
     submit.raise_for_status()
     sub = submit.json()
     status_url = _trusted_queue_url(sub["status_url"])
@@ -196,20 +189,69 @@ def _fal_edit(image_data_uri, prompt, aspect_ratio="9:16", timeout=240):
             continue
         status = (st.json().get("status") or "").upper()
         if status in {"COMPLETED", "OK"}:
-            res = requests.get(response_url, headers=headers, timeout=60)
+            res = requests.get(response_url, headers=headers, timeout=120)
             res.raise_for_status()
-            body = res.json()
-            imgs = body.get("images") or []
-            if not imgs:
-                raise RuntimeError("No bonus image returned")
-            img_url = imgs[0]["url"] if isinstance(imgs[0], dict) else imgs[0]
-            dl = requests.get(img_url, timeout=60)
-            dl.raise_for_status()
-            return Image.open(BytesIO(dl.content)).convert("RGB")
+            return res.json()
         if status in {"FAILED", "CANCELLED", "CANCELED", "ERROR"}:
             raise RuntimeError(f"Generation failed: {status}")
         time.sleep(2)
     raise RuntimeError("Generation timed out")
+
+
+def _fal_edit(image_data_uri, prompt, aspect_ratio="9:16", timeout=240):
+    body = _fal_queue(FAL_MODEL, {
+        "image_urls": [image_data_uri], "prompt": prompt, "num_images": 1,
+        "output_format": "jpeg", "aspect_ratio": aspect_ratio,
+    }, timeout)
+    imgs = body.get("images") or []
+    if not imgs:
+        raise RuntimeError("No image returned")
+    img_url = imgs[0]["url"] if isinstance(imgs[0], dict) else imgs[0]
+    dl = requests.get(img_url, timeout=60)
+    dl.raise_for_status()
+    return Image.open(BytesIO(dl.content)).convert("RGB")
+
+
+# ---------------- talking video (fal sync-lipsync v3 image-to-video) ----------------
+TALK_MODEL = os.environ.get("FAL_TALK_MODEL", "fal-ai/sync-lipsync/v3/image-to-video")
+FAL_VIDEO_COST_PER_SEC = 0.1333
+
+
+def generate_talking_video(image_url, audio_url, timeout=600):
+    """image_url + audio_url (public HTTPS) -> MP4 bytes. Duration follows the audio."""
+    body = _fal_queue(TALK_MODEL, {"image_url": image_url, "audio_url": audio_url}, timeout)
+    vid = body.get("video") or {}
+    url = vid.get("url") if isinstance(vid, dict) else vid
+    if not url:
+        raise RuntimeError("No video returned")
+    dl = requests.get(url, timeout=180)
+    dl.raise_for_status()
+    return dl.content
+
+
+async def write_pet_line(photo_b64, pet_name=None, long=False):
+    """Claude vision: identify species and write ONE funny Chilean first-person line."""
+    system = (
+        "Eres un comediante chileno que le pone voz a las mascotas. Hablas en primera persona "
+        "como si fueras la mascota de la foto. Español de Chile, cálido y chistoso, con modismos "
+        "suaves (regalón, pancito, choro, aperrado, bacán, al tiro), sin groserías ni humor "
+        "ofensivo. Respondes SOLO JSON válido."
+    )
+    words = "20 a 26" if long else "11 a 15"
+    name_txt = f"Mi nombre es {pet_name}. " if pet_name else ""
+    prompt = (
+        f"Mira la foto de esta mascota. {name_txt}"
+        f"Identifica si es perro, gato u otro. Inventa UNA sola frase graciosa en primera persona "
+        f"que la mascota diría mirando a la cámara en un video, de {words} palabras, para hacer "
+        f"reír y que la gente quiera compartirlo. Usa el nombre si lo tienes.\n"
+        f'Responde JSON: {{"species": "perro|gato|otro", "line": "<frase>"}}'
+    )
+    text, usage = await _run_claude(
+        system, UserMessage(text=prompt, file_contents=[ImageContent(image_base64=photo_b64)]))
+    data = _extract_json(text)
+    line = (data.get("line") or "").strip() or f"¡Hola! Soy {pet_name or 'tu regalón'}, el más choro de la casa."
+    species = data.get("species") or "otro"
+    return line, species, usage
 
 
 def generate_bonus_scene(best_photo_data_uri, pet_name, species, bonus_prompt, timeout=240):
