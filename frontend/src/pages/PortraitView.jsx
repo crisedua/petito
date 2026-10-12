@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Gift, Loader2, PawPrint, Crown, ArrowRight, Download } from "lucide-react";
+import { Gift, Loader2, PawPrint, Crown, ArrowRight, Download, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getPortraitBySlug, mediaUrl } from "@/lib/api";
 
@@ -116,12 +116,25 @@ export default function PortraitView() {
               )}
 
               <div className="mt-8 bg-white rounded-3xl border border-border p-5 text-center shadow-sm">
-                <Crown className="w-8 h-8 text-primary mx-auto" />
-                <p className="mt-2 font-display font-semibold text-neutral-900">¿Y tu mascota?</p>
-                <p className="text-sm text-muted-foreground">Crea su retrato de realeza en Petito.</p>
-                <Button onClick={() => nav("/retrato")} className="mt-4 rounded-2xl font-semibold" data-testid="portrait-view-cta">
-                  Crear mi retrato <ArrowRight className="w-4 h-4 ml-1" />
-                </Button>
+                {p.category === "memorial" ? (
+                  <>
+                    <Heart className="w-8 h-8 text-slate-500 mx-auto" />
+                    <p className="mt-2 font-display font-semibold text-neutral-900">Un recuerdo para siempre</p>
+                    <p className="text-sm text-muted-foreground">Crea el retrato recuerdo de tu mascota en Petito.</p>
+                    <Button onClick={() => nav("/recuerdo")} className="mt-4 rounded-2xl font-semibold bg-slate-700 hover:bg-slate-800" data-testid="portrait-view-cta">
+                      Crear un retrato recuerdo <ArrowRight className="w-4 h-4 ml-1" />
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Crown className="w-8 h-8 text-primary mx-auto" />
+                    <p className="mt-2 font-display font-semibold text-neutral-900">¿Y tu mascota?</p>
+                    <p className="text-sm text-muted-foreground">Crea su retrato de realeza en Petito.</p>
+                    <Button onClick={() => nav("/retrato")} className="mt-4 rounded-2xl font-semibold" data-testid="portrait-view-cta">
+                      Crear mi retrato <ArrowRight className="w-4 h-4 ml-1" />
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           </motion.div>

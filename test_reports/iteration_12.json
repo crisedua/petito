@@ -1,0 +1,33 @@
+{
+  "summary": "Full validation of 'Retrato recuerdo' (memorial portrait) feature. Backend: 9/9 pytest cases pass (config exposes memorial_styles=[acuarela,oleo_realista] and portrait_styles=[renacentista,victoriano,halloween]; POST /api/portraits category='memorial' requires auth, accepts acuarela, rejects royal styles like 'renacentista' with 400, and reverse rejects acuarela when category='royal'; public GET /api/portraits/slug/3ce2c387ce returns category=memorial with pet_name=Luna, dates=2010 – 2024, caption=Siempre conmigo; /api/me/portraits requires auth and lists the memorial Luna card). Memorial MP checkout endpoint returns a real mercadopago.cl redirect URL. Frontend (390x844): 8/8 scenarios pass — Landing landing-choice-recuerdo card visible and navigates to /recuerdo; logged-out /recuerdo shows google-login-button; after seeding petito_token+session_token the wizard step 1 (photo+name+optional dates) loads with no Chilean humor; uploading a real PNG + clicking memorial-photo-next advances to step 2 showing BOTH memorial-style-acuarela and memorial-style-oleo_realista; caption chips and memorial-caption-custom -> memorial-caption-input work; memorial-create-button is enabled and clicking it reaches memorial-progress-screen; /r/3ce2c387ce public (no login) shows portrait-view-image + portrait-view-memorial block containing 'Luna' and '2010 – 2024' and the caption 'Siempre conmigo', with NO gift-wrap (portrait-open-gift absent); authed /mis-creaciones -> creations-tab-portraits lists Luna and clicking opens /r/3ce2c387ce. Regression: /retrato loads without errors.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/recuerdo result (StepResult)", "issues": ["memorial-pay-button copy says 'Descargar en HD · $2.990' which reads fine, but there is no loading guard against double-click when portraitCheckout is slow (same low-priority issue noted on talk-pay-button in iteration_11). Non-blocking."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_memorial_flow.py",
+    "/app/test_reports/pytest/memorial_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "backend/server.py:783 category normalization uses 'memorial' if payload.category == 'memorial' else 'royal' — good defensive default; style whitelist via MEMORIAL_STYLES vs PORTRAIT_STYLES is clean. ALL_PORTRAIT_STYLES merge is used only for lookups so there's no cross-category leak. OK.",
+    "backend/server.py:791 gift_enabled is force-disabled when category=='memorial' — correctly prevents a memorial portrait from being treated as a gift. Good.",
+    "frontend/pages/Memorial.jsx:33 the pet_name field is NOT required to advance (only file is). Spec says 'name + optional dates'; current UI treats name as optional too which matches dates behavior but diverges from spec wording. Low priority — the backend accepts null pet_name.",
+    "frontend/pages/Memorial.jsx:170 memorial_styles list items rely on STYLE_IMG mapping; if backend adds a 3rd memorial style key in the future, no fallback image is shown. Non-blocking.",
+    "frontend/pages/PortraitView.jsx:17 setOpened(!d.gift_enabled) opens the view directly for memorial (gift_enabled is forced false). Correct behavior verified end-to-end. The bottom CTA still says 'Crear mi retrato' and routes to /retrato even for memorial viewers — consider offering /recuerdo as an alternate CTA when p.category === 'memorial'. Minor UX suggestion."
+  ],
+  "updated_files": ["/app/backend/tests/test_memorial_flow.py"],
+  "success_rate": { "backend": "100% (9/9)", "frontend": "100% (8/8 executed, 1 MP-redirect verified via API curl instead of UI)" },
+  "test_credentials": {
+    "normal_user_session_token": "test_session_norm_1 (user_id: user_testnorm1)",
+    "memorial_slug": "3ce2c387ce (owner: user_testnorm1, pet=Luna, dates='2010 – 2024', caption='Siempre conmigo', paid=false)"
+  },
+  "seed_data_creation": "No new permanent seed data. Three ephemeral memorial Portrait rows created during tests (TEST_LunaMem x1, TEST_Royal x1 via regression) were all removed with db.portraits.deleteMany({pet_name:{$regex:'^TEST_'}}) (2 rows). One extra in-flight memorial portrait was started via Playwright UI (pet_name='Luna', from TEST3) which lives in DB but is harmless; it belongs to user_testnorm1.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Memorial feature fully green. /r/<slug> works for both royal (gift-wrap) and memorial (no wrap) via a single PortraitView.jsx — the setOpened(!d.gift_enabled) branch is the switch. Backend ALL_PORTRAIT_STYLES merges royal+memorial for display lookups only; create_portrait enforces per-category whitelist. Memorial MP checkout returned a real mercadopago.cl URL for slug 3ce2c387ce (POST /api/portraits/<id>/checkout, portrait_id resolved via mongosh since the checkout endpoint takes id not slug). test_memorial_flow.py cleans itself. The UI pay button is on Memorial.jsx StepResult (post-generation) and was not clicked E2E because full fal.ai generation (~30-60s and real $) is required; validated structurally in code and via direct API call."
+}
