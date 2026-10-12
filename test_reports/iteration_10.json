@@ -1,0 +1,66 @@
+{
+  "summary": "Full auth-flow validation (backend + frontend) for Petito Google-auth + Mis creaciones + Admin allowlist. 14/14 backend pytest cases pass; 11/11 frontend scenarios pass at 390x844.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_auth_flow.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "POST /api/auth/logout deletes the session_token row immediately. Any shared seed session used by both automated tests AND manual retests will be invalidated the first time a logout flow runs. Testing agents must re-seed after a logout test. Non-blocking.",
+    "GET /auth/me returns the same generic 401 'Inicia sesión para continuar' whether the token is missing OR invalid/expired. For debugging it would help to differentiate 'missing credentials' vs 'expired/revoked token'.",
+    "AuthProvider boots once on mount; after a cookie/localStorage swap the SPA must be reloaded to pick up the new session (expected, but worth noting in docs for QA)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_auth_flow.py"
+  ],
+  "success_rate": {
+    "backend": "100% (14/14)",
+    "frontend": "100% (11/11)"
+  },
+  "test_credentials": {
+    "normal_user_session_token": "test_session_norm_1 (email: test.petito.norm@example.com)",
+    "admin_session_token": "test_session_admin_1 (email: eduardo@eduescalante.com)",
+    "note": "Seed via mongosh (test_database.user_sessions + users). test_credentials.md still only mentions legacy admin password; could be updated with these Google-auth test tokens."
+  },
+  "seed_data_creation": "Re-seeded test_session_norm_1 after the backend logout test consumed it. Also inserted a disposable 'test_session_logout_tmp' row inside the logout test to avoid nuking the shared norm session going forward. The seeded Michi portrait (id=696bde13-d0d5-488b-8848-e0706c2ae79c, slug=39f1974e10) is intact.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Seeded sessions: test_session_norm_1 (normal user, user_testnorm1), test_session_admin_1 (admin, user_testadmin1). Michi portrait slug=39f1974e10. Frontend requires EITHER cookie 'session_token' (domain=cuentapatas-demo.preview.emergentagent.com, secure, sameSite=None) OR localStorage key 'petito_token'; sending both is safest. If you call POST /auth/logout against a shared token, re-seed it. Use add_init_script to set localStorage before first page load. AuthProvider reads /auth/me on mount, so change sessions via a fresh goto rather than in-page toggles.",
+  "scenarios_covered": {
+    "auth_gating_logged_out_crear": "PASS - login-screen + google-login-button shown",
+    "auth_gating_logged_out_retrato": "PASS",
+    "google_button_redirect": "PASS - redirects to https://auth.emergentagent.com/?redirect=...",
+    "crear_authed_shows_wizard": "PASS - pet-name-input visible",
+    "retrato_authed_shows_wizard": "PASS - portrait-photo-trigger visible",
+    "mis_creaciones_lists_michi": "PASS - portrait-card-<id> renders, click navigates to /r/39f1974e10",
+    "landing_header_logged_out": "PASS - header-login-button visible",
+    "landing_header_logged_in": "PASS - profile-menu-button + landing-my-creations visible",
+    "profile_menu_items": "PASS - menu-my-creations + menu-logout",
+    "logout_flow": "PASS - clears session, returns to header-login-button",
+    "admin_unauthorized_for_non_allowlisted": "PASS - 'No autorizado' shown with user's email",
+    "admin_dashboard_for_allowlisted": "PASS - admin-dashboard + admin-kpis + admin-logout present",
+    "backend_auth_me_401_without_token": "PASS",
+    "backend_auth_me_200_normal": "PASS",
+    "backend_auth_me_200_admin": "PASS",
+    "backend_create_story_401_noauth": "PASS",
+    "backend_create_portrait_401_noauth": "PASS",
+    "backend_public_portrait_slug": "PASS",
+    "backend_me_portraits_requires_auth": "PASS",
+    "backend_me_portraits_lists_michi": "PASS",
+    "backend_me_stories_requires_auth": "PASS",
+    "backend_me_stories_authed": "PASS",
+    "backend_admin_metrics_401_noauth": "PASS",
+    "backend_admin_metrics_403_normal": "PASS",
+    "backend_admin_metrics_200_admin": "PASS",
+    "backend_logout": "PASS"
+  }
+}
