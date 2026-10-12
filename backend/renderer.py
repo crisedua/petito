@@ -440,13 +440,6 @@ def portrait_preview(clean_img, brand="Petito", max_side=900):
         for rx in range(-stamp.width, w + stamp.width, step_x):
             base.alpha_composite(stamp, (rx, ry))
 
-    # bold centered brand mark
-    big_f = _font("Fredoka-Bold.ttf", max(44, w // 7), 700)
-    bw = ImageDraw.Draw(base).textlength(brand, font=big_f)
-    bx, by = (w - bw) / 2, h * 0.46
-    d = ImageDraw.Draw(base)
-    d.text((bx + 3, by + 3), brand, font=big_f, fill=(0, 0, 0, 90))
-    d.text((bx, by), brand, font=big_f, fill=(255, 255, 255, 150))
     return base.convert("RGB")
 
 
