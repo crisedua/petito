@@ -495,6 +495,24 @@ async def create_story(payload: StoryCreate, x_device_id: str = Header(default="
     return {"id": story.id, "slug": story.share_slug}
 
 
+MAX_UPLOAD_BYTES = 20 * 1024 * 1024  # 20MB cap per photo to bound worker memory
+
+
+async def _read_capped(f: UploadFile, limit: int = MAX_UPLOAD_BYTES) -> bytes:
+    """Read an upload with a hard size cap so a huge file can't exhaust memory."""
+    chunks, total = [], 0
+    while True:
+        chunk = await f.read(1024 * 1024)
+        if not chunk:
+            break
+        total += len(chunk)
+        if total > limit:
+            raise HTTPException(413, "La foto es muy pesada. Usa una de menos de 20 MB.")
+        chunks.append(chunk)
+    return b"".join(chunks)
+
+
+
 @api_router.post("/stories/{story_id}/photos")
 async def upload_photos(story_id: str, files: list[UploadFile] = File(...)):
     story = await get_story(story_id)
@@ -504,7 +522,7 @@ async def upload_photos(story_id: str, files: list[UploadFile] = File(...)):
     await db.photos.delete_many({"story_id": story_id})
     saved = []
     for i, f in enumerate(files):
-        raw = await f.read()
+        raw = await _read_capped(f)
         if not raw:
             continue
         try:
@@ -806,7 +824,7 @@ async def upload_portrait_photo(portrait_id: str, files: list[UploadFile] = File
         raise HTTPException(404, "Retrato no encontrado")
     if not files:
         raise HTTPException(400, "Sube una foto")
-    raw = await files[0].read()
+    raw = await _read_capped(files[0])
     if not raw:
         raise HTTPException(400, "Foto vacía")
     try:
@@ -1027,7 +1045,7 @@ async def talk_preview(request: Request, files: list[UploadFile] = File(...),
         "device_id": x_device_id, "mode": "preview_free", "created_at": {"$gte": start}})
     if x_device_id and used >= FREE_TALK_PER_DAY:
         raise HTTPException(429, "Llegaste al límite de adelantos gratis de hoy. ¡Crea el tuyo completo!")
-    raw = await files[0].read()
+    raw = await _read_capped(files[0])
     if not raw:
         raise HTTPException(400, "Foto vacía")
     v = TalkingVideo(device_id=x_device_id, mode="preview_free", price_clp=TALK_PRICE_CLP,
@@ -1067,7 +1085,7 @@ async def upload_talk_photo(video_id: str, files: list[UploadFile] = File(...)):
         raise HTTPException(404, "Video no encontrado")
     if not files:
         raise HTTPException(400, "Sube una foto")
-    raw = await files[0].read()
+    raw = await _read_capped(files[0])
     if not raw:
         raise HTTPException(400, "Foto vacía")
     try:

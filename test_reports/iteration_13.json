@@ -1,0 +1,33 @@
+{
+  "summary": "Verified production bug fixes for /api/talk/preview (Petito Habla free preview). All 7 bug-fix tests pass against production preview URL: fast response (no blocking on heavy pipeline), HEIC/HEIF iPhone photo decode, media_base always resolves via x-forwarded-host fallback (background pipeline reaches preview_ready, no 'Falta media_base'), clean 400 on empty/garbage input with friendly Spanish detail, 429 rate limit after 2 previews per device per day with Spanish message, and regression check that pillow-heif registration didn't break vanilla JPEG decode.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_talk_preview_bugfix.py",
+    "/app/test_reports/pytest/talk_bugfix.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py:1033 — media_base is set at creation time from _origin_from(request); if an attacker-controlled x-forwarded-host were ever accepted upstream it would influence the media URL handed to fal. Current Cloudflare/ingress trusts only its own value so this is fine, but worth a comment.",
+    "server.py run_talk_pipeline — exceptions are stringified directly into the 'error' field (e.g. 'INSUFFICIENT_CREDITS' is translated, but other exception messages leak internals to any slug reader). Consider mapping remaining errors to friendly ES messages.",
+    "server.py:1030 — `raw = await files[0].read()` loads the full upload into memory before the 400-empty check and before storage.save_original. On huge uploads this still risks OOM (the original 520 symptom). Consider streaming/size cap before full read.",
+    "storage.save_original — buf is created then buf.getvalue() creates a second copy; closing buf doesn't free the already-sent bytes. Minor memory optimisation possible."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_talk_preview_bugfix.py"
+  ],
+  "success_rate": {"backend": "100% (7/7)", "frontend": "n/a (skipped per request)"},
+  "test_credentials": "No login needed for /api/talk/preview (anonymous).",
+  "seed_data_creation": "Each test uses a fresh TEST_* X-Device-Id and cleans up any created video + talk_photos documents in MongoDB.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Bug-fix regression suite lives at /app/backend/tests/test_talk_preview_bugfix.py. The pipeline-completes test polls up to 180s and will skip (not fail) if fal returns a non-media_base failure (e.g. credit exhaustion). All 7 tests passed on 2026-01 against https://cuentapatas-demo.preview.emergentagent.com. Previous iterations 11 and 12 covered the broader Petito Habla + memorial flows and are still green.",
+  "rca_of_the_issue": "Production 520 from Cloudflare on /api/talk/preview was caused by two issues: (1) heavy fal pipeline running inline inside the request so Cloudflare's 100s origin timeout hit on cold calls; and (2) when no Origin header was present, _origin_from() returned None, causing run_talk_pipeline() to raise 'Falta media_base' and mark the video failed. Fixes verified here: endpoint now returns {id,slug} immediately (observed <15s even on cold path), run_talk_pipeline runs via asyncio.create_task, and _origin_from falls back to x-forwarded-proto+x-forwarded-host so media_base is always populated (DB check confirms non-empty http URL). Additional memory hygiene (del raw, close PIL images) further reduces OOM risk. HEIC decode added via pillow_heif.register_heif_opener() in storage.py top-of-module."
+}
