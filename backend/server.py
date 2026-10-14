@@ -901,7 +901,18 @@ def talk_public(v: TalkingVideo):
 
 
 def _origin_from(request: Request):
-    return (request.headers.get("origin") or FRONTEND_URL or "").rstrip("/") or None
+    origin = (request.headers.get("origin") or "").rstrip("/")
+    if origin:
+        return origin
+    if FRONTEND_URL:
+        return FRONTEND_URL.rstrip("/")
+    # Fall back to the request's own public host (behind Cloudflare / proxy) so
+    # media URLs handed to fal are always reachable, even without an Origin header.
+    proto = request.headers.get("x-forwarded-proto") or request.url.scheme or "https"
+    host = request.headers.get("x-forwarded-host") or request.headers.get("host")
+    if host:
+        return f"{proto}://{host.split(',')[0].strip()}"
+    return None
 
 
 async def run_talk_pipeline(video_id: str):
@@ -939,12 +950,18 @@ async def run_talk_pipeline(video_id: str):
         out_w = 720 if long else 384
         src = await asyncio.to_thread(renderer.talk_source, orig, True, out_w, BRAND_NAME)
         await asyncio.to_thread(storage.save_image, video_id, "source.jpg", src, 90)
+        try:
+            orig.close(); src.close()
+        except Exception:
+            pass
+        del orig, src
 
         image_url = f"{base}/api/media/{video_id}/source.jpg"
         audio_url = f"{base}/api/media/{video_id}/audio.mp3"
         t0 = _t.monotonic()
         vid_bytes = await asyncio.to_thread(ai_pipeline.generate_talking_video, image_url, audio_url)
         await asyncio.to_thread(storage.save_bytes, video_id, "preview.mp4", vid_bytes, "video/mp4")
+        del vid_bytes
 
         dur = 8 if long else 3
         await log_generation(video_id, "talk_video", ai_pipeline.TALK_MODEL, images=0,
@@ -1021,7 +1038,10 @@ async def talk_preview(request: Request, files: list[UploadFile] = File(...),
     try:
         name = await asyncio.to_thread(storage.save_original, v.id, 0, raw)
     except Exception:
-        raise HTTPException(400, "No se pudo procesar la foto")
+        logger.exception("talk_preview: could not process photo")
+        raise HTTPException(400, "No pudimos leer esta foto. Prueba con otra (JPG, PNG o foto de iPhone).")
+    finally:
+        del raw
     await db.talk_photos.insert_one({"id": new_id(), "video_id": v.id, "file": name, "created_at": iso_now()})
     asyncio.create_task(run_talk_pipeline(v.id))
     return {"id": v.id, "slug": v.share_slug}

@@ -242,7 +242,7 @@ function StepPhotos({ files, setFiles, onBack, onGenerate, busy }) {
         <h2 className="font-display font-bold text-2xl text-neutral-900">Sube las mejores fotos 📸</h2>
         <p className="text-sm text-muted-foreground mt-1">Elige entre 3 y 20 fotos para un mejor resultado.</p>
 
-        <input ref={inputRef} type="file" accept="image/*" multiple className="hidden"
+        <input ref={inputRef} type="file" accept="image/*,.heic,.heif" multiple className="hidden"
           onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} data-testid="photo-upload-input" />
 
         <button onClick={() => inputRef.current?.click()} data-testid="photo-upload-trigger"

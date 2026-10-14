@@ -106,7 +106,7 @@ function StepPhoto({ nav, cfg, petName, setPetName, file, setFile, onNext }) {
         <h2 className="font-display font-bold text-2xl text-neutral-900">Haz que tu mascota hable 🗣️</h2>
         <p className="text-sm text-muted-foreground mt-1">Sube una foto de frente y con buena luz. La IA le inventa una frase chistosa.</p>
 
-        <input ref={inputRef} type="file" accept="image/*" className="hidden"
+        <input ref={inputRef} type="file" accept="image/*,.heic,.heif" className="hidden"
           onChange={(e) => { pick(e.target.files); e.target.value = ""; }} data-testid="talk-photo-input" />
 
         {file ? (

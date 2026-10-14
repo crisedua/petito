@@ -7,6 +7,13 @@ import requests
 from dotenv import load_dotenv
 from PIL import Image, ImageOps
 
+# Register HEIC/HEIF opener so iPhone photos (.heic/.heif) decode in every upload flow.
+try:
+    import pillow_heif
+    pillow_heif.register_heif_opener()
+except Exception:  # pragma: no cover - optional dependency
+    pass
+
 load_dotenv(Path(__file__).parent / ".env")
 logger = logging.getLogger("petito.storage")
 
@@ -71,8 +78,10 @@ def save_original(story_id: str, index: int, raw: bytes) -> str:
     img.thumbnail((1536, 1536), Image.LANCZOS)
     buf = BytesIO()
     img.save(buf, "JPEG", quality=88)
+    img.close()
     name = f"orig_{index}.jpg"
     _put(_obj_path(story_id, name), buf.getvalue(), "image/jpeg")
+    buf.close()
     return name
 
 

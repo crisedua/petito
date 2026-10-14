@@ -29,16 +29,23 @@ export default function Landing() {
   const onMagic = () => inputRef.current?.click();
 
   const onFile = async (list) => {
-    const f = Array.from(list).find((x) => x.type.startsWith("image/"));
+    const arr = Array.from(list);
+    const f = arr.find((x) => x.type.startsWith("image/") || /\.(heic|heif|jpe?g|png|webp)$/i.test(x.name)) || arr[0];
     if (!f) return;
     setUploading(true);
     try {
       const res = await createTalkPreview(f);
       nav(`/v/${res.slug}`);
     } catch (e) {
-      const msg = e?.response?.status === 429
-        ? "Llegaste al límite de adelantos gratis de hoy. ¡Crea el tuyo completo!"
-        : (e?.response?.data?.detail || "No se pudo crear el adelanto");
+      const status = e?.response?.status;
+      let msg;
+      if (status === 429) {
+        msg = "Llegaste al límite de adelantos gratis de hoy. ¡Crea el tuyo completo!";
+      } else if (status === 400) {
+        msg = e?.response?.data?.detail || "No pudimos leer esta foto. Prueba con otra.";
+      } else {
+        msg = "Estamos con alta demanda 🐾 Intenta de nuevo en un momento.";
+      }
       toast.error(msg);
       setUploading(false);
     }
@@ -46,7 +53,7 @@ export default function Landing() {
 
   return (
     <div className="mobile-frame" data-testid="landing-screen">
-      <input ref={inputRef} type="file" accept="image/*" className="hidden"
+      <input ref={inputRef} type="file" accept="image/*,.heic,.heif" className="hidden"
         onChange={(e) => { onFile(e.target.files); e.target.value = ""; }} data-testid="landing-magic-input" />
 
       <div className="flex items-center justify-between px-5 pt-5">

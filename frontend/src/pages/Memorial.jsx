@@ -123,7 +123,7 @@ function StepPhoto({ nav, petName, setPetName, dates, setDates, file, setFile, o
         <h2 className="font-display font-bold text-2xl text-slate-800 mt-1">Un homenaje para recordarle</h2>
         <p className="text-sm text-slate-500 mt-1">Sube tu foto favorita. Crearemos un retrato sereno que conserva su esencia.</p>
 
-        <input ref={inputRef} type="file" accept="image/*" className="hidden"
+        <input ref={inputRef} type="file" accept="image/*,.heic,.heif" className="hidden"
           onChange={(e) => { pick(e.target.files); e.target.value = ""; }} data-testid="memorial-photo-input" />
 
         {file ? (
