@@ -1,9 +1,10 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
-import { Loader2, Mic, Film, Crown, Plus, ChevronDown, Heart, CalendarHeart, Images, ArrowRight, BookHeart, Settings, Cake } from "lucide-react";
+import { Loader2, Mic, Film, Crown, Plus as PlusIcon, ChevronDown, Heart, CalendarHeart, Images, ArrowRight, BookHeart, Settings, Cake } from "lucide-react";
+import { toast } from "sonner";
 import { ProfileMenu } from "@/components/ProfileMenu";
-import { mediaUrl, getPets, petCreations, getActivePetId, setActivePetId } from "@/lib/api";
+import { mediaUrl, getPets, petCreations, getActivePetId, setActivePetId, plusStatus } from "@/lib/api";
 
 const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 
@@ -50,6 +51,7 @@ export default function Universe() {
   const [active, setActive] = useState(null);
   const [creations, setCreations] = useState([]);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [plus, setPlus] = useState(false);
 
   const loadCreations = useCallback((petId) => {
     petCreations(petId).then(setCreations).catch(() => setCreations([]));
@@ -65,6 +67,10 @@ export default function Universe() {
       setActivePetId(chosen.id);
       loadCreations(chosen.id);
     }).catch(() => nav("/", { replace: true }));
+    plusStatus().then((s) => setPlus(s.active)).catch(() => {});
+    if (new URLSearchParams(window.location.search).get("plus") === "success") {
+      toast.success("¡Bienvenido a Petito Plus! 👑 Ahora todo es ilimitado.");
+    }
   }, [nav, loadCreations]);
 
   const switchPet = (p) => {
@@ -120,7 +126,7 @@ export default function Universe() {
               ))}
               <button onClick={() => nav("/bienvenida")} data-testid="universe-add-pet"
                 className="w-full flex items-center gap-2.5 px-3 py-2.5 border-t hover:bg-[#FBF6EE] text-left" style={{ borderColor: "#EADFCF" }}>
-                <div className="w-8 h-8 rounded-full grid place-items-center" style={{ background: "#FBEEE4", color: "#B85C3C" }}><Plus className="w-4 h-4" /></div>
+                <div className="w-8 h-8 rounded-full grid place-items-center" style={{ background: "#FBEEE4", color: "#B85C3C" }}><PlusIcon className="w-4 h-4" /></div>
                 <span className="font-display font-semibold text-sm" style={{ color: "#B85C3C" }}>Agregar otra mascota</span>
               </button>
             </div>
@@ -129,7 +135,17 @@ export default function Universe() {
         <ProfileMenu />
       </div>
 
-      <div className="flex items-center justify-end px-6 pt-3">
+      <div className="flex items-center justify-between px-6 pt-3">
+        {plus ? (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-display font-bold text-stone-900" style={{ background: "#F5C355" }} data-testid="universe-plus-badge">
+            <Crown className="w-3.5 h-3.5" /> Plus
+          </span>
+        ) : (
+          <button onClick={() => nav("/plus")} data-testid="universe-plus-cta"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-display font-bold text-stone-900" style={{ background: "#F5C355" }}>
+            <Crown className="w-3.5 h-3.5" /> Hazte Plus
+          </button>
+        )}
         <button onClick={() => nav("/perfil")} data-testid="universe-profile-link"
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border text-xs font-display font-semibold" style={{ borderColor: "#EADFCF", color: "#8A6D4B" }}>
           <Settings className="w-3.5 h-3.5" /> Editar perfil

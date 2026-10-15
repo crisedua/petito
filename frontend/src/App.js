@@ -12,6 +12,7 @@ import MemoryCreate from "@/pages/MemoryCreate";
 import MemoryView from "@/pages/MemoryView";
 import PetProfile from "@/pages/PetProfile";
 import PublicAlbum from "@/pages/PublicAlbum";
+import Plus from "@/pages/Plus";
 import Create from "@/pages/Create";
 import Portrait from "@/pages/Portrait";
 import Memorial from "@/pages/Memorial";
@@ -37,6 +38,7 @@ function AppRoutes() {
       <Route path="/album/:id" element={<RequireAuth subtitle="Inicia sesión para ver este recuerdo 🤍"><MemoryView /></RequireAuth>} />
       <Route path="/perfil" element={<RequireAuth subtitle="Inicia sesión para editar el perfil de tu mascota 🐾"><PetProfile /></RequireAuth>} />
       <Route path="/u/:slug" element={<PublicAlbum />} />
+      <Route path="/plus" element={<RequireAuth subtitle="Inicia sesión para hacerte Petito Plus 👑"><Plus /></RequireAuth>} />
       <Route path="/crear" element={<RequireAuth subtitle="Inicia sesión para crear la historia de tu mascota 🐾"><Create /></RequireAuth>} />
       <Route path="/retrato" element={<RequireAuth subtitle="Inicia sesión para crear el retrato de tu mascota 👑"><Portrait /></RequireAuth>} />
       <Route path="/recuerdo" element={<RequireAuth subtitle="Inicia sesión para crear el retrato recuerdo de tu mascota 🤍"><Memorial /></RequireAuth>} />

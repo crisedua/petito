@@ -74,6 +74,46 @@ class MercadoPagoProvider:
         r.raise_for_status()
         return r.json()
 
+    # ---- Preapproval (Petito Plus recurring subscriptions) ----
+    async def create_preapproval(self, ref: str, reason: str, amount: int, frequency: int,
+                                 payer_email: str, back_url: str) -> dict:
+        body = {
+            "reason": reason,
+            "external_reference": ref,
+            "payer_email": payer_email,
+            "auto_recurring": {
+                "frequency": frequency, "frequency_type": "months",
+                "transaction_amount": amount, "currency_id": "CLP",
+            },
+            "back_url": back_url,
+            "status": "pending",
+        }
+        async with httpx.AsyncClient(timeout=20) as c:
+            r = await c.post(f"{self.base}/preapproval", headers=self._headers, json=body)
+        r.raise_for_status()
+        d = r.json()
+        return {"id": d["id"], "init_point": d["init_point"], "status": d.get("status"),
+                "next_payment_date": d.get("next_payment_date")}
+
+    async def get_preapproval(self, preapproval_id: str) -> dict:
+        async with httpx.AsyncClient(timeout=15) as c:
+            r = await c.get(f"{self.base}/preapproval/{preapproval_id}", headers=self._headers)
+        r.raise_for_status()
+        return r.json()
+
+    async def cancel_preapproval(self, preapproval_id: str) -> dict:
+        async with httpx.AsyncClient(timeout=15) as c:
+            r = await c.put(f"{self.base}/preapproval/{preapproval_id}", headers=self._headers,
+                            json={"status": "canceled"})
+        r.raise_for_status()
+        return r.json()
+
+    async def get_authorized_payment(self, ap_id: str) -> dict:
+        async with httpx.AsyncClient(timeout=15) as c:
+            r = await c.get(f"{self.base}/authorized_payments/{ap_id}", headers=self._headers)
+        r.raise_for_status()
+        return r.json()
+
     def valid_signature(self, x_signature, x_request_id, data_id) -> bool:
         # No secret configured -> skip HMAC check. Security still holds because we re-fetch
         # the payment from Mercado Pago with our access token before trusting any status.

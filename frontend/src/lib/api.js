@@ -50,6 +50,13 @@ export const updatePet = (id, payload) => api.put(`/pets/${id}`, payload).then((
 export const deletePet = (id) => api.delete(`/pets/${id}`).then((r) => r.data);
 export const publicAlbum = (slug) => api.get(`/u/${slug}`).then((r) => r.data);
 export const voiceSample = (voiceId) => api.get(`/voice-sample/${voiceId}`).then((r) => r.data);
+
+// ---- Petito Plus ----
+export const plusStatus = () => api.get("/plus/status").then((r) => r.data);
+export const plusSubscribe = (plan) => api.post("/plus/subscribe", { plan }).then((r) => r.data);
+export const plusSync = () => api.post("/plus/sync").then((r) => r.data);
+export const plusCancel = () => api.put("/plus/cancel").then((r) => r.data);
+export const plusDevActivate = (plan) => api.post("/plus/dev-activate", { plan }).then((r) => r.data);
 export const petCreations = (id) => api.get(`/pets/${id}/creations`).then((r) => r.data);
 
 // ---- memories ("Nuestra historia") ----

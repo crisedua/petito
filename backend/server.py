@@ -56,6 +56,27 @@ FRONTEND_URL = os.environ.get("FRONTEND_URL", "")
 PUBLIC_API_URL = os.environ.get("PUBLIC_API_URL", "")
 provider = payments.build_provider(FRONTEND_URL, PUBLIC_API_URL)
 
+# ---- Petito Plus (suscripción) ----
+PLUS_MONTHLY_CLP = int(os.environ.get("PLUS_MONTHLY_CLP", "3900"))
+PLUS_ANNUAL_CLP = int(os.environ.get("PLUS_ANNUAL_CLP", "29900"))
+PLUS_PLANS = {
+    "monthly": {"reason": "Petito Plus mensual", "amount": PLUS_MONTHLY_CLP, "frequency": 1, "days": 31},
+    "annual": {"reason": "Petito Plus anual", "amount": PLUS_ANNUAL_CLP, "frequency": 12, "days": 366},
+}
+
+
+async def is_plus(user_id: str) -> bool:
+    if not user_id:
+        return False
+    sub = await db.subscriptions.find_one({"user_id": user_id, "membership_active": True}, {"_id": 0, "plus_until": 1})
+    if not sub:
+        return False
+    until = sub.get("plus_until")
+    if until and until < iso_now():
+        await db.subscriptions.update_one({"user_id": user_id}, {"$set": {"membership_active": False}})
+        return False
+    return True
+
 
 # ---------------- helpers ----------------
 async def get_story(story_id: str):
@@ -249,6 +270,9 @@ async def create_pet(payload: PetCreate, user=Depends(require_user)):
     name = (payload.name or "").strip()[:40]
     if not name:
         raise HTTPException(400, "Ponle un nombre a tu mascota")
+    existing = await db.pets.count_documents({"user_id": user["user_id"]})
+    if existing >= 1 and not await is_plus(user["user_id"]):
+        raise HTTPException(402, "El plan gratis incluye 1 mascota. ¡Hazte Plus para crear universos ilimitados!")
     valid_personality = [k for k in payload.personality if k in PERSONALITY_LABELS][:5]
     pet = Pet(
         user_id=user["user_id"], name=name,
@@ -502,6 +526,13 @@ async def reflect_memory(memory_id: str, user=Depends(require_user)):
     m = await get_memory(memory_id, user["user_id"])
     if not m:
         raise HTTPException(404, "Recuerdo no encontrado")
+    if not m.ai_reflection and not await is_plus(user["user_id"]):
+        month = iso_now()[:7]
+        count = await db.memories.count_documents({
+            "user_id": user["user_id"], "ai_reflection": {"$ne": None},
+            "created_at": {"$regex": f"^{month}"}})
+        if count >= 3:
+            raise HTTPException(402, "Llegaste a tus 3 pensamientos de Petito gratis del mes. ¡Hazte Plus para tenerlos sin límite!")
     pet = await get_pet(m.pet_id, user["user_id"])
     pet_name = pet.name if pet else "tu mascota"
     labels = ", ".join([EMOTION_LABELS.get(k, k) for k in m.emotions])
@@ -561,6 +592,118 @@ async def voice_sample(voice_id: str):
             logger.exception("voice sample failed")
             raise HTTPException(502, "No se pudo generar la muestra")
     return {"url": f"/api/media/voicesamples/{name}"}
+
+
+# ---------------- Petito Plus (suscripción) ----------------
+def _plus_until_from(sub_status_date, days):
+    from datetime import timedelta
+    return (now_utc() + timedelta(days=days)).isoformat()
+
+
+async def _activate_plus(preapproval_id, status, next_payment_date=None):
+    """Update local subscription from a real Mercado Pago preapproval status."""
+    sub = await db.subscriptions.find_one({"mp_id": preapproval_id}, {"_id": 0})
+    if not sub:
+        return
+    active = status == "authorized"
+    days = PLUS_PLANS.get(sub.get("plan", "monthly"), PLUS_PLANS["monthly"])["days"]
+    upd = {"status": status, "membership_active": active, "next_payment_date": next_payment_date}
+    if active:
+        upd["plus_until"] = _plus_until_from(next_payment_date, days)
+    await db.subscriptions.update_one({"mp_id": preapproval_id}, {"$set": upd})
+
+
+@api_router.get("/plus/status")
+async def plus_status(user=Depends(require_user)):
+    sub = await db.subscriptions.find_one({"user_id": user["user_id"]}, {"_id": 0}, sort=[("created_at", -1)])
+    active = await is_plus(user["user_id"])
+    return {
+        "active": active,
+        "plan": sub.get("plan") if sub else None,
+        "status": sub.get("status") if sub else None,
+        "plus_until": sub.get("plus_until") if sub else None,
+        "mp_id": sub.get("mp_id") if sub else None,
+        "monthly_clp": PLUS_MONTHLY_CLP,
+        "annual_clp": PLUS_ANNUAL_CLP,
+        "free_mode": FREE_MODE,
+    }
+
+
+@api_router.post("/plus/subscribe")
+async def plus_subscribe(request: Request, user=Depends(require_user)):
+    body = await request.json()
+    plan = body.get("plan")
+    if plan not in PLUS_PLANS:
+        raise HTTPException(400, "Plan inválido")
+    if await is_plus(user["user_id"]):
+        raise HTTPException(400, "Ya tienes Petito Plus activo")
+    if not isinstance(provider, payments.MercadoPagoProvider):
+        raise HTTPException(503, "Pagos no disponibles")
+    p = PLUS_PLANS[plan]
+    ref = f"{user['user_id']}:{plan}:{new_id()}"
+    origin = _origin_from(request)
+    back_url = f"{(origin or FRONTEND_URL).rstrip('/')}/plus?pago=success"
+    try:
+        mp = await provider.create_preapproval(ref, p["reason"], p["amount"], p["frequency"],
+                                               user["email"], back_url)
+    except Exception as e:
+        logger.exception("preapproval create failed")
+        raise HTTPException(502, "No se pudo iniciar la suscripción")
+    await db.subscriptions.insert_one({
+        "mp_id": mp["id"], "user_id": user["user_id"], "plan": plan, "external_reference": ref,
+        "payer_email": user["email"], "status": mp.get("status", "pending"),
+        "membership_active": False, "plus_until": None, "created_at": iso_now(),
+    })
+    return {"init_point": mp["init_point"], "mp_id": mp["id"]}
+
+
+@api_router.post("/plus/sync")
+async def plus_sync(request: Request, user=Depends(require_user)):
+    """Called on return from Mercado Pago to confirm status server-side."""
+    sub = await db.subscriptions.find_one({"user_id": user["user_id"]}, {"_id": 0}, sort=[("created_at", -1)])
+    if not sub or not sub.get("mp_id"):
+        return {"active": await is_plus(user["user_id"])}
+    if isinstance(provider, payments.MercadoPagoProvider):
+        try:
+            fresh = await provider.get_preapproval(sub["mp_id"])
+            await _activate_plus(sub["mp_id"], fresh.get("status"), fresh.get("next_payment_date"))
+        except Exception:
+            logger.exception("plus sync failed")
+    return {"active": await is_plus(user["user_id"])}
+
+
+@api_router.put("/plus/cancel")
+async def plus_cancel(user=Depends(require_user)):
+    sub = await db.subscriptions.find_one({"user_id": user["user_id"], "membership_active": True},
+                                          {"_id": 0}, sort=[("created_at", -1)])
+    if not sub or not sub.get("mp_id"):
+        raise HTTPException(404, "No tienes una suscripción activa")
+    if isinstance(provider, payments.MercadoPagoProvider):
+        try:
+            await provider.cancel_preapproval(sub["mp_id"])
+        except Exception:
+            logger.exception("plus cancel failed")
+    # Keep access until plus_until (period already paid), but stop renewal.
+    await db.subscriptions.update_one({"mp_id": sub["mp_id"]}, {"$set": {"status": "canceled"}})
+    return {"ok": True, "plus_until": sub.get("plus_until")}
+
+
+@api_router.post("/plus/dev-activate")
+async def plus_dev_activate(request: Request, user=Depends(require_user)):
+    """Preview-only: activate Plus without a real charge (gated by FREE_MODE)."""
+    if not FREE_MODE:
+        raise HTTPException(403, "No disponible")
+    body = await request.json()
+    plan = body.get("plan") if body.get("plan") in PLUS_PLANS else "monthly"
+    days = PLUS_PLANS[plan]["days"]
+    await db.subscriptions.update_one(
+        {"user_id": user["user_id"]},
+        {"$set": {"mp_id": f"dev-{new_id()}", "user_id": user["user_id"], "plan": plan,
+                  "status": "authorized", "membership_active": True,
+                  "plus_until": _plus_until_from(None, days), "created_at": iso_now()}},
+        upsert=True)
+    return {"active": True, "plan": plan}
+
 
 
 @api_router.get("/pets/{pet_id}/memories")
@@ -883,6 +1026,8 @@ async def config():
         "talk_scenarios": [{"key": k, "label": v["label"], "emoji": v["emoji"]}
                            for k, v in TALK_SCENARIOS.items()],
         "talk_message_max": TALK_MESSAGE_MAX,
+        "plus_monthly_clp": PLUS_MONTHLY_CLP,
+        "plus_annual_clp": PLUS_ANNUAL_CLP,
     }
 
 
@@ -1005,6 +1150,11 @@ async def checkout(story_id: str, request: Request):
         raise HTTPException(404, "Historia no encontrada")
     if story.status == "paid":
         return {"mode": provider.mode, "already_paid": True}
+    if story.user_id and await is_plus(story.user_id):
+        await db.stories.update_one({"id": story_id, "status": {"$ne": "paid"}},
+                                    {"$set": {"status": "paid", "paid_at": iso_now()}})
+        await db.slides.update_many({"story_id": story_id}, {"$set": {"locked": False}})
+        return {"mode": "plus", "already_paid": True}
     origin = request.headers.get("origin") or FRONTEND_URL or None
     result = await provider.create_checkout(story_id, story.share_slug, origin=origin)
     return result
@@ -1032,10 +1182,31 @@ async def mp_webhook(request: Request):
     if not provider.valid_signature(request.headers.get("x-signature"),
                                     request.headers.get("x-request-id"), data_id):
         raise HTTPException(401, "Firma inválida")
+    body = await request.json()
+    res_id = str(data_id or body.get("data", {}).get("id", ""))
+    topic = event_type or body.get("type")
+    # ---- Petito Plus subscription events ----
+    if topic == "subscription_preapproval" and res_id:
+        try:
+            sub = await provider.get_preapproval(res_id)
+            await _activate_plus(res_id, sub.get("status"), sub.get("next_payment_date"))
+        except Exception:
+            logger.exception("webhook preapproval fetch failed")
+        return {"received": True}
+    if topic == "subscription_authorized_payment" and res_id:
+        try:
+            inv = await provider.get_authorized_payment(res_id)
+            pre_id = inv.get("preapproval_id")
+            if pre_id:
+                sub = await provider.get_preapproval(pre_id)
+                if sub.get("status") == "authorized" and inv.get("status") in ("approved", "authorized", "processed"):
+                    await _activate_plus(pre_id, "authorized", sub.get("next_payment_date"))
+        except Exception:
+            logger.exception("webhook authorized_payment failed")
+        return {"received": True}
     if event_type not in (None, "payment"):
         return {"received": True}
-    body = await request.json()
-    payment_id = str(data_id or body.get("data", {}).get("id", ""))
+    payment_id = res_id
     if not payment_id:
         return {"received": True}
     payment = await provider.get_payment(payment_id)
@@ -1286,6 +1457,10 @@ async def portrait_checkout(portrait_id: str, request: Request):
         raise HTTPException(404, "Retrato no encontrado")
     if p.status == "paid":
         return {"mode": provider.mode, "already_paid": True}
+    if p.user_id and await is_plus(p.user_id):
+        await db.portraits.update_one({"id": portrait_id, "status": {"$ne": "paid"}},
+                                      {"$set": {"status": "paid", "paid_at": iso_now()}})
+        return {"mode": "plus", "already_paid": True}
     origin = request.headers.get("origin") or FRONTEND_URL or None
     return await provider.create_checkout(portrait_id, p.share_slug, amount=p.price_clp,
                                           title="Retrato Petito", back_path=f"/r/{p.share_slug}",
@@ -1557,6 +1732,9 @@ async def talk_checkout(video_id: str, request: Request):
         raise HTTPException(404, "Video no encontrado")
     if v.status == "paid":
         return {"mode": provider.mode, "already_paid": True}
+    if v.user_id and await is_plus(v.user_id):
+        await _talk_mark_paid_and_finalize(video_id)
+        return {"mode": "plus", "already_paid": True}
     origin = request.headers.get("origin") or FRONTEND_URL or None
     return await provider.create_checkout(video_id, v.share_slug, amount=v.price_clp,
                                           title="Petito Habla", back_path=f"/v/{v.share_slug}",
