@@ -18,7 +18,7 @@ import renderer
 import ai_pipeline
 import narration
 import payments
-from models import Story, Slide, StoryCreate, SurveyResponse, SurveySubmit, Portrait, PortraitCreate, TalkingVideo, TalkCreate, Pet, PetCreate, Memory, MemoryCreate, MemoryUpdate, THEMES, SPECIES, PORTRAIT_STYLES, MEMORIAL_STYLES, PERSONALITY_OPTIONS, PERSONALITY_LABELS, EMOTIONS, EMOTION_LABELS, now_utc, iso_now, new_id
+from models import Story, Slide, StoryCreate, SurveyResponse, SurveySubmit, Portrait, PortraitCreate, TalkingVideo, TalkCreate, Pet, PetCreate, Memory, MemoryCreate, MemoryUpdate, THEMES, SPECIES, PORTRAIT_STYLES, MEMORIAL_STYLES, PERSONALITY_OPTIONS, PERSONALITY_LABELS, EMOTIONS, EMOTION_LABELS, TALK_SCENARIOS, TALK_MESSAGE_MAX, now_utc, iso_now, new_id
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / ".env")
@@ -785,6 +785,9 @@ async def config():
                             for k, v in MEMORIAL_STYLES.items()],
         "talk_price_clp": TALK_PRICE_CLP,
         "free_talk_per_day": FREE_TALK_PER_DAY,
+        "talk_scenarios": [{"key": k, "label": v["label"], "emoji": v["emoji"]}
+                           for k, v in TALK_SCENARIOS.items()],
+        "talk_message_max": TALK_MESSAGE_MAX,
     }
 
 
@@ -1262,7 +1265,15 @@ async def run_talk_pipeline(video_id: str):
         await db.videos.update_one({"id": video_id}, {"$set": {
             "progress_step": "Escuchando a tu mascota...", "progress_pct": 20}})
         photo_b64 = await asyncio.to_thread(storage.image_to_b64, video_id, photo["file"], 512)
-        line, species, usage = await ai_pipeline.write_pet_line(photo_b64, v.pet_name, "long" if long else "mini")
+        if v.message:
+            # Owner wrote the exact message -> use it verbatim (species still detected best-effort).
+            line = v.message.strip()[:TALK_MESSAGE_MAX]
+            species = v.species or "otro"
+            usage = None
+        else:
+            scenario_hint = (TALK_SCENARIOS.get(v.scenario, {}) or {}).get("hint") if v.scenario else None
+            line, species, usage = await ai_pipeline.write_pet_line(
+                photo_b64, v.pet_name, "long" if long else "mini", scenario_hint=scenario_hint)
         await db.videos.update_one({"id": video_id}, {"$set": {"line": line, "species": species}})
         if usage:
             await log_generation(video_id, "talk_line", ai_pipeline.CLAUDE_MODEL, usage=usage,
@@ -1384,6 +1395,8 @@ async def create_talk(payload: TalkCreate, request: Request,
         device_id=x_device_id, user_id=user["user_id"], mode="full", price_clp=TALK_PRICE_CLP,
         pet_name=(payload.pet_name or "").strip()[:40] or None,
         pet_id=await _validate_pet_id(payload.pet_id, user["user_id"]),
+        scenario=payload.scenario if payload.scenario in TALK_SCENARIOS else None,
+        message=(payload.message or "").strip()[:TALK_MESSAGE_MAX] or None,
         voice_id=narration.valid_voice(payload.voice_id or narration.DEFAULT_VOICE_ID),
         media_base=_origin_from(request),
     )

@@ -26,6 +26,8 @@ export default function Talk() {
   const [petName, setPetName] = useState("");
   const [file, setFile] = useState(null);
   const [voiceId, setVoiceId] = useState("");
+  const [scenario, setScenario] = useState("chistoso");
+  const [message, setMessage] = useState("");
   const [talkId, setTalkId] = useState(null);
   const [slug, setSlug] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -40,7 +42,7 @@ export default function Talk() {
     if (!file) return toast.error("Sube una foto");
     setBusy(true);
     try {
-      const t = await createTalk({ pet_name: petName, voice_id: voiceId });
+      const t = await createTalk({ pet_name: petName, voice_id: voiceId, scenario, message: message.trim() || undefined });
       setTalkId(t.id); setSlug(t.slug);
       await uploadTalkPhoto(t.id, file.file);
       await generateTalk(t.id);
@@ -54,11 +56,15 @@ export default function Talk() {
     <AnimatePresence mode="wait">
       {step === "photo" && (
         <StepPhoto key="photo" nav={nav} cfg={cfg} petName={petName} setPetName={setPetName} file={file} setFile={setFile}
-          onNext={() => (file ? setStep("voice") : toast.error("Sube una foto 🐾"))} />
+          onNext={() => (file ? setStep("mensaje") : toast.error("Sube una foto 🐾"))} />
+      )}
+      {step === "mensaje" && (
+        <StepMessage key="mensaje" cfg={cfg} scenario={scenario} setScenario={setScenario} message={message} setMessage={setMessage}
+          onBack={() => setStep("photo")} onNext={() => setStep("voice")} />
       )}
       {step === "voice" && (
         <StepVoice key="voice" cfg={cfg} voiceId={voiceId} setVoiceId={setVoiceId}
-          onBack={() => setStep("photo")} onNext={start} busy={busy} />
+          onBack={() => setStep("mensaje")} onNext={start} busy={busy} />
       )}
       {step === "progress" && (
         <StepProgress key="progress" talkId={talkId}
@@ -101,10 +107,10 @@ function StepPhoto({ nav, cfg, petName, setPetName, file, setFile, onNext }) {
   };
   return (
     <Screen>
-      <Header stepText="Paso 1 de 2 · La foto" onBack={() => nav("/")} />
+      <Header stepText="Paso 1 de 3 · La foto" onBack={() => nav("/")} />
       <div className="flex-1 px-5 pt-5 pb-40 overflow-y-auto no-scrollbar">
         <h2 className="font-display font-bold text-2xl text-neutral-900">Haz que tu mascota hable 🗣️</h2>
-        <p className="text-sm text-muted-foreground mt-1">Sube una foto de frente y con buena luz. La IA le inventa una frase chistosa.</p>
+        <p className="text-sm text-muted-foreground mt-1">Sube una foto de frente y con buena luz. Luego eliges qué dice y con qué voz.</p>
 
         <input ref={inputRef} type="file" accept="image/*,.heic,.heif" className="hidden"
           onChange={(e) => { pick(e.target.files); e.target.value = ""; }} data-testid="talk-photo-input" />
@@ -141,10 +147,49 @@ function StepPhoto({ nav, cfg, petName, setPetName, file, setFile, onNext }) {
   );
 }
 
+function StepMessage({ cfg, scenario, setScenario, message, setMessage, onBack, onNext }) {
+  const max = cfg.talk_message_max || 160;
+  const scenarios = cfg.talk_scenarios || [];
+  return (
+    <Screen>
+      <Header stepText="Paso 2 de 3 · El mensaje" onBack={onBack} />
+      <div className="flex-1 px-5 pt-5 pb-40 overflow-y-auto no-scrollbar">
+        <h2 className="font-display font-bold text-2xl text-neutral-900">¿Qué va a decir? 💬</h2>
+        <p className="text-sm text-muted-foreground mt-1">Elige una ocasión y, si quieres, escríbele tú el mensaje.</p>
+
+        <div className="mt-5 flex flex-wrap gap-2" data-testid="talk-scenarios">
+          {scenarios.map((s) => (
+            <button key={s.key} onClick={() => setScenario(s.key)} data-testid={`talk-scenario-${s.key}`}
+              className={`px-4 py-2.5 rounded-full border-2 font-display font-semibold text-sm transition-all ${scenario === s.key ? "border-primary bg-primary/10 text-primary" : "border-border bg-white text-neutral-700"}`}>
+              {s.emoji} {s.label}
+            </button>
+          ))}
+        </div>
+
+        <label className="block mt-7 text-sm font-semibold text-neutral-700 mb-2">
+          Escríbele tú el mensaje <span className="text-muted-foreground font-normal">(opcional)</span>
+        </label>
+        <textarea value={message} onChange={(e) => setMessage(e.target.value.slice(0, max))} rows={3}
+          placeholder="Ej: ¡Feliz cumpleaños, mamá! Te quiero un montón 🐾" data-testid="talk-message-input"
+          className="w-full p-4 rounded-2xl bg-white border border-border outline-none font-display text-base resize-none" />
+        <div className="mt-1.5 flex items-center justify-between text-xs text-muted-foreground">
+          <span>{message.trim() ? "Diremos exactamente esto" : "Si lo dejas vacío, la IA lo inventa según la ocasión"}</span>
+          <span data-testid="talk-message-counter">{message.length}/{max}</span>
+        </div>
+      </div>
+      <BottomBar>
+        <Button onClick={onNext} className="w-full h-14 text-base font-display font-semibold rounded-2xl" data-testid="talk-message-next">
+          Elegir la voz <ArrowRight className="w-5 h-5 ml-1" />
+        </Button>
+      </BottomBar>
+    </Screen>
+  );
+}
+
 function StepVoice({ cfg, voiceId, setVoiceId, onBack, onNext, busy }) {
   return (
     <Screen>
-      <Header stepText="Paso 2 de 2 · La voz" onBack={onBack} />
+      <Header stepText="Paso 3 de 3 · La voz" onBack={onBack} />
       <div className="flex-1 px-5 pt-5 pb-40 overflow-y-auto no-scrollbar">
         <h2 className="font-display font-bold text-2xl text-neutral-900">¿Con qué voz habla? 🎙️</h2>
         <p className="text-sm text-muted-foreground mt-1">Elige el tono que más le pega a tu regalón.</p>

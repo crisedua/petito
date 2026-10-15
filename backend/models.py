@@ -400,10 +400,28 @@ class Portrait(BaseModel):
 
 
 # ---------------- Talking video ("Petito Habla") ----------------
+# Predefined scenarios steer the AI line; owner can also write a custom message.
+TALK_SCENARIOS = {
+    "chistoso": {"label": "Algo chistoso", "emoji": "😄",
+                 "hint": "una frase graciosa y tierna saludando a la cámara"},
+    "cumpleanos": {"label": "Feliz cumpleaños", "emoji": "🎂",
+                   "hint": "un saludo tierno y alegre de feliz cumpleaños a su familia"},
+    "te_amo": {"label": "Te amo", "emoji": "❤️",
+               "hint": "una declaración de amor dulce y tierna a su familia"},
+    "te_extrano": {"label": "Te extraño", "emoji": "🥺",
+                   "hint": "decir con ternura cuánto extraña a su familia y que la espera"},
+    "gracias": {"label": "Gracias", "emoji": "🙏",
+                "hint": "agradecer con cariño a su familia por cuidarlo y quererlo"},
+}
+TALK_MESSAGE_MAX = 160
+
+
 class TalkCreate(BaseModel):
     pet_name: Optional[str] = None
     voice_id: Optional[str] = None
     pet_id: Optional[str] = None
+    scenario: Optional[str] = None
+    message: Optional[str] = None
 
 
 class TalkingVideo(BaseModel):
@@ -418,6 +436,8 @@ class TalkingVideo(BaseModel):
     mode: str = "full"          # "preview_free" (anonymous) | "full" (logged in)
     status: str = "draft"       # draft, generating, preview_ready, finalizing, paid, failed
     pet_id: Optional[str] = None
+    scenario: Optional[str] = None
+    message: Optional[str] = None
     progress_step: str = ""
     progress_pct: int = 0
     line: Optional[str] = None

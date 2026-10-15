@@ -229,9 +229,10 @@ def generate_talking_video(image_url, audio_url, timeout=600):
     return dl.content
 
 
-async def write_pet_line(photo_b64, pet_name=None, length="short"):
+async def write_pet_line(photo_b64, pet_name=None, length="short", scenario_hint=None):
     """Claude vision: identify species and write ONE funny Chilean first-person line.
-    length: 'mini' (~3s, free preview), 'short', or 'long' (~8s, full video)."""
+    length: 'mini' (~3s, free preview), 'short', or 'long' (~8s, full video).
+    scenario_hint: optional tone/intent to steer the line (e.g. birthday, I love you)."""
     system = (
         "Eres un comediante chileno que le pone voz a las mascotas. Hablas en primera persona "
         "como si fueras la mascota de la foto. Español de Chile, cálido y chistoso, con modismos "
@@ -240,11 +241,13 @@ async def write_pet_line(photo_b64, pet_name=None, length="short"):
     )
     words = {"mini": "6 a 9", "short": "11 a 15", "long": "20 a 26"}.get(length, "11 a 15")
     name_txt = f"Mi nombre es {pet_name}. " if pet_name else ""
+    intent = (f"La frase debe ser {scenario_hint}. " if scenario_hint else
+              "Inventa UNA sola frase graciosa en primera persona ")
     prompt = (
         f"Mira la foto de esta mascota. {name_txt}"
-        f"Identifica si es perro, gato u otro. Inventa UNA sola frase graciosa en primera persona "
-        f"que la mascota diría mirando a la cámara en un video, de {words} palabras, para hacer "
-        f"reír y que la gente quiera compartirlo. Usa el nombre si lo tienes.\n"
+        f"Identifica si es perro, gato u otro. {intent}"
+        f"que la mascota diría mirando a la cámara en un video, de {words} palabras, "
+        f"con tono cálido y chileno. Usa el nombre si lo tienes.\n"
         f'Responde JSON: {{"species": "perro|gato|otro", "line": "<frase>"}}'
     )
     text, usage = await _run_claude(
