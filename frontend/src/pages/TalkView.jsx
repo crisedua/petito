@@ -35,6 +35,14 @@ export default function TalkView() {
     return () => clearTimeout(timer);
   }, [slug]);
 
+  // Auto-unlock for Petito Plus members (no per-item payment)
+  const autoTried = useRef(false);
+  useEffect(() => {
+    if (!t?.id || t.paid || t.mode !== "full" || autoTried.current) return;
+    autoTried.current = true;
+    talkCheckout(t.id).then((r) => { if (r?.already_paid || r?.mode === "plus") window.location.reload(); }).catch(() => {});
+  }, [t?.id, t?.paid, t?.mode]);
+
   if (err) return (
     <div className="mobile-frame items-center justify-center text-center px-8" data-testid="talk-view-error">
       <PawPrint className="w-12 h-12 text-primary mb-4" />
@@ -77,9 +85,9 @@ export default function TalkView() {
     setBusy(true);
     try {
       const res = await talkCheckout(t.id);
-      if (res.checkout_url) window.location.assign(res.checkout_url);
-      else if (res.already_paid) window.location.reload();
-    } catch (e) { toast.error(e?.response?.data?.detail || "No se pudo iniciar el pago"); }
+      if (res.already_paid || res.mode === "plus") window.location.reload();
+      else nav("/plus");
+    } catch (e) { toast.error(e?.response?.data?.detail || "No se pudo desbloquear"); }
     finally { setBusy(false); }
   };
 
@@ -168,15 +176,16 @@ export default function TalkView() {
           <>
             <div className="mt-5 text-center">
               <p className="font-display font-semibold text-lg text-neutral-900">¡Quedó buenísimo! 🎬</p>
-              <p className="text-sm text-muted-foreground mt-1">Descárgalo en alta calidad, sin marca de agua, por ${price}.</p>
+              <p className="text-sm text-muted-foreground mt-1">Descárgalo en alta calidad, sin marca de agua, con Petito Plus.</p>
             </div>
             <div className="mt-4 bg-white rounded-3xl border border-border p-5 shadow-sm" data-testid="talk-paywall-card">
               <div className="text-center">
-                <div className="font-display font-bold text-3xl text-primary">${price} <span className="text-base text-muted-foreground font-sans font-medium">CLP</span></div>
-                <div className="text-xs text-muted-foreground">Pago único · sin suscripciones</div>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-display font-bold text-stone-900 mb-2" style={{ background: "#F5C355" }}>👑 Petito Plus</div>
+                <div className="font-display font-bold text-xl text-neutral-900">Desbloquéalo con Petito Plus</div>
+                <div className="text-xs text-muted-foreground mt-1">Una sola membresía desbloquea todas tus creaciones</div>
               </div>
               <ul className="mt-4 space-y-2 text-sm text-neutral-700">
-                {["Video en alta calidad", "Sin marca de agua", "Listo para WhatsApp y redes"].map((b) => (
+                {["Video completo en alta calidad, sin marca de agua", "Retratos e historias incluidos, sin pago por unidad", "Listo para WhatsApp y redes"].map((b) => (
                   <li key={b} className="flex items-center gap-2"><Check className="w-4 h-4 text-primary shrink-0" /> {b}</li>
                 ))}
               </ul>
@@ -189,7 +198,7 @@ export default function TalkView() {
       {t.mode === "full" && !t.paid && (
         <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto p-4 pb-6 bg-gradient-to-t from-[#FAF6F0] via-[#FAF6F0] to-transparent">
           <Button onClick={pay} disabled={busy} className="w-full h-14 text-base font-display font-semibold rounded-2xl shadow-lg shadow-primary/30" data-testid="talk-pay-button">
-            {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Sparkles className="w-5 h-5 mr-2" /> Descargar en HD · ${price}</>}
+            {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Sparkles className="w-5 h-5 mr-2" /> Desbloquéalo con Petito Plus</>}
           </Button>
         </div>
       )}

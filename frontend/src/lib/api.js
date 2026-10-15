@@ -85,7 +85,6 @@ export const uploadPhotos = (id, files) => {
 export const generateStory = (id) => api.post(`/stories/${id}/generate`).then((r) => r.data);
 export const getStory = (id) => api.get(`/stories/${id}`).then((r) => r.data);
 export const getStoryBySlug = (slug) => api.get(`/stories/slug/${slug}`).then((r) => r.data);
-export const payDemo = (id) => api.post(`/stories/${id}/pay-demo`).then((r) => r.data);
 export const checkout = (id) => api.post(`/stories/${id}/checkout`).then((r) => r.data);
 export const saveEmail = (id, email) => api.post(`/stories/${id}/email`, { email }).then((r) => r.data);
 export const submitSurvey = (storyId, answer) => api.post("/survey", { story_id: storyId, answer }).then((r) => r.data);
@@ -100,7 +99,6 @@ export const generatePortrait = (id) => api.post(`/portraits/${id}/generate`).th
 export const getPortrait = (id) => api.get(`/portraits/${id}`).then((r) => r.data);
 export const getPortraitBySlug = (slug) => api.get(`/portraits/slug/${slug}`).then((r) => r.data);
 export const portraitCheckout = (id) => api.post(`/portraits/${id}/checkout`).then((r) => r.data);
-export const payPortraitDemo = (id) => api.post(`/portraits/${id}/pay-demo`).then((r) => r.data);
 
 export const adminLogin = (password) => api.post("/admin/login", { password }).then((r) => r.data);
 export const adminMetrics = () => api.get("/admin/metrics").then((r) => r.data);

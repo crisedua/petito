@@ -1,68 +1,82 @@
-# Verificación de Mercado Pago — Suscripción Petito Plus (producción)
+# Petito Plus as the only paywall + go live with real charging
 
-Revisión de la suscripción Petito Plus en producción (petito.pro) hasta donde se puede
-comprobar sin tarjeta, más un checklist claro para la prueba final de cobro real.
+Make Petito Plus the single way to pay: everyone can create and see a free preview, and the
+only way to unlock the clean, full version is a Plus subscription. Then switch production to
+charge for real.
 
-## Para quién es
-Para el dueño de Petito, que necesita saber con certeza si la membresía Petito Plus
-(mensual $3.900 / anual $29.900 CLP, renovación automática) está lista para cobrar de
-verdad en producción antes de promocionarla.
+## Who it's for
+The Petito owner, who wants one simple membership (monthly $3.900 / annual $29.900 CLP, auto
+renewal) instead of charging per creation, and needs it live and charging on petito.pro.
 
-## Qué se revisa y qué se entrega
-- **Configuración de producción**: confirmar que el entorno desplegado tiene el token de
-  Mercado Pago de producción (`APP_USR-`), que `FREE_MODE` está en `false` (paywall real
-  activo) y qué otros secretos de pago existen (sin exponer sus valores).
-- **Generación de checkout real**: pedir al backend de producción que cree una suscripción
-  Preapproval de prueba y confirmar que devuelve un `init_point` real de Mercado Pago, con
-  el monto y la frecuencia correctos (mensual y anual).
-- **Cuenta de Mercado Pago habilitada**: deducir si "Suscripciones / Preapproval" está
-  activo en la cuenta del dueño. Si la creación del checkout responde con error, se reporta
-  el mensaje exacto de Mercado Pago (por ejemplo, suscripciones no habilitadas).
-- **Confirmación del pago en el servidor**: verificar que la activación de Plus ocurre solo
-  cuando Mercado Pago confirma el estado `authorized` (nunca por el simple regreso del
-  navegador) y que el webhook de notificaciones está publicado y accesible en producción.
-- **Webhook**: confirmar si está configurado el secreto de firma (opcional) y si la URL de
-  notificación queda registrada/alcanzable.
-- **Entrega final**: un checklist corto y claro para que el dueño haga la única prueba que
-  no se puede automatizar — suscribirse con una tarjeta real y confirmar que el cobro se
-  realiza, la membresía se activa y vuelve a "Mi universo".
+## What changes (the heart of this task)
+Today a free user can pay a one-time fee to unlock each creation (HD portrait $2.990, talking
+video $2.990, illustrated story $3.990). That goes away completely. The new model:
 
-## Flujo que se valida
-1. El usuario entra a `/plus`, elige plan (mensual o anual) y toca suscribirse.
-2. El backend crea la suscripción en Mercado Pago y devuelve el `init_point`.
-3. El usuario es llevado al checkout alojado de Mercado Pago y autoriza con su tarjeta.
-4. Mercado Pago confirma la suscripción (estado `authorized`) y notifica al webhook.
-5. El servidor marca la membresía activa y el usuario regresa a "Mi universo" con la
-   insignia Plus.
-6. En cada renovación (mes/año), Mercado Pago notifica el pago y el servidor extiende el
-   acceso.
+- **Everyone (free)**: can create and see a **free preview** of each thing —
+  watermarked HD portrait, a short/low-res talking video, and a story preview — plus the real
+  memories album, within the existing free limits.
+- **The clean / full version** (portrait without watermark, full talking video, full story)
+  is unlocked **only by being Plus**. There is no per-creation purchase anywhere.
+- Every "unlock / download" button that used to open a one-time checkout now leads to the
+  **Plus page** ("Hazte Plus") instead.
+- **Plus members**: everything unlocked, no per-item payment, plus unlimited pets and
+  unlimited Petito reflections, and public album sharing — as already defined.
 
-## Resultado esperado de la revisión
-Un informe simple de estado: qué está confirmado funcionando, qué falta (acciones del lado
-de la cuenta de Mercado Pago o del panel de despliegue), y el checklist de la prueba con
-tarjeta. No se cambia código de la aplicación en esta tarea.
+So the only checkout in the whole app is the Plus subscription.
 
-## Fases
-- **Fase 1 (ahora): Verificación + checklist.** Comprobaciones automáticas en producción
-  (configuración, generación de checkout real, confirmación server-side, webhook) y entrega
-  del informe de estado y el checklist de prueba con tarjeta.
-- **Fase 2 (después, si se requiere): Endurecimiento.** Registrar/activar el secreto de
-  firma del webhook y validar la recepción real de notificaciones de renovación.
-- **Fase 3 (futuro): Gestión de la suscripción para el socio.** Pantalla donde el socio ve
-  su plan y próxima fecha de cobro, cancela, y recibe aviso antes de la renovación.
+## Free limits that stay the same
+- 1 pet for free users (unlimited with Plus).
+- Petito Habla free preview limited to 2 per day.
+- 3 Petito reflections per month (unlimited with Plus).
+- Real-memories album: unlimited for everyone.
 
-## Supuestos
-- La revisión es solo en **producción** (petito.pro), según lo indicado.
-- Solo se verifica la **suscripción Petito Plus**; los pagos únicos quedan fuera de alcance.
-  Nota: el código de pagos únicos (retrato/video/historia) todavía existe en la aplicación;
-  si se desea retirarlos, es un cambio aparte y no forma parte de esta verificación.
-- No se realiza ningún cobro real; la prueba final con tarjeta la hace el dueño.
-- Para probar el checkout se creará **una** suscripción Preapproval real en estado pendiente.
-  Esto no mueve dinero (no hay cargo hasta que una tarjeta la autorice); si no se desea
-  crear ni siquiera ese contrato de prueba, se revisa solo la configuración.
-- El token de producción `APP_USR-` del dueño se mantiene tal cual; no se modifica.
-- La habilitación de "Suscripciones" en la cuenta de Mercado Pago es una acción del dueño;
-  la revisión la confirma de forma indirecta y reporta el error exacto si no está activa.
-- El secreto de firma del webhook (`MERCADOPAGO_WEBHOOK_SECRET`) es opcional: sin él, el
-  webhook sigue siendo seguro porque el servidor vuelve a consultar el estado a Mercado Pago
-  antes de dar acceso. Si se quiere agregar, es parte de la Fase 2.
+## User flow (free user hitting the paywall)
+1. A free user creates, e.g., an HD portrait and sees the watermarked preview.
+2. They tap "Download in HD / unlock".
+3. Instead of a one-time payment, they land on the **Plus page** with the two plans.
+4. They subscribe through Mercado Pago, authorize with their card, and return to "Mi universo"
+   with the Plus badge.
+5. Now the clean portrait (and every other creation) is unlocked for them, with no per-item
+   charge — now and in the future.
+
+## Going live with real charging
+The subscription already generates real Mercado Pago checkouts with the owner's production
+token. The live site is still in demo/free mode until three production switches are set (by
+the owner, in the deploy Secrets panel — production secrets can't be set from code):
+- The Mercado Pago production token (`APP_USR-`) — already added.
+- The switch that turns on Mercado Pago as the real payment method.
+- The switch that turns on real charging (turns off free mode).
+
+After saving those and re-publishing, the site charges for real. The owner then does one real
+card test to confirm end-to-end.
+
+## UI/UX feel
+No redesign. User-facing copy stays in warm Chilean Spanish with the existing ivory/terracotta
+palette. The only visible change is that "unlock this creation for $X" turns into a gentle
+invitation to Plus ("Desbloquéalo con Petito Plus"), keeping the emotional, non-pushy tone.
+
+## Phases
+- **Phase 1 (now): Subscription-only + go live.** Remove all one-time checkouts (portrait,
+  video, story) from the app; route every unlock to the Plus page; keep free previews and the
+  current free limits; make sure Plus unlocks all creations. Then confirm the production
+  switches and verify the live site is charging for real, and hand over the card-test checklist.
+- **Phase 2 (later): Subscriber management.** A screen where the member sees their plan and
+  next charge date and can cancel (keeping access until the end of the paid period).
+- **Phase 3 (future): Hardening & reminders.** Register the webhook signature secret and
+  validate real renewal notifications; send a warm heads-up a few days before each renewal.
+
+## Assumptions
+- Monetization is **subscription-only**. One-time per-creation payments are removed entirely
+  (backend checkout/pay flows and the buttons that open them).
+- Free users keep **free previews** of every creation (watermarked portrait, short low-res
+  talking video, story preview) under the current daily/monthly limits; the clean/full version
+  requires Plus.
+- The Mercado Pago account is **Chile / CLP**.
+- The Plus prices and entitlement rules already approved stay the same (monthly $3.900 / annual
+  $29.900, unlimited pets/reflections, public album sharing).
+- The owner edits the production secrets and re-publishes from the deploy panel; this task
+  guides and verifies but does not edit production secrets on their behalf.
+- The webhook signature secret stays optional and is deferred to Phase 3; the webhook is still
+  secure without it because the server re-checks each payment/subscription with Mercado Pago
+  before granting access.
+- The real end-to-end charge is tested by the owner with their own card; no automated charge.

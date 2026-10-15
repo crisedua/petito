@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import {
   getConfig, createPortrait, uploadPortraitPhoto, generatePortrait, getPortrait,
-  payPortraitDemo, portraitCheckout, mediaUrl,
+  portraitCheckout, mediaUrl,
 } from "@/lib/api";
 import { InviteButton } from "@/components/InviteButton";
 
@@ -283,19 +283,25 @@ function StepResult({ portrait, setPortrait, portraitId, slug, cfg, price, nav }
 
   const refresh = async () => setPortrait(await getPortrait(portraitId));
 
+  const autoTried = useRef(false);
+  useEffect(() => {
+    if (!portraitId || paid || autoTried.current) return;
+    autoTried.current = true;
+    portraitCheckout(portraitId).then((r) => { if (r?.already_paid || r?.mode === "plus") refresh(); }).catch(() => {});
+  }, [portraitId, paid]);
+
   const unlock = async () => {
     setBusy(true);
     try {
-      if (cfg.payment_mode === "demo") {
-        await payPortraitDemo(portraitId);
+      const res = await portraitCheckout(portraitId);
+      if (res.already_paid || res.mode === "plus") {
         await refresh();
         toast.success("¡Retrato desbloqueado en HD! 🎉");
       } else {
-        const res = await portraitCheckout(portraitId);
-        if (res.checkout_url) window.location.assign(res.checkout_url);
+        nav("/plus");
       }
     } catch (e) {
-      toast.error(e?.response?.data?.detail || "No se pudo procesar el pago");
+      toast.error(e?.response?.data?.detail || "No se pudo desbloquear");
     } finally { setBusy(false); }
   };
 
@@ -360,15 +366,16 @@ function StepResult({ portrait, setPortrait, portraitId, slug, cfg, price, nav }
           <>
             <div className="mt-5 text-center">
               <p className="font-display font-semibold text-lg text-neutral-900">Así quedó tu mascota 👑</p>
-              <p className="text-sm text-muted-foreground mt-1">Descárgala en alta calidad, sin marca de agua, por ${price}.</p>
+              <p className="text-sm text-muted-foreground mt-1">Descárgala en alta calidad, sin marca de agua, con Petito Plus.</p>
             </div>
             <div className="mt-4 bg-white rounded-3xl border border-border p-5 shadow-sm" data-testid="portrait-paywall-card">
               <div className="text-center">
-                <div className="font-display font-bold text-3xl text-primary">${price} <span className="text-base text-muted-foreground font-sans font-medium">CLP</span></div>
-                <div className="text-xs text-muted-foreground">Pago único · sin suscripciones</div>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-display font-bold text-stone-900 mb-2" style={{ background: "#F5C355" }}>👑 Petito Plus</div>
+                <div className="font-display font-bold text-xl text-neutral-900">Desbloquéalo con Petito Plus</div>
+                <div className="text-xs text-muted-foreground mt-1">Una sola membresía desbloquea todas tus creaciones</div>
               </div>
               <ul className="mt-4 space-y-2 text-sm text-neutral-700">
-                {["Retrato en alta resolución", "Sin marca de agua", "Marco dorado incluido", portrait?.gift_enabled ? "Enlace de regalo listo para enviar" : "Listo para imprimir o compartir"].map((b) => (
+                {["Retrato en alta resolución, sin marca de agua", "Marco dorado incluido", "Historias y videos incluidos, sin pago por unidad", portrait?.gift_enabled ? "Enlace de regalo listo para enviar" : "Listo para imprimir o compartir"].map((b) => (
                   <li key={b} className="flex items-center gap-2"><Check className="w-4 h-4 text-primary shrink-0" /> {b}</li>
                 ))}
               </ul>
@@ -383,9 +390,8 @@ function StepResult({ portrait, setPortrait, portraitId, slug, cfg, price, nav }
       {!paid && (
         <BottomBar>
           <Button onClick={unlock} disabled={busy} className="w-full h-14 text-base font-display font-semibold rounded-2xl shadow-lg shadow-primary/30" data-testid="portrait-pay-button">
-            {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Sparkles className="w-5 h-5 mr-2" /> Descargar en HD · ${price}</>}
+            {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Crown className="w-5 h-5 mr-2" /> Desbloquéalo con Petito Plus</>}
           </Button>
-          {cfg.payment_mode === "demo" && <p className="text-center text-[11px] text-muted-foreground mt-2">Modo demo · desbloqueo instantáneo sin cobro real</p>}
         </BottomBar>
       )}
     </Screen>

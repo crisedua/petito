@@ -255,13 +255,20 @@ function StepResult({ portrait, setPortrait, portraitId, slug, cfg, price, capti
 
   const refresh = async () => setPortrait(await getPortrait(portraitId));
 
+  const autoTried = useRef(false);
+  useEffect(() => {
+    if (!portraitId || paid || autoTried.current) return;
+    autoTried.current = true;
+    portraitCheckout(portraitId).then((r) => { if (r?.already_paid || r?.mode === "plus") refresh(); }).catch(() => {});
+  }, [portraitId, paid]);
+
   const unlock = async () => {
     setBusy(true);
     try {
       const res = await portraitCheckout(portraitId);
-      if (res.checkout_url) window.location.assign(res.checkout_url);
-      else if (res.already_paid) { await refresh(); }
-    } catch (e) { toast.error(e?.response?.data?.detail || "No se pudo procesar el pago"); }
+      if (res.already_paid || res.mode === "plus") { await refresh(); toast.success("¡Retrato desbloqueado en HD! 🤍"); }
+      else { nav("/plus"); }
+    } catch (e) { toast.error(e?.response?.data?.detail || "No se pudo desbloquear"); }
     finally { setBusy(false); }
   };
 
@@ -302,15 +309,15 @@ function StepResult({ portrait, setPortrait, portraitId, slug, cfg, price, capti
         ) : (
           <>
             <div className="mt-5 text-center">
-              <p className="text-sm text-slate-500">Descárgalo en alta calidad, sin marca de agua, por ${price}.</p>
+              <p className="text-sm text-slate-500">Descárgalo en alta calidad, sin marca de agua, con Petito Plus.</p>
             </div>
             <div className="mt-4 bg-white rounded-3xl border border-border p-5" data-testid="memorial-paywall-card">
               <div className="text-center">
-                <div className="font-display font-bold text-3xl text-slate-800">${price} <span className="text-base text-slate-400 font-sans font-medium">CLP</span></div>
-                <div className="text-xs text-slate-400">Pago único · para guardar o imprimir</div>
+                <div className="font-display font-bold text-xl text-slate-800">Desbloquéalo con Petito Plus</div>
+                <div className="text-xs text-slate-400 mt-1">Una membresía para guardar e imprimir todos tus recuerdos</div>
               </div>
               <ul className="mt-4 space-y-2 text-sm text-slate-600">
-                {["Retrato en alta resolución", "Sin marca de agua", "Listo para imprimir y enmarcar"].map((b) => (
+                {["Retrato en alta resolución, sin marca de agua", "Listo para imprimir y enmarcar", "Todas tus creaciones incluidas"].map((b) => (
                   <li key={b} className="flex items-center gap-2"><Check className="w-4 h-4 text-slate-600 shrink-0" /> {b}</li>
                 ))}
               </ul>
@@ -321,7 +328,7 @@ function StepResult({ portrait, setPortrait, portraitId, slug, cfg, price, capti
       {!paid && (
         <BottomBar>
           <Button onClick={unlock} disabled={busy} className="w-full h-14 text-base font-display font-semibold rounded-2xl bg-slate-700 hover:bg-slate-800" data-testid="memorial-pay-button">
-            {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Sparkles className="w-5 h-5 mr-2" /> Descargar en HD · ${price}</>}
+            {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Sparkles className="w-5 h-5 mr-2" /> Desbloquéalo con Petito Plus</>}
           </Button>
         </BottomBar>
       )}

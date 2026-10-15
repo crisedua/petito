@@ -1155,22 +1155,8 @@ async def checkout(story_id: str, request: Request):
                                     {"$set": {"status": "paid", "paid_at": iso_now()}})
         await db.slides.update_many({"story_id": story_id}, {"$set": {"locked": False}})
         return {"mode": "plus", "already_paid": True}
-    origin = request.headers.get("origin") or FRONTEND_URL or None
-    result = await provider.create_checkout(story_id, story.share_slug, origin=origin)
-    return result
-
-
-@api_router.post("/stories/{story_id}/pay-demo")
-async def pay_demo(story_id: str):
-    if provider.mode != "demo":
-        raise HTTPException(400, "Pago demo deshabilitado")
-    story = await get_story(story_id)
-    if not story:
-        raise HTTPException(404, "Historia no encontrada")
-    await db.stories.update_one({"id": story_id}, {"$set": {
-        "status": "paid", "paid_at": iso_now()}})
-    await db.slides.update_many({"story_id": story_id}, {"$set": {"locked": False}})
-    return {"status": "paid"}
+    # Subscription-only: the clean version is unlocked solely by Petito Plus.
+    return {"mode": "plus_required"}
 
 
 @api_router.post("/payments/webhook/mercadopago")
@@ -1465,22 +1451,8 @@ async def portrait_checkout(portrait_id: str, request: Request):
         await db.portraits.update_one({"id": portrait_id, "status": {"$ne": "paid"}},
                                       {"$set": {"status": "paid", "paid_at": iso_now()}})
         return {"mode": "plus", "already_paid": True}
-    origin = request.headers.get("origin") or FRONTEND_URL or None
-    return await provider.create_checkout(portrait_id, p.share_slug, amount=p.price_clp,
-                                          title="Retrato Petito", back_path=f"/r/{p.share_slug}",
-                                          origin=origin)
-
-
-@api_router.post("/portraits/{portrait_id}/pay-demo")
-async def portrait_pay_demo(portrait_id: str):
-    if provider.mode != "demo":
-        raise HTTPException(400, "Pago demo deshabilitado")
-    p = await get_portrait(portrait_id)
-    if not p:
-        raise HTTPException(404, "Retrato no encontrado")
-    await db.portraits.update_one({"id": portrait_id}, {"$set": {
-        "status": "paid", "paid_at": iso_now()}})
-    return {"status": "paid"}
+    # Subscription-only: the clean HD portrait is unlocked solely by Petito Plus.
+    return {"mode": "plus_required"}
 
 
 # ---------------- talking video ("Petito Habla") ----------------
@@ -1739,21 +1711,8 @@ async def talk_checkout(video_id: str, request: Request):
     if v.user_id and await is_plus(v.user_id):
         await _talk_mark_paid_and_finalize(video_id)
         return {"mode": "plus", "already_paid": True}
-    origin = request.headers.get("origin") or FRONTEND_URL or None
-    return await provider.create_checkout(video_id, v.share_slug, amount=v.price_clp,
-                                          title="Petito Habla", back_path=f"/v/{v.share_slug}",
-                                          origin=origin)
-
-
-@api_router.post("/talk/{video_id}/pay-demo")
-async def talk_pay_demo(video_id: str):
-    if provider.mode != "demo":
-        raise HTTPException(400, "Pago demo deshabilitado")
-    v = await get_talk(video_id)
-    if not v:
-        raise HTTPException(404, "Video no encontrado")
-    await _talk_mark_paid_and_finalize(video_id)
-    return {"status": "paid"}
+    # Subscription-only: the full HD video is unlocked solely by Petito Plus.
+    return {"mode": "plus_required"}
 
 
 @api_router.get("/me/videos")

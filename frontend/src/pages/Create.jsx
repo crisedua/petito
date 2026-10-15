@@ -3,13 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import {
-  PawPrint, ArrowRight, ArrowLeft, X, Check, ImagePlus, Loader2, Lock,
+  PawPrint, ArrowRight, ArrowLeft, X, Check, ImagePlus, Loader2, Lock, Crown,
   Download, Share2, Copy, Heart,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  getConfig, createStory, uploadPhotos, generateStory, getStory, payDemo, checkout, saveEmail, mediaUrl,
+  getConfig, createStory, uploadPhotos, generateStory, getStory, checkout, saveEmail, mediaUrl,
 } from "@/lib/api";
 import { StoryCarousel } from "@/components/StoryCarousel";
 import { InviteButton } from "@/components/InviteButton";
@@ -340,6 +340,14 @@ function StepResult({ story, setStory, storyId, slug, cfg, price, nav }) {
 
   const refresh = async () => setStory(await getStory(storyId));
 
+  // Auto-unlock for Petito Plus members (no per-item payment)
+  const autoTried = useRef(false);
+  useEffect(() => {
+    if (!storyId || paid || autoTried.current) return;
+    autoTried.current = true;
+    checkout(storyId).then((r) => { if (r?.already_paid || r?.mode === "plus") refresh(); }).catch(() => {});
+  }, [storyId, paid]);
+
   // Stream the magic AI scenes + narration in as they finish (progressive preview)
   useEffect(() => {
     if (!story?.bonus_pending && !story?.narration_pending) return;
@@ -356,17 +364,16 @@ function StepResult({ story, setStory, storyId, slug, cfg, price, nav }) {
   const unlock = async () => {
     setBusy(true);
     try {
-      if (cfg.payment_mode === "demo") {
-        await payDemo(storyId);
+      const res = await checkout(storyId);
+      if (res.already_paid || res.mode === "plus") {
         if (email.trim()) await saveEmail(storyId, email.trim());
         await refresh();
         toast.success("¡Historia desbloqueada! 🎉");
       } else {
-        const res = await checkout(storyId);
-        if (res.checkout_url) window.location.assign(res.checkout_url);
+        nav("/plus");
       }
     } catch (e) {
-      toast.error(e?.response?.data?.detail || "No se pudo procesar el pago");
+      toast.error(e?.response?.data?.detail || "No se pudo desbloquear");
     } finally { setBusy(false); }
   };
 
@@ -422,11 +429,12 @@ function StepResult({ story, setStory, storyId, slug, cfg, price, nav }) {
         ) : (
           <div id="paywall" className="mt-6 bg-white rounded-3xl border border-border p-5 shadow-sm" data-testid="paywall-card">
             <div className="text-center">
-              <div className="font-display font-bold text-3xl text-primary">${price} <span className="text-base text-muted-foreground font-sans font-medium">CLP</span></div>
-              <div className="text-xs text-muted-foreground">Pago único · sin suscripciones</div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-display font-bold text-stone-900 mb-2" style={{ background: "#F5C355" }}>👑 Petito Plus</div>
+              <div className="font-display font-bold text-xl text-neutral-900">Desbloquéala con Petito Plus</div>
+              <div className="text-xs text-muted-foreground mt-1">Una sola membresía desbloquea todas tus creaciones</div>
             </div>
             <ul className="mt-4 space-y-2 text-sm text-neutral-700">
-              {["Historia completa sin marcas de agua", "Descarga todo en HD 1080×1920", "Listo para Instagram Stories y Reels", "Enlace para enviar por WhatsApp"].map((b) => (
+              {["Historia completa sin marcas de agua", "Retratos y videos incluidos, sin pago por unidad", "Mascotas y reflexiones ilimitadas", "Enlace para enviar por WhatsApp"].map((b) => (
                 <li key={b} className="flex items-center gap-2"><Check className="w-4 h-4 text-primary shrink-0" /> {b}</li>
               ))}
             </ul>
@@ -441,9 +449,8 @@ function StepResult({ story, setStory, storyId, slug, cfg, price, nav }) {
       {!paid && (
         <BottomBar>
           <Button onClick={unlock} disabled={busy} className="w-full h-14 text-base font-display font-semibold rounded-2xl shadow-lg shadow-primary/30" data-testid="paywall-pay-button">
-            {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Lock className="w-5 h-5 mr-2" /> Desbloquear por ${price} CLP</>}
+            {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Crown className="w-5 h-5 mr-2" /> Desbloquéalo con Petito Plus</>}
           </Button>
-          {cfg.payment_mode === "demo" && <p className="text-center text-[11px] text-muted-foreground mt-2">Modo demo · desbloqueo instantáneo sin cobro real</p>}
         </BottomBar>
       )}
     </Screen>
