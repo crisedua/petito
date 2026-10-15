@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2, Check, Crown, Sparkles, Infinity as InfinityIcon, Share2, Mic } from "lucide-react";
+import { ArrowLeft, Loader2, Check, Crown, Sparkles, Infinity as InfinityIcon, Share2, Mic, Info, AlertCircle } from "lucide-react";
 import { plusStatus, plusSubscribe, plusSync, plusCancel, plusDevActivate } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 
 const BENEFITS = [
   { icon: InfinityIcon, text: "Mascotas ilimitadas, cada una con su universo" },
@@ -18,29 +19,39 @@ const clp = (n) => "$" + (n || 0).toLocaleString("es-CL");
 export default function Plus() {
   const nav = useNavigate();
   const [params] = useSearchParams();
+  const { user } = useAuth();
   const [st, setSt] = useState(null);
   const [plan, setPlan] = useState("annual");
   const [busy, setBusy] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [email, setEmail] = useState("");
+  const [payHelp, setPayHelp] = useState(false);
 
-  const load = () => plusStatus().then(setSt).catch(() => {});
+  const load = () => plusStatus().then((d) => { setSt(d); return d; }).catch(() => null);
+
+  useEffect(() => { if (user?.email && !email) setEmail(user.email); }, [user]); // eslint-disable-line
 
   useEffect(() => {
     if (params.get("pago") === "success") {
       setSyncing(true);
-      plusSync().then(() => load()).finally(() => setSyncing(false));
+      plusSync()
+        .then(() => load())
+        .then((d) => { if (d && !d.active) setPayHelp(true); })
+        .finally(() => setSyncing(false));
     } else {
       load();
     }
   }, []); // eslint-disable-line
 
   const subscribe = async () => {
+    const e = email.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) { toast.error("Ingresa un correo válido de tu cuenta de Mercado Pago"); return; }
     setBusy(true);
     try {
-      const r = await plusSubscribe(plan);
+      const r = await plusSubscribe(plan, e);
       window.location.assign(r.init_point);
-    } catch (e) {
-      toast.error(e?.response?.data?.detail || "No se pudo iniciar la suscripción");
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || "No se pudo iniciar la suscripción");
       setBusy(false);
     }
   };
@@ -98,6 +109,23 @@ export default function Plus() {
           </motion.div>
         ) : (
           <>
+            {payHelp && (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} data-testid="plus-pay-help"
+                className="mb-6 rounded-2xl p-4" style={{ background: "rgba(220,120,90,0.14)", border: "1px solid rgba(220,120,90,0.4)" }}>
+                <div className="flex items-center gap-2 font-display font-bold text-amber-50 text-sm"><AlertCircle className="w-4 h-4 text-orange-300" /> No pudimos confirmar tu suscripción</div>
+                <p className="mt-1.5 text-[11px] text-amber-100/70">Suele deberse a uno de estos motivos:</p>
+                <ul className="mt-1.5 text-[11px] text-amber-100/70 space-y-1 list-disc pl-4">
+                  <li>El correo no coincide con el de tu cuenta de Mercado Pago</li>
+                  <li>Tarjeta de débito con restricción para cobros automáticos (prueba una de crédito)</li>
+                  <li>La validación de $950 fue rechazada por tu banco</li>
+                  <li>No puedes suscribirte a tu propia cuenta vendedora (usa otra cuenta/tarjeta)</li>
+                </ul>
+                <button onClick={() => setPayHelp(false)} data-testid="plus-pay-retry"
+                  className="mt-3 w-full h-10 rounded-xl font-display font-semibold text-xs text-stone-900" style={{ background: "#F5C355" }}>
+                  Reintentar
+                </button>
+              </motion.div>
+            )}
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
               <h1 className="font-display font-bold text-3xl text-amber-50 leading-tight">Todo el universo de tu mascota, sin límites.</h1>
               <p className="mt-2 text-sm text-amber-100/70">Crea sin pagar por cada cosa y guarda cada recuerdo con cariño.</p>
@@ -130,6 +158,23 @@ export default function Plus() {
                   <div className="text-right"><div className="font-display font-bold text-xl text-amber-50">{clp(monthly)}</div><div className="text-xs text-amber-100/60">/mes</div></div>
                 </div>
               </button>
+            </div>
+
+            {/* Mercado Pago email confirmation + advisory */}
+            <div className="mt-6" data-testid="plus-mp-email-block">
+              <label className="text-xs font-display font-semibold text-amber-100/85">Correo de tu cuenta de Mercado Pago</label>
+              <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" inputMode="email" data-testid="plus-mp-email"
+                placeholder="tucorreo@ejemplo.com"
+                className="mt-1.5 w-full h-12 rounded-xl px-4 text-sm text-amber-50 placeholder:text-amber-100/35 outline-none"
+                style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.18)" }} />
+              <p className="mt-1.5 text-[11px] text-amber-100/55">Usa el mismo correo de tu cuenta de Mercado Pago. Si no coincide, el botón "Confirmar" puede quedar deshabilitado.</p>
+            </div>
+
+            <div className="mt-4 rounded-2xl p-4" style={{ background: "rgba(255,255,255,0.06)" }} data-testid="plus-mp-notice">
+              <div className="flex items-start gap-2 text-[11px] leading-relaxed text-amber-100/70">
+                <Info className="w-4 h-4 text-amber-300 shrink-0 mt-0.5" />
+                <span>Mercado Pago cobrará <b className="text-amber-50">$950 reembolsables</b> solo para validar tu tarjeta. Te recomendamos una <b className="text-amber-50">tarjeta de crédito</b> para el cobro automático. Puedes cancelar cuando quieras.</span>
+              </div>
             </div>
 
             <button onClick={subscribe} disabled={busy || syncing} data-testid="plus-subscribe"

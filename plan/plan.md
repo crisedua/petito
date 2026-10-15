@@ -1,82 +1,82 @@
-# Petito Plus as the only paywall + go live with real charging
+# Arreglo: no se puede completar la suscripción a Petito Plus en Mercado Pago
 
-Make Petito Plus the single way to pay: everyone can create and see a free preview, and the
-only way to unlock the clean, full version is a Plus subscription. Then switch production to
-charge for real.
+El checkout de Mercado Pago muestra el botón "Confirmar" en gris y no deja terminar la
+suscripción. Este arreglo busca que el usuario sí pueda pagar, atacando la causa más
+probable y explicando con claridad lo que Mercado Pago exige.
 
-## Who it's for
-The Petito owner, who wants one simple membership (monthly $3.900 / annual $29.900 CLP, auto
-renewal) instead of charging per creation, and needs it live and charging on petito.pro.
+## Para quién es
+Para el dueño de Petito y sus futuros suscriptores, que necesitan poder contratar Petito
+Plus (mensual $3.900 / anual $29.900 CLP) sin quedarse trabados en la pantalla de pago.
 
-## What changes (the heart of this task)
-Today a free user can pay a one-time fee to unlock each creation (HD portrait $2.990, talking
-video $2.990, illustrated story $3.990). That goes away completely. The new model:
+## Qué está pasando (diagnóstico)
+Mercado Pago, en las suscripciones sin plan asociado, **exige que el correo enviado por
+Petito al crear la suscripción coincida exactamente con el correo de la cuenta de Mercado
+Pago con la que la persona paga**. Si no coinciden, el pago se rechaza o el botón
+"Confirmar" queda deshabilitado. Hoy Petito envía automáticamente el correo de la cuenta de
+Google con la que el usuario entró a Petito; si esa persona usa otro correo en Mercado Pago,
+el pago no se puede completar. Esta es la causa más probable del botón gris.
 
-- **Everyone (free)**: can create and see a **free preview** of each thing —
-  watermarked HD portrait, a short/low-res talking video, and a story preview — plus the real
-  memories album, within the existing free limits.
-- **The clean / full version** (portrait without watermark, full talking video, full story)
-  is unlocked **only by being Plus**. There is no per-creation purchase anywhere.
-- Every "unlock / download" button that used to open a one-time checkout now leads to the
-  **Plus page** ("Hazte Plus") instead.
-- **Plus members**: everything unlocked, no per-item payment, plus unlimited pets and
-  unlimited Petito reflections, and public album sharing — as already defined.
+Hay además tres condiciones que **dependen de Mercado Pago y no se pueden cambiar desde
+Petito**, solo explicar:
+- El cobro de **$950 "para validar tu tarjeta"** (reembolsable) lo hace Mercado Pago. Si la
+  tarjeta rechaza esa validación (seguridad del banco, débito con restricción para cargos
+  automáticos, fondos), el botón también se bloquea.
+- Las **tarjetas de débito** suelen tener más restricciones que las de crédito para cobros
+  recurrentes; la de crédito es más confiable para una suscripción automática.
+- **No se puede pagar una suscripción a la propia cuenta vendedora**: si la prueba se hace con
+  la misma cuenta de Mercado Pago que recibe el dinero, Mercado Pago la bloquea. La prueba
+  real debe hacerse con una cuenta/tarjeta distinta a la del vendedor.
 
-So the only checkout in the whole app is the Plus subscription.
+## Core features y experiencia (lo que se construye)
+- **Confirmar el correo de Mercado Pago antes de ir a pagar.** En la página de Petito Plus,
+  al elegir plan, aparece un campo con el correo que se usará en Mercado Pago. Viene
+  pre-llenado con el correo de la cuenta, pero es editable, con el texto: "Usa el mismo correo
+  de tu cuenta de Mercado Pago". Ese correo es el que se envía a Mercado Pago, de modo que
+  coincida y el botón "Confirmar" se habilite.
+- **Aviso claro antes del checkout.** Un recuadro breve y cálido explica, antes de salir a
+  Mercado Pago: que se cobran $950 reembolsables solo para validar la tarjeta, que conviene
+  una tarjeta de crédito para el cobro automático, y que puede cancelar cuando quiera.
+- **Mensajes de ayuda si algo falla.** Si al volver de Mercado Pago la suscripción no quedó
+  activa, Petito muestra un mensaje amable con los motivos típicos (correo que no coincide,
+  tarjeta de débito con restricción, validación de $950 rechazada) y un botón para reintentar.
+- El resto del flujo actual se mantiene: se requiere iniciar sesión, y la activación de Plus
+  se confirma en el servidor (solo cuando Mercado Pago informa el estado autorizado).
 
-## Free limits that stay the same
-- 1 pet for free users (unlimited with Plus).
-- Petito Habla free preview limited to 2 per day.
-- 3 Petito reflections per month (unlimited with Plus).
-- Real-memories album: unlimited for everyone.
-
-## User flow (free user hitting the paywall)
-1. A free user creates, e.g., an HD portrait and sees the watermarked preview.
-2. They tap "Download in HD / unlock".
-3. Instead of a one-time payment, they land on the **Plus page** with the two plans.
-4. They subscribe through Mercado Pago, authorize with their card, and return to "Mi universo"
-   with the Plus badge.
-5. Now the clean portrait (and every other creation) is unlocked for them, with no per-item
-   charge — now and in the future.
-
-## Going live with real charging
-The subscription already generates real Mercado Pago checkouts with the owner's production
-token. The live site is still in demo/free mode until three production switches are set (by
-the owner, in the deploy Secrets panel — production secrets can't be set from code):
-- The Mercado Pago production token (`APP_USR-`) — already added.
-- The switch that turns on Mercado Pago as the real payment method.
-- The switch that turns on real charging (turns off free mode).
-
-After saving those and re-publishing, the site charges for real. The owner then does one real
-card test to confirm end-to-end.
+## User flow
+1. El usuario entra a "Hazte Plus", elige mensual o anual.
+2. Confirma (o corrige) el correo de su cuenta de Mercado Pago y lee el aviso de los $950 y la
+   recomendación de tarjeta de crédito.
+3. Toca "Suscribirme" y Petito lo lleva al checkout de Mercado Pago, ya con el correo
+   coincidente.
+4. Paga en Mercado Pago; al autorizar, vuelve a "Mi universo" con la insignia Plus.
+5. Si el pago no se completa, vuelve a Petito y ve un mensaje claro con el motivo y la opción
+   de reintentar.
 
 ## UI/UX feel
-No redesign. User-facing copy stays in warm Chilean Spanish with the existing ivory/terracotta
-palette. The only visible change is that "unlock this creation for $X" turns into a gentle
-invitation to Plus ("Desbloquéalo con Petito Plus"), keeping the emotional, non-pushy tone.
+Sin rediseño. Se mantiene el tono cálido en español de Chile y la paleta dorada/terracota de
+Petito Plus. El campo de correo y el aviso se integran como un paso natural y tranquilo antes
+de pagar, sin tecnicismos ni alarmismo.
 
-## Phases
-- **Phase 1 (now): Subscription-only + go live.** Remove all one-time checkouts (portrait,
-  video, story) from the app; route every unlock to the Plus page; keep free previews and the
-  current free limits; make sure Plus unlocks all creations. Then confirm the production
-  switches and verify the live site is charging for real, and hand over the card-test checklist.
-- **Phase 2 (later): Subscriber management.** A screen where the member sees their plan and
-  next charge date and can cancel (keeping access until the end of the paid period).
-- **Phase 3 (future): Hardening & reminders.** Register the webhook signature secret and
-  validate real renewal notifications; send a warm heads-up a few days before each renewal.
+## Fases
+- **Fase 1 (ahora, MVP):** correo de Mercado Pago confirmable antes del checkout (coincidencia
+  de correo), aviso previo de los $950 + recomendación de tarjeta de crédito, y mensaje de
+  ayuda al volver si el pago no se completó. Más la guía para probar el cobro real con una
+  cuenta/tarjeta distinta a la del vendedor.
+- **Fase 2 (después):** pantalla de gestión de la suscripción (ver plan, próxima fecha de
+  cobro, cancelar manteniendo el acceso hasta el fin del período).
+- **Fase 3 (futuro):** recordatorio cálido unos días antes de cada renovación y refuerzo de
+  seguridad del webhook (secreto de firma) con validación de notificaciones de renovación.
 
-## Assumptions
-- Monetization is **subscription-only**. One-time per-creation payments are removed entirely
-  (backend checkout/pay flows and the buttons that open them).
-- Free users keep **free previews** of every creation (watermarked portrait, short low-res
-  talking video, story preview) under the current daily/monthly limits; the clean/full version
-  requires Plus.
-- The Mercado Pago account is **Chile / CLP**.
-- The Plus prices and entitlement rules already approved stay the same (monthly $3.900 / annual
-  $29.900, unlimited pets/reflections, public album sharing).
-- The owner edits the production secrets and re-publishes from the deploy panel; this task
-  guides and verifies but does not edit production secrets on their behalf.
-- The webhook signature secret stays optional and is deferred to Phase 3; the webhook is still
-  secure without it because the server re-checks each payment/subscription with Mercado Pago
-  before granting access.
-- The real end-to-end charge is tested by the owner with their own card; no automated charge.
+## Supuestos
+- La causa principal del botón gris es la falta de coincidencia del correo que exige Mercado
+  Pago; por eso el arreglo central es permitir confirmar/editar ese correo antes de pagar.
+- El cobro de $950, el comportamiento de las tarjetas de débito y el bloqueo de "pagarse a sí
+  mismo" son de Mercado Pago y no se modifican desde Petito: solo se explican y se recomienda
+  usar tarjeta de crédito y una cuenta distinta a la del vendedor para la prueba.
+- Se mantienen los precios aprobados (mensual $3.900 / anual $29.900 CLP) y la activación
+  confirmada en el servidor.
+- El correo se pre-llena con el de la cuenta con la que el usuario entró, pero queda editable.
+- La prueba del cobro real la hace el dueño con una tarjeta/cuenta de comprador real, distinta
+  de la cuenta vendedora; esto no se puede automatizar.
+- El arreglo aplica tanto al preview como a producción; para quedar en vivo en petito.pro hace
+  falta re-publicar después del cambio.

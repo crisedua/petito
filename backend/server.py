@@ -1,5 +1,6 @@
 import os
 import asyncio
+import re
 import logging
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
@@ -639,19 +640,29 @@ async def plus_subscribe(request: Request, user=Depends(require_user)):
         raise HTTPException(400, "Ya tienes Petito Plus activo")
     if not isinstance(provider, payments.MercadoPagoProvider):
         raise HTTPException(503, "Pagos no disponibles")
+    # Mercado Pago (suscripción sin plan) exige que el correo enviado coincida con el de la
+    # cuenta con la que la persona paga; dejamos que el usuario lo confirme/edite.
+    payer_email = (body.get("email") or user.get("email") or "").strip()
+    if not re.match(r"^[^\s@]+@[^\s@]+\.[^\s@]+$", payer_email):
+        raise HTTPException(400, "Ingresa un correo válido de tu cuenta de Mercado Pago")
     p = PLUS_PLANS[plan]
     ref = f"{user['user_id']}:{plan}:{new_id()}"
     origin = _origin_from(request)
     back_url = f"{(origin or FRONTEND_URL).rstrip('/')}/plus?pago=success"
     try:
         mp = await provider.create_preapproval(ref, p["reason"], p["amount"], p["frequency"],
-                                               user["email"], back_url)
-    except Exception as e:
+                                               payer_email, back_url)
+    except httpx.HTTPStatusError as e:
+        logger.exception("preapproval create failed")
+        if e.response is not None and e.response.status_code == 400:
+            raise HTTPException(400, "Mercado Pago no aceptó estos datos. Revisa que el correo sea exactamente el de tu cuenta de Mercado Pago.")
+        raise HTTPException(502, "No se pudo iniciar la suscripción")
+    except Exception:
         logger.exception("preapproval create failed")
         raise HTTPException(502, "No se pudo iniciar la suscripción")
     await db.subscriptions.insert_one({
         "mp_id": mp["id"], "user_id": user["user_id"], "plan": plan, "external_reference": ref,
-        "payer_email": user["email"], "status": mp.get("status", "pending"),
+        "payer_email": payer_email, "status": mp.get("status", "pending"),
         "membership_active": False, "plus_until": None, "created_at": iso_now(),
     })
     return {"init_point": mp["init_point"], "mp_id": mp["id"]}

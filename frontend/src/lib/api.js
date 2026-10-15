@@ -53,7 +53,7 @@ export const voiceSample = (voiceId) => api.get(`/voice-sample/${voiceId}`).then
 
 // ---- Petito Plus ----
 export const plusStatus = () => api.get("/plus/status").then((r) => r.data);
-export const plusSubscribe = (plan) => api.post("/plus/subscribe", { plan }).then((r) => r.data);
+export const plusSubscribe = (plan, email) => api.post("/plus/subscribe", { plan, email }).then((r) => r.data);
 export const plusSync = () => api.post("/plus/sync").then((r) => r.data);
 export const plusCancel = () => api.put("/plus/cancel").then((r) => r.data);
 export const plusDevActivate = (plan) => api.post("/plus/dev-activate", { plan }).then((r) => r.data);
