@@ -107,8 +107,10 @@ export default function Universe() {
         <div className="relative">
           <button onClick={() => pets?.length > 1 && setPickerOpen((o) => !o)} data-testid="universe-pet-picker"
             className="flex items-center gap-2 px-2 py-1 rounded-full">
-            <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-white shadow" style={{ background: "#F3E9DA" }}>
-              {active.photo_url && <img src={mediaUrl(active.photo_url)} alt={name} className="w-full h-full object-cover" />}
+            <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-white shadow grid place-items-center" style={{ background: "#E2A878" }}>
+              {active.photo_url
+                ? <img src={mediaUrl(active.photo_url)} alt={name} onError={(e) => { e.currentTarget.style.display = "none"; }} className="w-full h-full object-cover" />
+                : <span className="font-display font-bold text-white text-sm">{(name || "P").charAt(0).toUpperCase()}</span>}
             </div>
             <span className="font-display font-bold" style={{ color: "#3A2A20" }}>{name}</span>
             {pets?.length > 1 && <ChevronDown className="w-4 h-4" style={{ color: "#8A6D4B" }} />}
@@ -154,11 +156,14 @@ export default function Universe() {
 
       <div className="flex-1 px-6 pt-3 pb-10 overflow-y-auto no-scrollbar">
         <motion.div {...fade(0)} className="relative rounded-[2rem] overflow-hidden border-4 border-white shadow-xl"
-          style={{ aspectRatio: "4 / 3", maxHeight: 280 }}>
+          style={{ aspectRatio: "4 / 3", maxHeight: 280, background: "linear-gradient(135deg, #F3D9B8, #E2A878)" }}>
+          <div className="absolute inset-0 grid place-items-center" aria-hidden>
+            <span className="font-script text-white/80" style={{ fontSize: 110, lineHeight: 1 }}>{(name || "P").charAt(0).toUpperCase()}</span>
+          </div>
           {active.photo_url && (
             <>
-              <img src={mediaUrl(active.photo_url)} alt="" aria-hidden className="absolute inset-0 w-full h-full object-cover scale-110" style={{ filter: "blur(16px)", opacity: 0.6 }} />
-              <img src={mediaUrl(active.photo_url)} alt={name} className="absolute inset-0 w-full h-full object-contain" />
+              <img src={mediaUrl(active.photo_url)} alt="" aria-hidden onError={(e) => { e.currentTarget.style.display = "none"; }} className="absolute inset-0 w-full h-full object-cover scale-110" style={{ filter: "blur(16px)", opacity: 0.6 }} />
+              <img src={mediaUrl(active.photo_url)} alt={name} onError={(e) => { e.currentTarget.style.display = "none"; }} className="absolute inset-0 w-full h-full object-contain" />
             </>
           )}
           <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(58,32,20,0.75), transparent 60%)" }} />
