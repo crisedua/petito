@@ -1209,7 +1209,11 @@ async def mp_webhook(request: Request):
     payment_id = res_id
     if not payment_id:
         return {"received": True}
-    payment = await provider.get_payment(payment_id)
+    try:
+        payment = await provider.get_payment(payment_id)
+    except Exception:
+        logger.exception("webhook payment fetch failed")
+        return {"received": True}
     order_id = payment.get("external_reference")
     if not order_id:
         return {"received": True}

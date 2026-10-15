@@ -1,0 +1,36 @@
+{
+  "summary": "Tested Petito Plus subscription flow end-to-end (backend 15 tests + frontend). Backend: 14 passed, 1 pre-existing documented crash in /api/payments/webhook/mercadopago for type='payment' events with unknown MP IDs (raises 500 due to unhandled httpx.HTTPStatusError in get_payment). All Plus-specific endpoints (/config, /plus/status, /plus/subscribe, /plus/dev-activate, /plus/cancel, entitlement gates for pets>1 and reflect>3/month, portrait checkout mode:plus, subscription webhooks) work correctly. Frontend: /plus page shows all required testids (plus-plan-annual default, plus-plan-monthly, plus-subscribe, plus-dev-activate) with correct $29.900/$3.900 prices; dev-activate navigates to /universo?plus=success with welcome toast '¡Bienvenido a Petito Plus!'; /plus active state shows plus-active + plus-cancel; /universo shows universe-plus-cta when free and universe-plus-badge when Plus. Final state: user_testnorm1 left with NO subscription and only Rocco pet.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/payments/webhook/mercadopago", "issue": "type='payment' with unknown MP id returns 500 because provider.get_payment() isn't wrapped in try/except like the subscription branches. Pre-existing (not Plus-related) but should be hardened to match subscription webhook behavior that gracefully no-ops on 404."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_plus_subscription.py",
+    "/app/test_reports/pytest/plus_results.xml"
+  ],
+  "action_items": [
+    "Optional: wrap the 'payment' topic branch of /api/payments/webhook/mercadopago in try/except around provider.get_payment() to prevent 500s on invalid payment ids (consistent with subscription_preapproval branch). Low priority since real MP webhooks won't send bogus ids."
+  ],
+  "critical_code_review_comments": [
+    "server.py is >1700 lines — consider splitting Plus/subscription/payments logic into a dedicated module.",
+    "Webhook /api/payments/webhook/mercadopago has inconsistent error handling: subscription branches use try/except, payment branch does not; a 404 from MP bubbles up as 500 instead of received:true no-op.",
+    "test_subscribe creates a REAL pending preapproval on Mercado Pago each run and the local DB record is left behind if cleanup doesn't run; test suite now cleans via final cleanup test, but orphan preapprovals in MP sandbox can accumulate."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_plus_subscription.py (new)"
+  ],
+  "success_rate": {"backend": "93% (14/15)", "frontend": "100% (all testids + flows verified)"},
+  "test_credentials": "Seeded token test_session_norm_1 (user_testnorm1), pet Rocco a8f1f1bb-e5ef-4854-b07e-dc438112bd4a",
+  "seed_data_creation": "Transient: seeded TEST_seed_* reflected memories to simulate 3/month cap, all deleted in test teardown.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend Plus flow fully covered in /app/backend/tests/test_plus_subscription.py. Each test resets state (subscriptions + extra pets) so order-independent. test_subscribe_monthly_returns_init_point creates a REAL Mercado Pago preapproval in sandbox — don't call repeatedly in CI. The payment-webhook 500 is pre-existing and documented; not a regression from Plus work.",
+  "rca_of_the_issue": "Webhook payment-branch 500: /api/payments/webhook/mercadopago line ~1212 calls `await provider.get_payment(payment_id)` without a try/except. When MP returns 404 (unknown id), httpx raises HTTPStatusError which FastAPI converts to 500. Fix: wrap in try/except and return {received:true} on fetch failure, matching the subscription branches."
+}
