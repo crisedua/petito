@@ -1,0 +1,25 @@
+{
+  "summary": "Iteration 20 — Petito Plus editable Mercado Pago email + advisory + help box. Backend: new /app/backend/tests/test_plus_subscribe_email.py (6 tests, all PASS). Validates invalid email -> 400 w/o row, fallback to session email when omitted, valid override returns real init_point w/ mercadopago.cl/subscriptions/checkout + mp_id and persists subscription row with payer_email. Frontend (/plus mobile 390x844, authenticated via petito_token=test_session_norm_1): plus-mp-email prefilled with test.petito.norm@example.com; plus-mp-email-block and plus-mp-notice present (notice contains '$950' and 'crédito'); empty email submit shows 'Ingresa un correo válido...' toast with no backend call/navigation; invalid email same behavior; valid email tap on plus-subscribe navigates to real https://www.mercadopago.cl/checkout/v1/subscription/redirect/... URL. /plus?pago=success while user not active: plus-pay-help appears after sync listing all 4 typical reasons (correo mismatch, débito restriction, $950 rechazado, propia cuenta vendedora) and plus-pay-retry dismisses the box. Regression: both plan cards (plus-plan-monthly $3.900, plus-plan-annual $29.900) render with correct prices. DB cleaned: no subscriptions rows remain for user_testnorm1 after tests.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_plus_subscribe_email.py",
+    "/app/test_reports/pytest/plus_subscribe_email.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Plus.jsx subscribe() uses err?.response?.data?.detail for toast — OK. Consider showing the specific helpful MP 400 message prominently (currently just a toast; could set payHelp when backend returns the 'Mercado Pago no aceptó estos datos' detail so the user sees the full help box immediately without round-tripping through MP).",
+    "Backend plus_subscribe inserts the subscription row AFTER a successful MP call (good); invalid email path raises before any insert. No ObjectId leaks (uses {_id:0}).",
+    "Minor: /app/backend/tests/test_plus_subscription.py::test_plus_status_initial_inactive asserts d['free_mode'] is True, but current preview env has FREE_MODE=false. That test will fail if executed in this env (pre-existing from iteration_18, not touched by this iteration)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_plus_subscribe_email.py (new)"
+  ],
+  "success_rate": {"backend": "100% (6/6 new tests)", "frontend": "100% (all specified flows)"},
+  "test_credentials": "petito_token=test_session_norm_1 (session re-seeded in test_database because prior tests had cleared it)",
+  "seed_data_creation": "Re-inserted sessions row for test_session_norm_1 → user_testnorm1 (expires in 7d). Cleaned subscriptions.* for user_testnorm1 at end.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "If sessions row for test_session_norm_1 is missing again, re-insert via mongosh: db.sessions.insertOne({session_token:'test_session_norm_1', user_id:'user_testnorm1', email:'test.petito.norm@example.com', expires_at:new Date(Date.now()+7*86400000), created_at:new Date()}). Frontend tests must ALWAYS run with mobile viewport (390x844) because Plus.jsx uses mobile-frame layout. Preview is REAL MP production token — each valid subscribe creates a real pending preapproval; delete subscriptions rows after tests. Pre-existing failing assertion in test_plus_subscription.py expects free_mode=True but env has FREE_MODE=false.",
+  "rca of the issue": "N/A — approved fix verified end-to-end. Root cause of original bug (MP 'Confirmar' greyed out) was Petito sending the Google account email which didn't match the user's Mercado Pago account email. Fix lets user edit the payer_email on the Plus page before checkout; the backend regex-validates and forwards it as payer_email to create_preapproval, and surfaces MP 400 as a helpful HTTP 400 to the UI."
+}

@@ -51,7 +51,9 @@ export default function Plus() {
       const r = await plusSubscribe(plan, e);
       window.location.assign(r.init_point);
     } catch (err) {
-      toast.error(err?.response?.data?.detail || "No se pudo iniciar la suscripción");
+      const detail = err?.response?.data?.detail || "No se pudo iniciar la suscripción";
+      toast.error(detail);
+      if (err?.response?.status === 400) setPayHelp(true);
       setBusy(false);
     }
   };
