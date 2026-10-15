@@ -48,6 +48,21 @@ export const getPets = () => api.get("/pets").then((r) => r.data);
 export const getPet = (id) => api.get(`/pets/${id}`).then((r) => r.data);
 export const petCreations = (id) => api.get(`/pets/${id}/creations`).then((r) => r.data);
 
+// ---- memories ("Nuestra historia") ----
+export const getEmotions = () => api.get("/memories/meta").then((r) => r.data.emotions);
+export const listMemories = (petId) => api.get(`/pets/${petId}/memories`).then((r) => r.data);
+export const createMemory = (petId, payload) => api.post(`/pets/${petId}/memories`, payload).then((r) => r.data);
+export const uploadMemoryPhoto = (id, file) => {
+  const fd = new FormData();
+  fd.append("files", file);
+  return api.post(`/memories/${id}/photo`, fd).then((r) => r.data);
+};
+export const reflectMemory = (id) => api.post(`/memories/${id}/reflect`).then((r) => r.data);
+export const hideMemoryReflection = (id) => api.post(`/memories/${id}/reflect/hide`).then((r) => r.data);
+export const getMemory = (id) => api.get(`/memories/${id}`).then((r) => r.data);
+export const updateMemory = (id, payload) => api.put(`/memories/${id}`, payload).then((r) => r.data);
+export const deleteMemory = (id) => api.delete(`/memories/${id}`).then((r) => r.data);
+
 export const getConfig = () => api.get("/config").then((r) => r.data);
 export const createStory = (payload) => api.post("/stories", { pet_id: getActivePetId() || undefined, ...payload }).then((r) => r.data);
 export const uploadPhotos = (id, files) => {

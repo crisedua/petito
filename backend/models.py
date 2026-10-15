@@ -173,6 +173,53 @@ class Pet(BaseModel):
     created_at: str = Field(default_factory=iso_now)
 
 
+# ---------------- Memories ("Nuestra historia") ----------------
+EMOTIONS = [
+    {"key": "ternura", "label": "Ternura", "emoji": "🥹"},
+    {"key": "risa", "label": "Risa", "emoji": "😂"},
+    {"key": "alegria", "label": "Alegría", "emoji": "😊"},
+    {"key": "orgullo", "label": "Orgullo", "emoji": "🏅"},
+    {"key": "nostalgia", "label": "Nostalgia", "emoji": "🍂"},
+    {"key": "amor", "label": "Amor", "emoji": "❤️"},
+    {"key": "calma", "label": "Calma", "emoji": "🌿"},
+    {"key": "gratitud", "label": "Gratitud", "emoji": "🙏"},
+]
+EMOTION_LABELS = {e["key"]: e["label"] for e in EMOTIONS}
+
+
+class MemoryCreate(BaseModel):
+    title: str
+    happened_on: Optional[str] = None       # free text date, e.g. "2024-03" or "hace un tiempo"
+    date_unknown: bool = False
+    feeling_text: Optional[str] = None       # what the owner felt / what happened
+    emotions: List[str] = []
+
+
+class MemoryUpdate(BaseModel):
+    title: Optional[str] = None
+    happened_on: Optional[str] = None
+    date_unknown: Optional[bool] = None
+    feeling_text: Optional[str] = None
+    emotions: Optional[List[str]] = None
+
+
+class Memory(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    id: str = Field(default_factory=new_id)
+    pet_id: str
+    user_id: str
+    title: str
+    happened_on: Optional[str] = None
+    date_unknown: bool = False
+    feeling_text: Optional[str] = None
+    emotions: List[str] = []
+    photo_file: Optional[str] = None
+    ai_reflection: Optional[str] = None       # Petito's gentle thought (IA), always labeled
+    created_at: str = Field(default_factory=iso_now)
+    updated_at: Optional[str] = None
+
+
 class StoryCreate(BaseModel):
     pet_name: str
     species: str

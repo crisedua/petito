@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
-import { Loader2, Mic, Film, Crown, Plus, ChevronDown, Heart, CalendarHeart, Images, ArrowRight } from "lucide-react";
+import { Loader2, Mic, Film, Crown, Plus, ChevronDown, Heart, CalendarHeart, Images, ArrowRight, BookHeart } from "lucide-react";
 import { ProfileMenu } from "@/components/ProfileMenu";
 import { mediaUrl, getPets, petCreations, getActivePetId, setActivePetId } from "@/lib/api";
 
@@ -54,6 +54,7 @@ export default function Universe() {
 
   const name = active.name;
   const invitations = [
+    { key: "recuerdo", icon: BookHeart, title: "Guarda un recuerdo especial", desc: "Un momento real para siempre", to: "/album", bg: "#F3EAF0", fg: "#9C5F86" },
     { key: "habla", icon: Mic, title: `Imagina lo que ${name} te diría`, desc: "Dale voz en un video", to: "/hablar", bg: "#FBEEE4", fg: "#B85C3C" },
     { key: "historia", icon: Film, title: "Creen una aventura juntos", desc: "Una historia ilustrada", to: "/crear", bg: "#EEF1E6", fg: "#7A8B5A" },
     { key: "retrato", icon: Crown, title: `Descubre a ${name} en otro mundo`, desc: "Un retrato de realeza", to: "/retrato", bg: "#FBF3DD", fg: "#C79A3B" },

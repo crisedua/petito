@@ -304,3 +304,34 @@ async def write_pet_intro(photo_b64, name, species, personality_label, favorite_
         intro = (f"{name} llegó para llenar de cariño cada día. Este es el comienzo de su universo, "
                  f"donde cada recuerdo tendrá su lugar. 🐾")
     return intro, usage
+
+
+
+async def write_memory_reflection(pet_name, title, feeling_text, emotion_labels, photo_b64=None):
+    """A short, tender reflection by 'Petito' about a REAL memory the owner saved.
+    NEVER invents facts: only accompanies the emotion the owner already described."""
+    system = (
+        "Eres Petito, una voz cálida y tierna que acompaña los recuerdos de una familia con su mascota, "
+        "en español de Chile. Escribes un pensamiento breve y emotivo (NO un hecho). "
+        "REGLA CLAVE: nunca inventes datos ni hechos nuevos; solo acompaña y refleja con cariño lo que la "
+        "persona ya contó y sintió. Sin groserías. Respondes SOLO JSON válido."
+    )
+    emo = f" Emociones que marcó: {emotion_labels}." if emotion_labels else ""
+    told = feeling_text.strip() if feeling_text else ""
+    prompt = (
+        f"La familia guardó un recuerdo de su mascota {pet_name}, titulado: \"{title}\".{emo}\n"
+        f"Lo que escribió la persona: \"{told or '(no escribió texto)'}\"\n"
+        f"Escribe un pensamiento cálido y tierno (1 a 2 frases, máx 35 palabras) que acompañe esa emoción, "
+        f"sin inventar hechos, como un abrazo en palabras. Puedes usar el nombre.\n"
+        f'Responde JSON: {{"reflection": "<pensamiento>"}}'
+    )
+    files = [ImageContent(image_base64=photo_b64)] if photo_b64 else []
+    text, usage = await _run_claude(system, UserMessage(text=prompt, file_contents=files))
+    try:
+        data = _extract_json(text)
+        reflection = (data.get("reflection") or "").strip()
+    except Exception:
+        reflection = text.strip()
+    if not reflection:
+        reflection = f"Qué lindo guardar este momento con {pet_name}. Algunos instantes se quedan en el corazón para siempre. 🤍"
+    return reflection, usage

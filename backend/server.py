@@ -18,7 +18,7 @@ import renderer
 import ai_pipeline
 import narration
 import payments
-from models import Story, Slide, StoryCreate, SurveyResponse, SurveySubmit, Portrait, PortraitCreate, TalkingVideo, TalkCreate, Pet, PetCreate, THEMES, SPECIES, PORTRAIT_STYLES, MEMORIAL_STYLES, PERSONALITY_OPTIONS, PERSONALITY_LABELS, now_utc, iso_now, new_id
+from models import Story, Slide, StoryCreate, SurveyResponse, SurveySubmit, Portrait, PortraitCreate, TalkingVideo, TalkCreate, Pet, PetCreate, Memory, MemoryCreate, MemoryUpdate, THEMES, SPECIES, PORTRAIT_STYLES, MEMORIAL_STYLES, PERSONALITY_OPTIONS, PERSONALITY_LABELS, EMOTIONS, EMOTION_LABELS, now_utc, iso_now, new_id
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / ".env")
@@ -358,6 +358,165 @@ async def _validate_pet_id(pet_id, user_id):
         return None
     pet = await db.pets.find_one({"id": pet_id, "user_id": user_id}, {"_id": 1})
     return pet_id if pet else None
+
+
+
+# ---------------- memories ("Nuestra historia") ----------------
+async def get_memory(memory_id: str, user_id: str):
+    doc = await db.memories.find_one({"id": memory_id, "user_id": user_id}, {"_id": 0})
+    return Memory(**doc) if doc else None
+
+
+def memory_public(m: Memory):
+    return {
+        "id": m.id,
+        "pet_id": m.pet_id,
+        "title": m.title,
+        "happened_on": m.happened_on,
+        "date_unknown": m.date_unknown,
+        "feeling_text": m.feeling_text,
+        "emotions": m.emotions,
+        "emotion_labels": [{"key": k, "label": EMOTION_LABELS.get(k, k),
+                            "emoji": next((e["emoji"] for e in EMOTIONS if e["key"] == k), "")}
+                           for k in m.emotions],
+        "photo_url": f"/api/media/{m.id}/{m.photo_file}" if m.photo_file else None,
+        "ai_reflection": m.ai_reflection,
+        "created_at": m.created_at,
+        "updated_at": m.updated_at,
+    }
+
+
+@api_router.get("/memories/meta")
+async def memories_meta():
+    return {"emotions": EMOTIONS}
+
+
+@api_router.post("/pets/{pet_id}/memories")
+async def create_memory(pet_id: str, payload: MemoryCreate, user=Depends(require_user)):
+    pet = await get_pet(pet_id, user["user_id"])
+    if not pet:
+        raise HTTPException(404, "Mascota no encontrada")
+    title = (payload.title or "").strip()[:80]
+    if not title:
+        raise HTTPException(400, "Ponle un título a este recuerdo")
+    m = Memory(
+        pet_id=pet.id, user_id=user["user_id"], title=title,
+        happened_on=(payload.happened_on or "").strip()[:40] or None,
+        date_unknown=bool(payload.date_unknown),
+        feeling_text=(payload.feeling_text or "").strip()[:1500] or None,
+        emotions=[e for e in payload.emotions if e in EMOTION_LABELS][:6],
+    )
+    await db.memories.insert_one(m.model_dump())
+    return memory_public(m)
+
+
+@api_router.post("/memories/{memory_id}/photo")
+async def upload_memory_photo(memory_id: str, files: list[UploadFile] = File(...), user=Depends(require_user)):
+    m = await get_memory(memory_id, user["user_id"])
+    if not m:
+        raise HTTPException(404, "Recuerdo no encontrado")
+    if not files:
+        raise HTTPException(400, "Sube una foto")
+    raw = await _read_capped(files[0])
+    if not raw:
+        raise HTTPException(400, "Foto vacía")
+    try:
+        name = await asyncio.to_thread(storage.save_original, m.id, 0, raw)
+    except Exception:
+        logger.exception("memory photo: could not process")
+        raise HTTPException(400, "No pudimos leer esta foto. Prueba con otra (JPG, PNG o foto de iPhone).")
+    finally:
+        del raw
+    await db.memories.update_one({"id": m.id}, {"$set": {"photo_file": name}})
+    return {"ok": True, "photo_url": f"/api/media/{m.id}/{name}"}
+
+
+@api_router.post("/memories/{memory_id}/reflect")
+async def reflect_memory(memory_id: str, user=Depends(require_user)):
+    m = await get_memory(memory_id, user["user_id"])
+    if not m:
+        raise HTTPException(404, "Recuerdo no encontrado")
+    pet = await get_pet(m.pet_id, user["user_id"])
+    pet_name = pet.name if pet else "tu mascota"
+    labels = ", ".join([EMOTION_LABELS.get(k, k) for k in m.emotions])
+    try:
+        photo_b64 = None
+        if m.photo_file:
+            photo_b64 = await asyncio.to_thread(storage.image_to_b64, m.id, m.photo_file, 512)
+        reflection, usage = await ai_pipeline.write_memory_reflection(
+            pet_name, m.title, m.feeling_text, labels, photo_b64)
+    except Exception as e:
+        logger.exception("memory reflection failed")
+        if "INSUFFICIENT_CREDITS" in str(e):
+            raise HTTPException(402, "Sin crédito para generar. Agrega saldo a tu Universal Key.")
+        reflection = (f"Qué lindo guardar este momento con {pet_name}. Algunos instantes se quedan "
+                      f"en el corazón para siempre. 🤍")
+        usage = None
+    await db.memories.update_one({"id": m.id}, {"$set": {"ai_reflection": reflection}})
+    if usage:
+        await log_generation(m.id, "memory_reflection", ai_pipeline.CLAUDE_MODEL, usage=usage,
+                             cost_usd=ai_pipeline.claude_cost(usage))
+    return {"ai_reflection": reflection}
+
+
+@api_router.post("/memories/{memory_id}/reflect/hide")
+async def hide_memory_reflection(memory_id: str, user=Depends(require_user)):
+    m = await get_memory(memory_id, user["user_id"])
+    if not m:
+        raise HTTPException(404, "Recuerdo no encontrado")
+    await db.memories.update_one({"id": m.id}, {"$set": {"ai_reflection": None}})
+    return {"ok": True}
+
+
+@api_router.get("/pets/{pet_id}/memories")
+async def list_memories(pet_id: str, user=Depends(require_user)):
+    pet = await get_pet(pet_id, user["user_id"])
+    if not pet:
+        raise HTTPException(404, "Mascota no encontrada")
+    docs = await db.memories.find({"pet_id": pet.id, "user_id": user["user_id"]},
+                                  {"_id": 0}).sort("created_at", -1).to_list(500)
+    return [memory_public(Memory(**d)) for d in docs]
+
+
+@api_router.get("/memories/{memory_id}")
+async def read_memory(memory_id: str, user=Depends(require_user)):
+    m = await get_memory(memory_id, user["user_id"])
+    if not m:
+        raise HTTPException(404, "Recuerdo no encontrado")
+    return memory_public(m)
+
+
+@api_router.put("/memories/{memory_id}")
+async def update_memory(memory_id: str, payload: MemoryUpdate, user=Depends(require_user)):
+    m = await get_memory(memory_id, user["user_id"])
+    if not m:
+        raise HTTPException(404, "Recuerdo no encontrado")
+    upd = {}
+    if payload.title is not None:
+        t = payload.title.strip()[:80]
+        if not t:
+            raise HTTPException(400, "El título no puede quedar vacío")
+        upd["title"] = t
+    if payload.happened_on is not None:
+        upd["happened_on"] = payload.happened_on.strip()[:40] or None
+    if payload.date_unknown is not None:
+        upd["date_unknown"] = bool(payload.date_unknown)
+    if payload.feeling_text is not None:
+        upd["feeling_text"] = payload.feeling_text.strip()[:1500] or None
+    if payload.emotions is not None:
+        upd["emotions"] = [e for e in payload.emotions if e in EMOTION_LABELS][:6]
+    upd["updated_at"] = iso_now()
+    await db.memories.update_one({"id": m.id}, {"$set": upd})
+    return memory_public(await get_memory(m.id, user["user_id"]))
+
+
+@api_router.delete("/memories/{memory_id}")
+async def delete_memory(memory_id: str, user=Depends(require_user)):
+    m = await get_memory(memory_id, user["user_id"])
+    if not m:
+        raise HTTPException(404, "Recuerdo no encontrado")
+    await db.memories.delete_one({"id": m.id})
+    return {"ok": True}
 
 
 
