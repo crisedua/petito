@@ -18,7 +18,7 @@ import renderer
 import ai_pipeline
 import narration
 import payments
-from models import Story, Slide, StoryCreate, SurveyResponse, SurveySubmit, Portrait, PortraitCreate, TalkingVideo, TalkCreate, THEMES, SPECIES, PORTRAIT_STYLES, MEMORIAL_STYLES, now_utc, iso_now, new_id
+from models import Story, Slide, StoryCreate, SurveyResponse, SurveySubmit, Portrait, PortraitCreate, TalkingVideo, TalkCreate, Pet, PetCreate, THEMES, SPECIES, PORTRAIT_STYLES, MEMORIAL_STYLES, PERSONALITY_OPTIONS, PERSONALITY_LABELS, now_utc, iso_now, new_id
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / ".env")
@@ -208,6 +208,157 @@ async def my_portraits(user=Depends(require_user)):
         "gift_enabled": d.get("gift_enabled", False),
         "created_at": d["created_at"],
     } for d in docs]
+
+
+# ---------------- pets ("El universo de mi mascota") ----------------
+async def get_pet(pet_id: str, user_id: str):
+    doc = await db.pets.find_one({"id": pet_id, "user_id": user_id}, {"_id": 0})
+    return Pet(**doc) if doc else None
+
+
+def pet_public(p: Pet):
+    return {
+        "id": p.id,
+        "slug": p.share_slug,
+        "name": p.name,
+        "species": p.species,
+        "personality": p.personality,
+        "personality_text": p.personality_text,
+        "personality_labels": [PERSONALITY_LABELS.get(k, k) for k in p.personality],
+        "favorite_memory": p.favorite_memory,
+        "photo_url": f"/api/media/{p.id}/{p.photo_file}" if p.photo_file else None,
+        "intro_text": p.intro_text,
+        "created_at": p.created_at,
+    }
+
+
+@api_router.get("/pets/meta")
+async def pets_meta():
+    return {
+        "species": [{"key": k, "label": v} for k, v in SPECIES.items()],
+        "personality_options": PERSONALITY_OPTIONS,
+    }
+
+
+@api_router.post("/pets")
+async def create_pet(payload: PetCreate, user=Depends(require_user)):
+    name = (payload.name or "").strip()[:40]
+    if not name:
+        raise HTTPException(400, "Ponle un nombre a tu mascota")
+    valid_personality = [k for k in payload.personality if k in PERSONALITY_LABELS][:5]
+    pet = Pet(
+        user_id=user["user_id"], name=name,
+        species=payload.species if payload.species in SPECIES else "perro",
+        personality=valid_personality,
+        personality_text=(payload.personality_text or "").strip()[:200] or None,
+        favorite_memory=(payload.favorite_memory or "").strip()[:400] or None,
+    )
+    await db.pets.insert_one(pet.model_dump())
+    return pet_public(pet)
+
+
+@api_router.post("/pets/{pet_id}/photo")
+async def upload_pet_photo(pet_id: str, files: list[UploadFile] = File(...), user=Depends(require_user)):
+    pet = await get_pet(pet_id, user["user_id"])
+    if not pet:
+        raise HTTPException(404, "Mascota no encontrada")
+    if not files:
+        raise HTTPException(400, "Sube una foto")
+    raw = await _read_capped(files[0])
+    if not raw:
+        raise HTTPException(400, "Foto vacía")
+    try:
+        name = await asyncio.to_thread(storage.save_original, pet.id, 0, raw)
+    except Exception:
+        logger.exception("pet photo: could not process")
+        raise HTTPException(400, "No pudimos leer esta foto. Prueba con otra (JPG, PNG o foto de iPhone).")
+    finally:
+        del raw
+    await db.pets.update_one({"id": pet.id}, {"$set": {"photo_file": name}})
+    return {"ok": True, "photo_url": f"/api/media/{pet.id}/{name}"}
+
+
+@api_router.post("/pets/{pet_id}/reveal")
+async def reveal_pet(pet_id: str, user=Depends(require_user)):
+    pet = await get_pet(pet_id, user["user_id"])
+    if not pet:
+        raise HTTPException(404, "Mascota no encontrada")
+    if not pet.photo_file:
+        raise HTTPException(400, "Falta la foto de tu mascota")
+    labels = ", ".join([PERSONALITY_LABELS.get(k, k) for k in pet.personality])
+    if pet.personality_text:
+        labels = (labels + ("; " if labels else "") + pet.personality_text)
+    try:
+        photo_b64 = await asyncio.to_thread(storage.image_to_b64, pet.id, pet.photo_file, 512)
+        intro, usage = await ai_pipeline.write_pet_intro(
+            photo_b64, pet.name, pet.species, labels, pet.favorite_memory)
+    except Exception as e:
+        logger.exception("pet reveal failed")
+        if "INSUFFICIENT_CREDITS" in str(e):
+            raise HTTPException(402, "Sin crédito para generar. Agrega saldo a tu Universal Key.")
+        intro = (f"{pet.name} llegó para llenar de cariño cada día. Este es el comienzo de su "
+                 f"universo, donde cada recuerdo tendrá su lugar. 🐾")
+        usage = None
+    await db.pets.update_one({"id": pet.id}, {"$set": {"intro_text": intro}})
+    if usage:
+        await log_generation(pet.id, "pet_intro", ai_pipeline.CLAUDE_MODEL, usage=usage,
+                             cost_usd=ai_pipeline.claude_cost(usage))
+    return {"intro_text": intro}
+
+
+@api_router.get("/pets")
+async def list_pets(user=Depends(require_user)):
+    docs = await db.pets.find({"user_id": user["user_id"]}, {"_id": 0}).sort("created_at", 1).to_list(50)
+    return [pet_public(Pet(**d)) for d in docs]
+
+
+@api_router.get("/pets/{pet_id}")
+async def read_pet(pet_id: str, user=Depends(require_user)):
+    pet = await get_pet(pet_id, user["user_id"])
+    if not pet:
+        raise HTTPException(404, "Mascota no encontrada")
+    return pet_public(pet)
+
+
+@api_router.get("/pets/{pet_id}/creations")
+async def pet_creations(pet_id: str, user=Depends(require_user)):
+    pet = await get_pet(pet_id, user["user_id"])
+    if not pet:
+        raise HTTPException(404, "Mascota no encontrada")
+    out = []
+    stories = await db.stories.find({"pet_id": pet.id, "user_id": user["user_id"],
+                                     "status": {"$ne": "draft"}}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    for d in stories:
+        out.append({"kind": "historia", "id": d["id"], "slug": d["share_slug"],
+                    "title": d.get("title") or "Historia", "thumb_url": f"/api/media/{d['id']}/slide_0.jpg",
+                    "view_path": f"/h/{d['share_slug']}", "created_at": d["created_at"]})
+    portraits = await db.portraits.find({"pet_id": pet.id, "user_id": user["user_id"],
+                                         "status": {"$in": ["preview_ready", "paid"]}},
+                                        {"_id": 0}).sort("created_at", -1).to_list(100)
+    for d in portraits:
+        label = ALL_PORTRAIT_STYLES.get(d["style"], {}).get("label", d["style"])
+        out.append({"kind": "recuerdo" if d.get("category") == "memorial" else "retrato",
+                    "id": d["id"], "slug": d["share_slug"], "title": label,
+                    "thumb_url": f"/api/media/{d['id']}/preview.jpg",
+                    "view_path": f"/r/{d['share_slug']}", "created_at": d["created_at"]})
+    videos = await db.videos.find({"pet_id": pet.id, "user_id": user["user_id"],
+                                   "status": {"$in": ["preview_ready", "paid"]}},
+                                  {"_id": 0}).sort("created_at", -1).to_list(100)
+    for d in videos:
+        out.append({"kind": "video", "id": d["id"], "slug": d["share_slug"], "title": "Video que habla",
+                    "thumb_url": f"/api/media/{d['id']}/source.jpg",
+                    "view_path": f"/v/{d['share_slug']}", "created_at": d["created_at"]})
+    out.sort(key=lambda x: x["created_at"], reverse=True)
+    return out
+
+
+async def _validate_pet_id(pet_id, user_id):
+    """Return pet_id if it belongs to the user, else None."""
+    if not pet_id:
+        return None
+    pet = await db.pets.find_one({"id": pet_id, "user_id": user_id}, {"_id": 1})
+    return pet_id if pet else None
+
 
 
 async def log_generation(story_id, step, model, usage=None, images=0, cost_usd=0.0, duration_ms=0):
@@ -488,6 +639,7 @@ async def create_story(payload: StoryCreate, x_device_id: str = Header(default="
         traits=[t for t in payload.traits if t in models.TRAITS][:3],
         theme=payload.theme, email=payload.email, device_id=x_device_id,
         user_id=user["user_id"],
+        pet_id=await _validate_pet_id(payload.pet_id, user["user_id"]),
         price_clp=PRICE_CLP, bonus_enabled=BONUS_ENABLED,
         voice_id=narration.valid_voice(payload.voice_id or narration.DEFAULT_VOICE_ID),
     )
@@ -805,6 +957,7 @@ async def create_portrait(payload: PortraitCreate, x_device_id: str = Header(def
     p = Portrait(
         pet_name=(payload.pet_name or "").strip()[:40] or None,
         style=payload.style, category=category, device_id=x_device_id, user_id=user["user_id"],
+        pet_id=await _validate_pet_id(payload.pet_id, user["user_id"]),
         price_clp=PORTRAIT_PRICE_CLP,
         gift_enabled=bool(payload.gift_enabled) and category == "royal",
         gift_to=(payload.gift_to or "").strip()[:60] or None,
@@ -1071,6 +1224,7 @@ async def create_talk(payload: TalkCreate, request: Request,
     v = TalkingVideo(
         device_id=x_device_id, user_id=user["user_id"], mode="full", price_clp=TALK_PRICE_CLP,
         pet_name=(payload.pet_name or "").strip()[:40] or None,
+        pet_id=await _validate_pet_id(payload.pet_id, user["user_id"]),
         voice_id=narration.valid_voice(payload.voice_id or narration.DEFAULT_VOICE_ID),
         media_base=_origin_from(request),
     )

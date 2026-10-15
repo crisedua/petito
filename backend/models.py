@@ -138,6 +138,41 @@ SPECIES = {"perro": "perro", "gato": "gato", "otro": "mascota"}
 TRAITS = ["regalón", "glotón", "flojo", "aventurero", "mañoso", "guardián", "payaso"]
 
 
+# ---------------- Pets ("El universo de mi mascota") ----------------
+PERSONALITY_OPTIONS = [
+    {"key": "regalon", "label": "El regalón de la casa", "emoji": "🥰"},
+    {"key": "terremoto", "label": "Un pequeño terremoto", "emoji": "⚡"},
+    {"key": "dormilon", "label": "Dormilón profesional", "emoji": "😴"},
+    {"key": "aventurero", "label": "Aventurero de corazón", "emoji": "🏕️"},
+    {"key": "travieso", "label": "Travieso pero irresistible", "emoji": "😼"},
+]
+PERSONALITY_LABELS = {o["key"]: o["label"] for o in PERSONALITY_OPTIONS}
+
+
+class PetCreate(BaseModel):
+    name: str
+    species: str = "perro"
+    personality: List[str] = []
+    personality_text: Optional[str] = None
+    favorite_memory: Optional[str] = None
+
+
+class Pet(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    id: str = Field(default_factory=new_id)
+    share_slug: str = Field(default_factory=new_slug)
+    user_id: str
+    name: str
+    species: str = "perro"
+    personality: List[str] = []
+    personality_text: Optional[str] = None
+    favorite_memory: Optional[str] = None
+    photo_file: Optional[str] = None
+    intro_text: Optional[str] = None
+    created_at: str = Field(default_factory=iso_now)
+
+
 class StoryCreate(BaseModel):
     pet_name: str
     species: str
@@ -145,6 +180,7 @@ class StoryCreate(BaseModel):
     theme: str
     email: Optional[str] = None
     voice_id: Optional[str] = None
+    pet_id: Optional[str] = None
 
 
 class Story(BaseModel):
@@ -159,6 +195,7 @@ class Story(BaseModel):
     traits: List[str] = []
     theme: str
     status: str = "draft"  # draft, generating, preview_ready, paid, failed
+    pet_id: Optional[str] = None
     progress_step: str = ""
     progress_pct: int = 0
     bonus_pending: bool = False
@@ -282,6 +319,7 @@ class PortraitCreate(BaseModel):
     gift_message: Optional[str] = None
     memorial_dates: Optional[str] = None
     memorial_caption: Optional[str] = None
+    pet_id: Optional[str] = None
 
 
 class Portrait(BaseModel):
@@ -294,6 +332,7 @@ class Portrait(BaseModel):
     pet_name: Optional[str] = None
     style: str
     category: str = "royal"
+    pet_id: Optional[str] = None
     status: str = "draft"  # draft, generating, preview_ready, paid, failed
     progress_step: str = ""
     progress_pct: int = 0
@@ -317,6 +356,7 @@ class Portrait(BaseModel):
 class TalkCreate(BaseModel):
     pet_name: Optional[str] = None
     voice_id: Optional[str] = None
+    pet_id: Optional[str] = None
 
 
 class TalkingVideo(BaseModel):
@@ -330,6 +370,7 @@ class TalkingVideo(BaseModel):
     species: Optional[str] = None
     mode: str = "full"          # "preview_free" (anonymous) | "full" (logged in)
     status: str = "draft"       # draft, generating, preview_ready, finalizing, paid, failed
+    pet_id: Optional[str] = None
     progress_step: str = ""
     progress_pct: int = 0
     line: Optional[str] = None

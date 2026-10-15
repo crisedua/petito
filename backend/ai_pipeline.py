@@ -272,3 +272,35 @@ def generate_portrait(photo_data_uri, species, style_prompt, timeout=300):
         f"Luxurious, elegant, high quality, vertical portrait composition."
     )
     return _fal_edit(photo_data_uri, prompt, aspect_ratio="3:4", timeout=timeout)
+
+
+async def write_pet_intro(photo_b64, name, species, personality_label, favorite_memory=None):
+    """Claude vision: a warm, personalized welcome for a pet's 'universe'.
+    Does NOT invent real facts about the pet; it's an affectionate presentation."""
+    system = (
+        "Eres un narrador chileno cálido y tierno que da la bienvenida a la mascota de una familia "
+        "a su propio 'universo' en Petito. Escribes en segundo nivel emocional, en español de Chile, "
+        "con cariño y sin groserías. REGLA CLAVE: nunca inventes hechos reales (ni edad, ni raza exacta, "
+        "ni historias que no te dieron); habla de sentimientos, personalidad y el vínculo. "
+        "Respondes SOLO JSON válido."
+    )
+    especie = {"perro": "perrito", "gato": "gatito"}.get(species, "mascota")
+    memo = f" Un recuerdo que su familia atesora: {favorite_memory}." if favorite_memory else ""
+    prompt = (
+        f"La mascota se llama {name}, es un {especie}. Su personalidad: {personality_label or 'muy regalón'}.{memo}\n"
+        f"Mira su foto y escribe una bienvenida corta y emotiva (2 a 3 frases, máx 45 palabras en total) "
+        f"dirigida a su familia, celebrando que {name} ahora tiene su propio universo de recuerdos. "
+        f"Cálida, chilena, tierna, sin inventar datos. Usa su nombre.\n"
+        f'Responde JSON: {{"intro": "<bienvenida>"}}'
+    )
+    text, usage = await _run_claude(
+        system, UserMessage(text=prompt, file_contents=[ImageContent(image_base64=photo_b64)]))
+    try:
+        data = _extract_json(text)
+        intro = (data.get("intro") or "").strip()
+    except Exception:
+        intro = text.strip()
+    if not intro:
+        intro = (f"{name} llegó para llenar de cariño cada día. Este es el comienzo de su universo, "
+                 f"donde cada recuerdo tendrá su lugar. 🐾")
+    return intro, usage

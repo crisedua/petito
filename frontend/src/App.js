@@ -5,6 +5,8 @@ import { AuthProvider } from "@/lib/auth";
 import AuthCallback from "@/components/AuthCallback";
 import RequireAuth from "@/components/RequireAuth";
 import Landing from "@/pages/Landing";
+import Onboarding from "@/pages/Onboarding";
+import Universe from "@/pages/Universe";
 import Create from "@/pages/Create";
 import Portrait from "@/pages/Portrait";
 import Memorial from "@/pages/Memorial";
@@ -23,6 +25,8 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<Landing />} />
+      <Route path="/bienvenida" element={<RequireAuth subtitle="Inicia sesión para crear el universo de tu mascota 🐾"><Onboarding /></RequireAuth>} />
+      <Route path="/universo" element={<RequireAuth subtitle="Inicia sesión para entrar al universo de tu mascota 🐾"><Universe /></RequireAuth>} />
       <Route path="/crear" element={<RequireAuth subtitle="Inicia sesión para crear la historia de tu mascota 🐾"><Create /></RequireAuth>} />
       <Route path="/retrato" element={<RequireAuth subtitle="Inicia sesión para crear el retrato de tu mascota 👑"><Portrait /></RequireAuth>} />
       <Route path="/recuerdo" element={<RequireAuth subtitle="Inicia sesión para crear el retrato recuerdo de tu mascota 🤍"><Memorial /></RequireAuth>} />

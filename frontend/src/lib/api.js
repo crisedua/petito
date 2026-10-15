@@ -25,8 +25,31 @@ export function mediaUrl(path) {
   return `${BACKEND_URL}${path}`;
 }
 
+// ---- active pet (El universo de mi mascota) ----
+export function getActivePetId() {
+  return localStorage.getItem("petito_active_pet") || "";
+}
+export function setActivePetId(id) {
+  if (id) localStorage.setItem("petito_active_pet", id);
+}
+export function clearActivePet() {
+  localStorage.removeItem("petito_active_pet");
+}
+
+export const getPetsMeta = () => api.get("/pets/meta").then((r) => r.data);
+export const createPet = (payload) => api.post("/pets", payload).then((r) => r.data);
+export const uploadPetPhoto = (id, file) => {
+  const fd = new FormData();
+  fd.append("files", file);
+  return api.post(`/pets/${id}/photo`, fd).then((r) => r.data);
+};
+export const revealPet = (id) => api.post(`/pets/${id}/reveal`).then((r) => r.data);
+export const getPets = () => api.get("/pets").then((r) => r.data);
+export const getPet = (id) => api.get(`/pets/${id}`).then((r) => r.data);
+export const petCreations = (id) => api.get(`/pets/${id}/creations`).then((r) => r.data);
+
 export const getConfig = () => api.get("/config").then((r) => r.data);
-export const createStory = (payload) => api.post("/stories", payload).then((r) => r.data);
+export const createStory = (payload) => api.post("/stories", { pet_id: getActivePetId() || undefined, ...payload }).then((r) => r.data);
 export const uploadPhotos = (id, files) => {
   const fd = new FormData();
   files.forEach((f) => fd.append("files", f));
@@ -40,7 +63,7 @@ export const checkout = (id) => api.post(`/stories/${id}/checkout`).then((r) => 
 export const saveEmail = (id, email) => api.post(`/stories/${id}/email`, { email }).then((r) => r.data);
 export const submitSurvey = (storyId, answer) => api.post("/survey", { story_id: storyId, answer }).then((r) => r.data);
 
-export const createPortrait = (payload) => api.post("/portraits", payload).then((r) => r.data);
+export const createPortrait = (payload) => api.post("/portraits", { pet_id: getActivePetId() || undefined, ...payload }).then((r) => r.data);
 export const uploadPortraitPhoto = (id, file) => {
   const fd = new FormData();
   fd.append("files", file);
@@ -72,7 +95,7 @@ export const createTalkPreview = (file) => {
   fd.append("files", file);
   return api.post("/talk/preview", fd).then((r) => r.data);
 };
-export const createTalk = (payload) => api.post("/talk", payload).then((r) => r.data);
+export const createTalk = (payload) => api.post("/talk", { pet_id: getActivePetId() || undefined, ...payload }).then((r) => r.data);
 export const uploadTalkPhoto = (id, file) => {
   const fd = new FormData();
   fd.append("files", file);
