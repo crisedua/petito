@@ -6,7 +6,7 @@ import { ProfileMenu } from "@/components/ProfileMenu";
 import { useAuth } from "@/lib/auth";
 import { getPets } from "@/lib/api";
 
-const HERO_IMG = "https://images.unsplash.com/photo-1768738825587-d1e2c4de02d0?crop=entropy&cs=srgb&fm=jpg&q=85&w=900";
+const HERO_IMG = "https://images.unsplash.com/photo-1558788353-f76d92427f16?crop=entropy&cs=srgb&fm=jpg&q=85&w=900";
 
 const STEPS = [
   { icon: Sparkles, title: "Crea su universo", desc: "Cuéntanos quién es tu mascota y recibe una bienvenida hecha solo para ella." },
