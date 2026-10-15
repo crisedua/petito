@@ -28,8 +28,10 @@ mongo_url = os.environ["MONGO_URL"]
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ["DB_NAME"]]
 
-BRAND_NAME = os.environ.get("BRAND_NAME", "Petito")
-BRAND_URL = os.environ.get("BRAND_URL", "petito.pro")
+# Brand is permanently "Petito" / "petito.pro" — fixed in the product so no server
+# configuration can ever bake the old "Cuentapatas" name into new creations.
+BRAND_NAME = "Petito"
+BRAND_URL = "petito.pro"
 PRICE_CLP = int(os.environ.get("STORY_PRICE_CLP", "3990"))
 PORTRAIT_PRICE_CLP = int(os.environ.get("PORTRAIT_PRICE_CLP", "2990"))
 ALL_PORTRAIT_STYLES = {**PORTRAIT_STYLES, **MEMORIAL_STYLES}

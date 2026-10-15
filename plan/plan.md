@@ -1,78 +1,63 @@
-# Petito Plus: desbloquear la verificación del cobro y explicar el botón "Confirmar" en gris
+# Que toda creación nueva diga "Petito" (y nunca más "Cuentapatas")
 
-El checkout de Mercado Pago deja "Confirmar" en gris porque se está pagando con la misma
-cuenta que recibe el dinero (Mercado Pago no permite suscribirte a tu propia cuenta vendedora).
-Este trabajo no reescribe el cobro —que ya genera un checkout real—; agrega una forma de
-verificar toda la experiencia Plus sin pago real y explica con claridad cómo hacer la prueba
-real con otra cuenta.
+Fija la marca "Petito" de forma permanente en todo lo que Petito genera —videos, retratos
+e historias— para que el nombre viejo "Cuentapatas" no vuelva a aparecer en ninguna
+creación nueva, sin importar la configuración del servidor.
 
 ## Para quién es
-Para el dueño de Petito, que necesita (1) comprobar que Petito Plus funciona de principio a fin
-y (2) entender por qué Mercado Pago no lo deja confirmar el pago cuando prueba consigo mismo.
+Para el dueño de Petito, que vio el nombre viejo "Cuentapatas" grabado en un video de
+"Petito Habla" en petito.pro y necesita que, de ahora en adelante, toda creación muestre
+"Petito".
 
-## Qué está pasando (diagnóstico confirmado)
-- El botón "Confirmar" en gris **no es un error de Petito**. Ocurre porque la cuenta con la que
-  se inicia sesión para pagar es **la misma cuenta vendedora** (la que recibe el dinero). Mercado
-  Pago bloquea "pagarte a ti mismo". Los clientes reales nunca son el vendedor, así que no verán
-  este bloqueo.
-- No lo soluciona cambiar el correo (ya coincide), ni cambiar a tarjeta de crédito, ni cambiar el
-  tipo de suscripción de Mercado Pago. La única forma de completar el pago es usar **otra cuenta
-  de Mercado Pago distinta a la vendedora**.
+## Qué está pasando (diagnóstico)
+- El nombre que se "quema" en los videos, retratos e historias viene de una marca que hoy el
+  servidor puede configurar. El código ya trae "Petito" por defecto, pero producción puede
+  quedar apuntando al nombre viejo, y entonces lo nuevo sale con "Cuentapatas".
+- En los videos, el nombre queda grabado en los píxeles del video al momento de crearlo; por
+  eso un video viejo seguirá mostrando "Cuentapatas" para siempre. Eso no se corrige en esta
+  tarea (decisión acordada: los viejos se dejan como están).
 
-## Core features y experiencia (lo que se construye en Fase 1)
-- **Verificar Plus sin pago real (solo para el dueño).** Un control, visible únicamente para los
-  correos de administrador, que permite activar y desactivar Petito Plus en la propia cuenta del
-  dueño. Sirve para confirmar de inmediato toda la experiencia Plus: que se desbloquean retratos,
-  videos e historias sin pago por unidad, que aparece la insignia Plus, y que se levantan los
-  límites gratis (mascotas y reflexiones). Queda disponible también en producción, pero solo para
-  los administradores; ningún usuario normal puede usarlo.
-- **Mensaje de ayuda más claro cuando el pago no se completa.** El recuadro que ya aparece al
-  volver sin suscripción activa encabeza ahora con el motivo real y más probable: "No puedes
-  suscribirte con tu propia cuenta de Mercado Pago (la que recibe el dinero); prueba con otra
-  cuenta". Mantiene los demás motivos (tarjeta con restricción, validación de $950 rechazada) en
-  un tono cálido, sin tecnicismos.
-- **Guía de prueba real entregada al dueño.** Pasos concretos para completar un cobro real:
-  abrir el checkout en una ventana limpia, iniciar sesión con una **segunda cuenta de Mercado
-  Pago** (no la vendedora), pagar con **tarjeta de crédito** de preferencia, aceptar el cargo de
-  validación de $950 reembolsable, y confirmar que la suscripción queda activa y vuelve a "Mi
-  universo" con la insignia Plus.
+## Qué se construye (Fase 1, MVP)
+- **Marca fija "Petito" en todo lo que se genera.** Se deja "Petito" (y el sitio
+  "petito.pro") como el único nombre que se graba en:
+  - la marca de agua en diagonal y el nombre al pie del video de "Petito Habla",
+  - la marca de agua del retrato en vista previa,
+  - el nombre al pie de las diapositivas de las historias, el título, la portada y la
+    diapositiva de cierre, y la vista previa bloqueada.
+  Queda fijo en el propio producto, de modo que ninguna configuración del servidor pueda
+  volver a cambiarlo por "Cuentapatas".
+- **Resultado esperado:** cualquier creación nueva (video, retrato, historia) hecha después
+  de publicar mostrará "Petito". Las creaciones viejas quedan intactas.
+- **Sin cambios visuales de diseño:** mismo estilo, color y posición de la marca; solo cambia
+  el texto a "Petito".
 
 ## User flow
-1. El dueño entra a "Hazte Plus". Como es administrador, ve el control de verificación de prueba.
-2. Activa Plus en modo prueba y recorre la app: retratos/videos/historias quedan desbloqueados,
-   aparece la insignia Plus y se levantan los límites. Puede desactivarlo cuando termine.
-3. Para el cobro real, sigue la guía: abre el checkout con otra cuenta de Mercado Pago y una
-   tarjeta de crédito, confirma, y verifica que Plus queda activo.
-4. Si algo falla al volver de Mercado Pago, ve el mensaje de ayuda encabezado por el motivo del
-   autopago, con la opción de reintentar.
+1. El dueño (o cualquier usuario) crea un nuevo video de "Petito Habla", un retrato o una
+   historia.
+2. La marca grabada dice "Petito" y el sitio "petito.pro".
+3. Los videos/imágenes creados antes del cambio siguen mostrando el nombre viejo; no se tocan.
 
 ## UI/UX feel
-Sin rediseño. Se mantiene el tono cálido en español de Chile y la paleta dorada/terracota de
-Petito Plus. El control de verificación para el dueño se muestra discreto y claramente marcado
-como herramienta de prueba, para no confundirse con el flujo de pago real de los clientes.
+Sin rediseño. Se mantiene el tono cálido en español de Chile y la estética actual; el único
+cambio perceptible es que el texto de marca ahora dice "Petito" en las creaciones nuevas.
 
 ## Fases
-- **Fase 1 (ahora, MVP):** verificación de Plus sin pago real solo para administradores (activar
-  y desactivar), mensaje de ayuda encabezado por el bloqueo de autopago, y guía para completar el
-  cobro real con una segunda cuenta.
-- **Fase 2 (después):** pantalla de gestión de la suscripción para el socio (ver plan, próxima
-  fecha de cobro, cancelar manteniendo el acceso hasta el fin del período).
-- **Fase 3 (futuro):** recordatorio cálido antes de cada renovación, refuerzo de seguridad del
-  webhook (secreto de firma) con validación de notificaciones de renovación, y un modo de prueba
-  guiado con cuentas y tarjetas de prueba de Mercado Pago (sin dinero real).
+- **Fase 1 (ahora, MVP):** fijar "Petito"/"petito.pro" como marca en todas las creaciones
+  nuevas, independiente de la configuración del servidor; dejar las creaciones viejas como
+  están; re-publicar para que quede en vivo en petito.pro.
+- **Fase 2 (después):** opción para que el dueño re-marque sin costo los retratos e historias
+  ya creados (volver a aplicar "Petito" sobre la versión limpia guardada), si más adelante lo
+  quiere.
+- **Fase 3 (futuro):** regenerar videos "Petito Habla" viejos para reemplazar la marca grabada
+  (implica reprocesar con IA), solo si se decide hacerlo.
 
 ## Supuestos
-- La causa del botón "Confirmar" en gris es el bloqueo de Mercado Pago de pagarte a ti mismo,
-  confirmado porque se paga con la misma cuenta vendedora. El flujo técnico de Petito ya es
-  correcto (genera un checkout real de Mercado Pago).
-- No se cambia el tipo de suscripción de Mercado Pago (sin plan asociado): cambiar a "con plan
-  asociado" no elimina el bloqueo de autopago ni el requisito de correo, así que no resuelve esto.
-- La activación de Plus en modo prueba queda restringida a los correos de administrador
-  (allowlist existente) y disponible también en producción solo para ellos; incluye poder
-  desactivarla.
-- Se mantienen los precios aprobados (mensual $3.900 / anual $29.900 CLP) y la activación del
-  cobro real confirmada en el servidor.
-- La prueba del cobro real la hace el dueño con una segunda cuenta de Mercado Pago y, de
-  preferencia, una tarjeta de crédito; esto no se puede automatizar.
-- El arreglo aplica a preview y producción; para quedar en vivo en petito.pro hace falta
-  re-publicar después del cambio.
+- La marca de Petito es permanentemente "Petito" y el sitio "petito.pro"; no se necesita que
+  el nombre sea configurable, así que se fija en el producto para evitar que vuelva a cambiarse
+  por error.
+- Solo se corrigen las creaciones NUEVAS; las viejas (incluido el video que mostró
+  "Cuentapatas") se dejan tal cual, según lo acordado.
+- El arreglo cubre todos los tipos de creación (video que habla, retrato e historia) porque
+  todos usan la misma marca.
+- No hay cambios de diseño, posición ni estilo de la marca de agua; solo cambia el texto.
+- Para que el cambio quede en vivo en petito.pro hace falta re-publicar después de aplicarlo.
