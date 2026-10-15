@@ -627,6 +627,7 @@ async def plus_status(user=Depends(require_user)):
         "monthly_clp": PLUS_MONTHLY_CLP,
         "annual_clp": PLUS_ANNUAL_CLP,
         "free_mode": FREE_MODE,
+        "is_admin": user.get("email", "").lower() in ADMIN_EMAILS,
     }
 
 
@@ -714,6 +715,29 @@ async def plus_dev_activate(request: Request, user=Depends(require_user)):
                   "plus_until": _plus_until_from(None, days), "created_at": iso_now()}},
         upsert=True)
     return {"active": True, "plan": plan}
+
+
+@api_router.post("/plus/admin-activate")
+async def plus_admin_activate(request: Request, user=Depends(require_admin)):
+    """Admin-only: activate Plus on the admin's own account to verify the full Plus
+    experience (works in preview AND production, restricted to ADMIN_EMAILS)."""
+    body = await request.json()
+    plan = body.get("plan") if body.get("plan") in PLUS_PLANS else "monthly"
+    days = PLUS_PLANS[plan]["days"]
+    await db.subscriptions.update_one(
+        {"user_id": user["user_id"]},
+        {"$set": {"mp_id": f"admin-{new_id()}", "user_id": user["user_id"], "plan": plan,
+                  "status": "authorized", "membership_active": True,
+                  "plus_until": _plus_until_from(None, days), "created_at": iso_now()}},
+        upsert=True)
+    return {"active": True, "plan": plan}
+
+
+@api_router.post("/plus/admin-deactivate")
+async def plus_admin_deactivate(user=Depends(require_admin)):
+    """Admin-only: turn OFF the test Plus on the admin's own account."""
+    await db.subscriptions.delete_many({"user_id": user["user_id"]})
+    return {"active": False}
 
 
 

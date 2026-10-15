@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { ArrowLeft, Loader2, Check, Crown, Sparkles, Infinity as InfinityIcon, Share2, Mic, Info, AlertCircle } from "lucide-react";
-import { plusStatus, plusSubscribe, plusSync, plusCancel, plusDevActivate } from "@/lib/api";
+import { plusStatus, plusSubscribe, plusSync, plusCancel, plusDevActivate, plusAdminActivate, plusAdminDeactivate } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 
 const BENEFITS = [
@@ -64,6 +64,19 @@ export default function Plus() {
     catch (e) { toast.error(e?.response?.data?.detail || "No se pudo activar"); setBusy(false); }
   };
 
+  const adminActivate = async () => {
+    setBusy(true);
+    try { await plusAdminActivate(plan); toast.success("Plus activado (prueba de admin) 👑"); nav("/universo?plus=success"); }
+    catch (e) { toast.error(e?.response?.data?.detail || "No se pudo activar"); setBusy(false); }
+  };
+
+  const adminDeactivate = async () => {
+    setBusy(true);
+    try { await plusAdminDeactivate(); toast.success("Plus de prueba desactivado"); load(); }
+    catch (e) { toast.error(e?.response?.data?.detail || "No se pudo desactivar"); }
+    finally { setBusy(false); }
+  };
+
   const cancel = async () => {
     setBusy(true);
     try { const r = await plusCancel(); toast.success("Suscripción cancelada. Mantienes Plus hasta el fin del período."); load(); }
@@ -108,6 +121,12 @@ export default function Plus() {
                 {busy ? <Loader2 className="w-4 h-4 animate-spin inline" /> : "Cancelar renovación"}
               </button>
             )}
+            {st.is_admin && (
+              <button onClick={adminDeactivate} disabled={busy} data-testid="plus-admin-deactivate"
+                className="mt-3 w-full h-11 rounded-2xl text-xs font-display font-semibold text-amber-100/60" style={{ background: "rgba(255,255,255,0.06)", border: "1px dashed rgba(245,195,85,0.4)" }}>
+                🛠️ Desactivar Plus de prueba (solo admin)
+              </button>
+            )}
           </motion.div>
         ) : (
           <>
@@ -115,12 +134,12 @@ export default function Plus() {
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} data-testid="plus-pay-help"
                 className="mb-6 rounded-2xl p-4" style={{ background: "rgba(220,120,90,0.14)", border: "1px solid rgba(220,120,90,0.4)" }}>
                 <div className="flex items-center gap-2 font-display font-bold text-amber-50 text-sm"><AlertCircle className="w-4 h-4 text-orange-300" /> No pudimos confirmar tu suscripción</div>
-                <p className="mt-1.5 text-[11px] text-amber-100/70">Suele deberse a uno de estos motivos:</p>
+                <p className="mt-1.5 text-[11px] text-amber-100/80"><b className="text-amber-50">Lo más probable:</b> no puedes suscribirte con tu propia cuenta de Mercado Pago (la que recibe el dinero). Prueba con otra cuenta de Mercado Pago distinta.</p>
+                <p className="mt-1.5 text-[11px] text-amber-100/70">Otros motivos posibles:</p>
                 <ul className="mt-1.5 text-[11px] text-amber-100/70 space-y-1 list-disc pl-4">
                   <li>El correo no coincide con el de tu cuenta de Mercado Pago</li>
                   <li>Tarjeta de débito con restricción para cobros automáticos (prueba una de crédito)</li>
                   <li>La validación de $950 fue rechazada por tu banco</li>
-                  <li>No puedes suscribirte a tu propia cuenta vendedora (usa otra cuenta/tarjeta)</li>
                 </ul>
                 <button onClick={() => setPayHelp(false)} data-testid="plus-pay-retry"
                   className="mt-3 w-full h-10 rounded-xl font-display font-semibold text-xs text-stone-900" style={{ background: "#F5C355" }}>
@@ -190,6 +209,17 @@ export default function Plus() {
                 className="mt-4 w-full h-11 rounded-2xl text-xs font-display font-semibold text-amber-100/70" style={{ background: "rgba(255,255,255,0.08)" }}>
                 Activar en modo prueba (sin cobro)
               </button>
+            )}
+
+            {st.is_admin && (
+              <div className="mt-5 rounded-2xl p-4" style={{ background: "rgba(245,195,85,0.08)", border: "1px dashed rgba(245,195,85,0.45)" }} data-testid="plus-admin-tool">
+                <div className="flex items-center gap-2 text-xs font-display font-bold text-amber-200">🛠️ Herramienta de administrador</div>
+                <p className="mt-1 text-[11px] text-amber-100/65">Activa Plus en tu cuenta para verificar toda la experiencia (retratos, videos e historias desbloqueados, insignia y límites levantados) sin pago real. Esto solo lo ves tú como admin.</p>
+                <button onClick={adminActivate} disabled={busy} data-testid="plus-admin-activate"
+                  className="mt-3 w-full h-11 rounded-xl text-xs font-display font-bold text-stone-900" style={{ background: "#F5C355" }}>
+                  {busy ? <Loader2 className="w-4 h-4 animate-spin inline" /> : "Activar Plus de prueba (solo admin)"}
+                </button>
+              </div>
             )}
           </>
         )}

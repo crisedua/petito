@@ -57,6 +57,8 @@ export const plusSubscribe = (plan, email) => api.post("/plus/subscribe", { plan
 export const plusSync = () => api.post("/plus/sync").then((r) => r.data);
 export const plusCancel = () => api.put("/plus/cancel").then((r) => r.data);
 export const plusDevActivate = (plan) => api.post("/plus/dev-activate", { plan }).then((r) => r.data);
+export const plusAdminActivate = (plan) => api.post("/plus/admin-activate", { plan }).then((r) => r.data);
+export const plusAdminDeactivate = () => api.post("/plus/admin-deactivate").then((r) => r.data);
 export const petCreations = (id) => api.get(`/pets/${id}/creations`).then((r) => r.data);
 
 // ---- memories ("Nuestra historia") ----
