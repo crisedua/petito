@@ -1,101 +1,68 @@
-# Petito · Fase 2 — "Nuestra historia": recuerdos reales que emocionan
+# Verificación de Mercado Pago — Suscripción Petito Plus (producción)
 
-El corazón emocional del universo: cada mascota tiene un álbum vivo de recuerdos reales (foto, fecha,
-lo que pasó y lo que se sintió), creados como una experiencia cálida y conmovedora, no como un formulario.
+Revisión de la suscripción Petito Plus en producción (petito.pro) hasta donde se puede
+comprobar sin tarjeta, más un checklist claro para la prueba final de cobro real.
 
 ## Para quién es
-- Dueños de mascotas en Chile que quieren atesorar y revivir momentos reales con su mascota —no solo
-  generar imágenes— y sentir algo cada vez que guardan o abren un recuerdo.
-- Usuarios actuales del universo Petito (Fase 1): esto se suma dentro de "Mi universo", sin cambiar nada
-  de lo que ya existe (onboarding, invitaciones, multi-mascota, Petito Habla, Retrato, Historia).
+Para el dueño de Petito, que necesita saber con certeza si la membresía Petito Plus
+(mensual $3.900 / anual $29.900 CLP, renovación automática) está lista para cobrar de
+verdad en producción antes de promocionarla.
 
-## Core features y experiencia (Fase 1 de este plan = lo que se construye ahora)
+## Qué se revisa y qué se entrega
+- **Configuración de producción**: confirmar que el entorno desplegado tiene el token de
+  Mercado Pago de producción (`APP_USR-`), que `FREE_MODE` está en `false` (paywall real
+  activo) y qué otros secretos de pago existen (sin exponer sus valores).
+- **Generación de checkout real**: pedir al backend de producción que cree una suscripción
+  Preapproval de prueba y confirmar que devuelve un `init_point` real de Mercado Pago, con
+  el monto y la frecuencia correctos (mensual y anual).
+- **Cuenta de Mercado Pago habilitada**: deducir si "Suscripciones / Preapproval" está
+  activo en la cuenta del dueño. Si la creación del checkout responde con error, se reporta
+  el mensaje exacto de Mercado Pago (por ejemplo, suscripciones no habilitadas).
+- **Confirmación del pago en el servidor**: verificar que la activación de Plus ocurre solo
+  cuando Mercado Pago confirma el estado `authorized` (nunca por el simple regreso del
+  navegador) y que el webhook de notificaciones está publicado y accesible en producción.
+- **Webhook**: confirmar si está configurado el secreto de firma (opcional) y si la URL de
+  notificación queda registrada/alcanzable.
+- **Entrega final**: un checklist corto y claro para que el dueño haga la única prueba que
+  no se puede automatizar — suscribirse con una tarjeta real y confirmar que el cobro se
+  realiza, la membresía se activa y vuelve a "Mi universo".
 
-1. **Nuevo espacio "Nuestra historia"** dentro del universo de cada mascota: un álbum con línea de tiempo
-   (del recuerdo más reciente al más antiguo) donde viven los recuerdos reales de esa mascota.
+## Flujo que se valida
+1. El usuario entra a `/plus`, elige plan (mensual o anual) y toca suscribirse.
+2. El backend crea la suscripción en Mercado Pago y devuelve el `init_point`.
+3. El usuario es llevado al checkout alojado de Mercado Pago y autoriza con su tarjeta.
+4. Mercado Pago confirma la suscripción (estado `authorized`) y notifica al webhook.
+5. El servidor marca la membresía activa y el usuario regresa a "Mi universo" con la
+   insignia Plus.
+6. En cada renovación (mes/año), Mercado Pago notifica el pago y el servidor extiende el
+   acceso.
 
-2. **Crear un recuerdo como experiencia emocional** (no un formulario frío). Al guardar, la persona pasa
-   por un momento guiado y cálido:
-   - Elige/sube una foto del momento (opcional pero muy invitada).
-   - Un título corto ("Su primer día en casa").
-   - Una fecha (opcional; si no la sabe, "hace un tiempo").
-   - **La pregunta que importa**: un campo que invita a sentir, no a describir —p. ej. "¿Qué sentiste ese
-     día?"— con microcopys tiernos que cambian para animar a escribir desde la emoción.
-   - **Cómo se sintió**: una fila de "emociones" cálidas para elegir (ternura, risa, alegría, orgullo,
-     nostalgia, amor, calma…) que dan tono y color al recuerdo.
-   - Al guardar, una **revelación suave**: animación tierna + mensaje tipo "Guardado para siempre 🤍" y el
-     recuerdo aparece en el álbum con una presentación bonita.
+## Resultado esperado de la revisión
+Un informe simple de estado: qué está confirmado funcionando, qué falta (acciones del lado
+de la cuenta de Mercado Pago o del panel de despliegue), y el checklist de la prueba con
+tarjeta. No se cambia código de la aplicación en esta tarea.
 
-3. **Reflexión cálida opcional escrita por Petito (IA), SIEMPRE marcada**: tras guardar, se ofrece (no se
-   impone) una breve reflexión emotiva generada con IA a partir de lo que la persona escribió y la foto.
-   Se muestra claramente como un pensamiento/sentir ("Un pensamiento de Petito 💭"), nunca como un hecho
-   real, y la IA no inventa datos: solo acompaña la emoción de lo que el dueño ya contó. Se puede ocultar.
+## Fases
+- **Fase 1 (ahora): Verificación + checklist.** Comprobaciones automáticas en producción
+  (configuración, generación de checkout real, confirmación server-side, webhook) y entrega
+  del informe de estado y el checklist de prueba con tarjeta.
+- **Fase 2 (después, si se requiere): Endurecimiento.** Registrar/activar el secreto de
+  firma del webhook y validar la recepción real de notificaciones de renovación.
+- **Fase 3 (futuro): Gestión de la suscripción para el socio.** Pantalla donde el socio ve
+  su plan y próxima fecha de cobro, cancela, y recibe aviso antes de la renovación.
 
-4. **Abrir un recuerdo**: una vista a pantalla completa, cálida y despejada, con la foto grande, el título,
-   la fecha, lo que se sintió (emociones), el texto del dueño y —si existe— la reflexión de Petito marcada.
-   Desde ahí se puede editar o borrar el recuerdo.
-
-5. **La distinción real vs imaginado es clara en todo momento**: los recuerdos reales se ven como "lo que
-   de verdad pasó"; cualquier texto de IA va etiquetado como sentir/acompañamiento, separado visualmente.
-
-6. **Integrado al universo**: la invitación "Guarda un recuerdo especial" en "Mi universo" abre este
-   espacio; la colección de la mascota y el álbum conviven; cada recuerdo pertenece a la mascota activa.
-
-### Qué NO entra en la Fase 1 de este plan
-- Petito Habla con escenarios predefinidos y mensaje editable (va en la Fase 2 de este plan).
-- Gestión/edición del perfil y personalidad de la mascota (Fase 2 de este plan).
-- Fechas especiales/recordatorios, experiencias recurrentes, sorpresas (Fase 3).
-- Compartir público de la mascota, exportar ZIP, URLs firmadas (Fase 3).
-- Petito Plus / suscripción (Fase 3).
-
-## User flow
-1. En "Mi universo" la persona toca "Guarda un recuerdo especial" (o entra a "Nuestra historia").
-2. Ve el álbum de esa mascota; si está vacío, una invitación cálida a crear el primero.
-3. Toca "Añadir recuerdo" y vive el momento guiado: foto → título → fecha → "¿qué sentiste?" → emociones.
-4. Al guardar, ve la revelación tierna y el recuerdo ya en su álbum.
-5. Se le ofrece la reflexión de Petito (IA, marcada); la acepta o la omite.
-6. Puede abrir cualquier recuerdo para revivirlo, editarlo o borrarlo.
-7. Cambia de mascota y ve el álbum propio de cada una (multi-mascota de la Fase 1).
-
-## UI/UX feel
-- Continúa la identidad cálida del universo: ivory/crema, acentos terracota/durazno/sage, tarjetas
-  redondeadas tipo álbum, tipografía espaciosa; fotografía real protagonista.
-- El acto de crear un recuerdo se siente íntimo: microcopys emotivos, ritmo pausado, una sola cosa a la
-  vez, y una recompensa emocional al guardar (animación suave + "para siempre").
-- Línea de tiempo legible y nostálgica; cada recuerdo como una página del álbum.
-- Lo escrito por IA siempre se ve distinto y etiquetado, para no confundir con lo real.
-- Mobile-first; se respeta "reduced motion".
-
-## Fases de implementación
-
-**Fase 1 — Nuestra historia (se construye ahora)**
-- Álbum/timeline de recuerdos reales por mascota, creación como experiencia emocional guiada (foto, título,
-  fecha, "qué sentiste", emociones), revelación al guardar, vista de recuerdo, editar/borrar, y reflexión
-  cálida opcional de Petito (IA) siempre marcada. Integrado a "Mi universo" y multi-mascota.
-
-**Fase 2 — Expresar y cuidar el vínculo (siguiente)**
-- Petito Habla con escenarios predefinidos (p. ej. "feliz cumpleaños", "te extraño") y mensaje editable por
-  el dueño, con tope de caracteres por el costo del video.
-- Gestión del perfil y personalidad de la mascota; organización del contenido guardado.
-
-**Fase 3 — Razones para volver + privacidad/pagos (futuro)**
-- Fechas especiales (cumpleaños/aniversario de adopción) con recordatorios cálidos; experiencias recurrentes
-  (semanal/mensual) y sorpresas emocionales.
-- Compartir público de la mascota, exportar ZIP y URLs firmadas de medios.
-- Petito Plus (~US$3/mes) con renovación automática vía Mercado Pago (Preapproval).
-
-## Assumptions
-- "Fase 2" se interpreta priorizando primero el **Libro "Nuestra historia"** (recuerdos reales), porque es
-  donde la emoción es más central; Petito Habla con escenarios queda como la siguiente fase de este plan.
-- La foto es opcional pero fuertemente invitada; un recuerdo puede guardarse solo con texto y/o emociones.
-- La fecha es opcional (se permite "no la sé").
-- La **reflexión de IA es opcional y siempre etiquetada** como sentir/acompañamiento ("Un pensamiento de
-  Petito"), nunca como hecho real; la IA solo se apoya en lo que el dueño escribió y no inventa datos.
-- Las "emociones" son un set curado y cálido (ternura, risa, alegría, orgullo, nostalgia, amor, calma, u
-  otras similares), elegibles de a varias.
-- Crear/ver/editar/borrar recuerdos requiere sesión iniciada (como el resto del universo); los recuerdos son
-  privados por defecto (compartir llega en la Fase 3).
-- Cada recuerdo pertenece a una mascota; al cambiar de mascota se ve su propio álbum.
-- Se mantiene el límite de 20 MB por foto ya existente.
-- El trabajo ocurre solo en el preview; no se toca producción (petito.pro) en este trabajo. (El arreglo del
-  520 en vivo —subir tier y re-publicar— sigue pendiente como acción del dueño, aparte de este plan.)
+## Supuestos
+- La revisión es solo en **producción** (petito.pro), según lo indicado.
+- Solo se verifica la **suscripción Petito Plus**; los pagos únicos quedan fuera de alcance.
+  Nota: el código de pagos únicos (retrato/video/historia) todavía existe en la aplicación;
+  si se desea retirarlos, es un cambio aparte y no forma parte de esta verificación.
+- No se realiza ningún cobro real; la prueba final con tarjeta la hace el dueño.
+- Para probar el checkout se creará **una** suscripción Preapproval real en estado pendiente.
+  Esto no mueve dinero (no hay cargo hasta que una tarjeta la autorice); si no se desea
+  crear ni siquiera ese contrato de prueba, se revisa solo la configuración.
+- El token de producción `APP_USR-` del dueño se mantiene tal cual; no se modifica.
+- La habilitación de "Suscripciones" en la cuenta de Mercado Pago es una acción del dueño;
+  la revisión la confirma de forma indirecta y reporta el error exacto si no está activa.
+- El secreto de firma del webhook (`MERCADOPAGO_WEBHOOK_SECRET`) es opcional: sin él, el
+  webhook sigue siendo seguro porque el servidor vuelve a consultar el estado a Mercado Pago
+  antes de dar acceso. Si se quiere agregar, es parte de la Fase 2.
