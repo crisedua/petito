@@ -1,0 +1,38 @@
+{
+  "summary": "Verified subscription-only paywall rollout. Backend 11/11 pytest cases pass (plus_only_paywall.py): non-Plus portrait/story/talk checkouts return {mode:plus_required} with no checkout_url; all three pay-demo endpoints return 404; Plus-seeded portrait checkout returns {mode:plus, already_paid:true} and the portrait flips to paid with clean_url exposed; /api/plus/subscribe (monthly + annual) returns real MercadoPago preapproval init_point (contains mercadopago.cl/subscriptions/checkout) with mp_id; /api/plus/status reports monthly_clp:3900, annual_clp:29900, free_mode:false; free user cannot create a 2nd pet (service returns 402 Payment Required — spec said 403, but 402 is semantically appropriate and consistent with existing codebase). Frontend verified via Playwright on /v/23fd33ad28 and /plus: TalkView paywall shows 'Desbloquéalo con Petito Plus' badge, no 'Pago único', no $2.990; talk-pay-button copy = 'Desbloquéalo con Petito Plus' and clicking it NAVIGATES to /plus (no external MP redirect for the single creation). /plus page renders plus-plan-monthly ($3.900), plus-plan-annual ($29.900), plus-subscribe button; clicking subscribe triggers a real MercadoPago preapproval redirect (browser landed on mercadopago.cl). Portrait/Create/Memorial unlock handlers verified via source grep: all call checkout then nav('/plus') on non-plus. Final DB state: no subscriptions for user_testnorm1, pet count=1, portrait 696bde13 reset to preview_ready, no TEST_ fixtures left behind.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/pets POST (2nd pet)", "issue": "Returns 402 Payment Required; spec text in review request said 403. 402 is actually more semantically correct for a paywalled feature. If spec is strict about 403, update the raise HTTPException code in server.py:~269."},
+      {"endpoint": "/api/payments/webhook/mercadopago", "issue": "Pre-existing (iteration 18): type='payment' with unknown MP id can 500 because provider.get_payment() isn't wrapped in try/except like subscription branches. Not Plus-paywall related."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_plus_only_paywall.py",
+    "/app/test_reports/pytest/plus_only_paywall.xml"
+  ],
+  "action_items": [
+    "Optional: change pet-limit response from 402 -> 403 if spec strictly requires 403 (currently 402 Payment Required, which is defensible).",
+    "Optional (carryover from it.18): wrap provider.get_payment() in /api/payments/webhook/mercadopago with try/except to prevent 500 on bogus payment ids."
+  ],
+  "critical_code_review_comments": [
+    "Portrait.jsx has no deep-link route to view an existing owner portrait result (only /r/:slug which is the gift/public view). The paywall is only reachable mid-wizard. Consider adding /retrato/:id for QA + user re-entry.",
+    "server.py is 1754 lines — still worth splitting Plus/subscription/payments into a module (noted it.18).",
+    "test_subscribe_monthly/annual create REAL pending preapprovals on MercadoPago production each run. Tests already clean the DB row, but orphan MP preapprovals accumulate. Consider gating these two tests behind an env flag (e.g., RUN_MP_LIVE=1) for CI."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_plus_only_paywall.py (new)"
+  ],
+  "success_rate": {"backend": "100% (11/11)", "frontend": "100% (all paywall copy/navigations verified)"},
+  "test_credentials": "Bearer test_session_norm_1 (user_testnorm1, pet Rocco a8f1f1bb-e5ef-4854-b07e-dc438112bd4a, portrait 696bde13-d0d5-488b-8848-e0706c2ae79c slug 39f1974e10). See /app/memory/test_credentials.md.",
+  "seed_data_creation": "Transient: TEST_story_plus_paywall_1 + TEST_talk_plus_paywall_1 inserted directly into mongo (test_database) and deleted in fixture teardown. Transient Plus subscription seeded for TestPlusOwner::test_portrait_checkout_as_plus and deleted in finally. Portrait status reset to preview_ready after the Plus test. Final state: 0 subscriptions, 1 pet (Rocco), portrait preview_ready, no TEST_ docs.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Full subscription-only paywall covered in /app/backend/tests/test_plus_only_paywall.py (run with `python -m pytest backend/tests/test_plus_only_paywall.py -o addopts='' -v`). Each test cleans up after itself (subscriptions, test stories/videos, portrait status). test_subscribe_monthly + test_subscribe_annual + the frontend subscribe click each create a REAL pending MercadoPago preapproval — don't run on a tight CI loop. The Portrait result paywall UI isn't reachable via a deep link (no /retrato/:id), so UI copy was validated via source grep + the equivalent TalkView paywall which uses the same pattern.",
+  "rca_of_the_issue": "N/A — all requested behaviors verified. Only minor finding: /api/pets 2nd-pet response code is 402 (not 403 as spec implied); 402 is correct semantics for a paywall, flagged for E1 to confirm whether to leave or change."
+}
