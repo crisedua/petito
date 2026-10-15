@@ -47,7 +47,7 @@ EMERGENT_AUTH_URL = "https://demobackend.emergentagent.com/auth/v1/env/oauth/ses
 SESSION_DAYS = 7
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-logger = logging.getLogger("cuentapatas")
+logger = logging.getLogger("petito")
 
 app = FastAPI()
 api_router = APIRouter(prefix="/api")

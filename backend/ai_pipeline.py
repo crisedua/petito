@@ -63,7 +63,7 @@ def _extract_json(text: str):
 async def _run_claude(system_message: str, user_message: UserMessage):
     chat = LlmChat(
         api_key=EMERGENT_LLM_KEY,
-        session_id=f"cuentapatas-{int(time.time()*1000)}",
+        session_id=f"petito-{int(time.time()*1000)}",
         system_message=system_message,
     ).with_model("anthropic", CLAUDE_MODEL)
     text = ""
