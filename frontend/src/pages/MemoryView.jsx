@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2, Pencil, Trash2, Sparkles, Calendar, Check, X } from "lucide-react";
-import { getMemory, updateMemory, deleteMemory, reflectMemory, hideMemoryReflection, getEmotions, mediaUrl } from "@/lib/api";
+import { ArrowLeft, Loader2, Pencil, Trash2, Sparkles, Calendar, Check, X, Share2 } from "lucide-react";
+import { getMemory, updateMemory, deleteMemory, reflectMemory, hideMemoryReflection, toggleMemoryShare, getEmotions, mediaUrl } from "@/lib/api";
 
 export default function MemoryView() {
   const { id } = useParams();
@@ -64,6 +64,11 @@ export default function MemoryView() {
     catch { toast.error("No se pudo ocultar"); }
   };
 
+  const toggleShare = async () => {
+    try { const r = await toggleMemoryShare(id); setM((x) => ({ ...x, shared: r.shared })); toast.success(r.shared ? "Compartido en el álbum público 🔗" : "Quitado del álbum público"); }
+    catch { toast.error("No se pudo cambiar"); }
+  };
+
   const toggleE = (k) => setEEmotions((e) => (e.includes(k) ? e.filter((x) => x !== k) : [...e, k]));
 
   if (!m) {
@@ -79,6 +84,10 @@ export default function MemoryView() {
         </button>
         {!editing && (
           <div className="flex items-center gap-2">
+            <button onClick={toggleShare} data-testid="memory-share-toggle"
+              className="w-9 h-9 rounded-full border grid place-items-center" style={m.shared ? { background: "#C2683F", borderColor: "#C2683F" } : { background: "#fff", borderColor: "#EADFCF" }}>
+              <Share2 className="w-4 h-4" style={{ color: m.shared ? "#fff" : "#8A6D4B" }} />
+            </button>
             <button onClick={startEdit} data-testid="memory-edit-button"
               className="w-9 h-9 rounded-full bg-white border grid place-items-center" style={{ borderColor: "#EADFCF" }}>
               <Pencil className="w-4 h-4" style={{ color: "#8A6D4B" }} />

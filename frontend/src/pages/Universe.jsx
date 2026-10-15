@@ -1,9 +1,40 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
-import { Loader2, Mic, Film, Crown, Plus, ChevronDown, Heart, CalendarHeart, Images, ArrowRight, BookHeart } from "lucide-react";
+import { Loader2, Mic, Film, Crown, Plus, ChevronDown, Heart, CalendarHeart, Images, ArrowRight, BookHeart, Settings, Cake } from "lucide-react";
 import { ProfileMenu } from "@/components/ProfileMenu";
 import { mediaUrl, getPets, petCreations, getActivePetId, setActivePetId } from "@/lib/api";
+
+const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+
+function nextOccurrence(raw) {
+  // raw "YYYY-MM-DD" or "MM-DD" -> next occurrence from today (local)
+  const parts = raw.split("-").map(Number);
+  const [mo, da] = parts.length === 3 ? [parts[1], parts[2]] : [parts[0], parts[1]];
+  if (!mo || !da) return null;
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  let next = new Date(now.getFullYear(), mo - 1, da);
+  if (next < today) next = new Date(now.getFullYear() + 1, mo - 1, da);
+  const days = Math.round((next - today) / 86400000);
+  return { mo, da, days };
+}
+
+function buildSpecialDates(pet, name) {
+  const defs = [
+    { key: "birthday", raw: pet.birthday, label: `Cumpleaños de ${name}`, icon: <Cake className="w-5 h-5" /> },
+    { key: "adoption", raw: pet.adoption_date, label: "Aniversario de adopción", icon: <Heart className="w-5 h-5" /> },
+  ];
+  const out = [];
+  for (const d of defs) {
+    if (!d.raw) continue;
+    const n = nextOccurrence(d.raw);
+    if (!n) continue;
+    const badge = n.days === 0 ? "¡Hoy! 🎉" : n.days === 1 ? "Mañana" : `en ${n.days} días`;
+    out.push({ ...d, when: `${n.da} de ${MESES[n.mo - 1]}`, badge, days: n.days });
+  }
+  return out.sort((a, b) => a.days - b.days);
+}
 
 const KIND_BADGE = {
   historia: { label: "Historia", color: "#B85C3C" },
@@ -62,6 +93,8 @@ export default function Universe() {
 
   const fade = (d = 0) => reduce ? {} : { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.5, delay: d } };
 
+  const specialDates = buildSpecialDates(active, name);
+
   return (
     <div className="mobile-frame" style={{ background: "#FBF6EE" }} data-testid="universe-screen">
       <div className="flex items-center justify-between px-5 pt-5">
@@ -96,7 +129,14 @@ export default function Universe() {
         <ProfileMenu />
       </div>
 
-      <div className="flex-1 px-6 pt-5 pb-10 overflow-y-auto no-scrollbar">
+      <div className="flex items-center justify-end px-6 pt-3">
+        <button onClick={() => nav("/perfil")} data-testid="universe-profile-link"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border text-xs font-display font-semibold" style={{ borderColor: "#EADFCF", color: "#8A6D4B" }}>
+          <Settings className="w-3.5 h-3.5" /> Editar perfil
+        </button>
+      </div>
+
+      <div className="flex-1 px-6 pt-3 pb-10 overflow-y-auto no-scrollbar">
         <motion.div {...fade(0)} className="relative rounded-[2rem] overflow-hidden border-4 border-white shadow-xl"
           style={{ aspectRatio: "4 / 3", maxHeight: 280 }}>
           {active.photo_url && <img src={mediaUrl(active.photo_url)} alt={name} className="absolute inset-0 w-full h-full object-cover" />}
@@ -157,14 +197,31 @@ export default function Universe() {
           </div>
         )}
 
-        {/* Upcoming dates placeholder */}
-        <div className="mt-8 p-4 rounded-2xl border flex items-center gap-3" style={{ background: "#F6EFE2", borderColor: "#EEE3D2" }} data-testid="universe-dates">
-          <div className="w-11 h-11 rounded-xl grid place-items-center shrink-0" style={{ background: "#fff", color: "#B85C3C" }}><CalendarHeart className="w-5 h-5" /></div>
-          <div>
-            <div className="font-display font-bold text-sm" style={{ color: "#3A2A20" }}>Fechas especiales</div>
-            <div className="text-xs mt-0.5" style={{ color: "#8A7868" }}>Pronto podrás celebrar cumpleaños y aniversarios de {name}.</div>
+        {/* Upcoming special dates (computed in the owner's local day) */}
+        <h2 className="mt-8 font-display font-bold text-lg" style={{ color: "#3A2A20" }}>Fechas especiales</h2>
+        {specialDates.length > 0 ? (
+          <div className="mt-3 space-y-2.5" data-testid="universe-dates">
+            {specialDates.map((d) => (
+              <div key={d.key} className="p-4 rounded-2xl border flex items-center gap-3" style={{ background: "#F6EFE2", borderColor: "#EEE3D2" }} data-testid={`universe-date-${d.key}`}>
+                <div className="w-11 h-11 rounded-xl grid place-items-center shrink-0" style={{ background: "#fff", color: "#B85C3C" }}>{d.icon}</div>
+                <div className="flex-1">
+                  <div className="font-display font-bold text-sm" style={{ color: "#3A2A20" }}>{d.label}</div>
+                  <div className="text-xs mt-0.5" style={{ color: "#8A7868" }}>{d.when}</div>
+                </div>
+                <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: "#FBEEE4", color: "#B85C3C" }}>{d.badge}</span>
+              </div>
+            ))}
           </div>
-        </div>
+        ) : (
+          <button onClick={() => nav("/perfil")} data-testid="universe-dates-empty"
+            className="mt-3 w-full p-4 rounded-2xl border flex items-center gap-3 text-left" style={{ background: "#F6EFE2", borderColor: "#EEE3D2" }}>
+            <div className="w-11 h-11 rounded-xl grid place-items-center shrink-0" style={{ background: "#fff", color: "#B85C3C" }}><CalendarHeart className="w-5 h-5" /></div>
+            <div>
+              <div className="font-display font-bold text-sm" style={{ color: "#3A2A20" }}>Agrega sus fechas</div>
+              <div className="text-xs mt-0.5" style={{ color: "#8A7868" }}>Añade el cumpleaños y la adopción de {name} para celebrarlos.</div>
+            </div>
+          </button>
+        )}
 
         {/* Memorial — calm, optional */}
         <button onClick={() => nav("/recuerdo")} data-testid="universe-memorial-link"

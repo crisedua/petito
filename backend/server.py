@@ -18,7 +18,7 @@ import renderer
 import ai_pipeline
 import narration
 import payments
-from models import Story, Slide, StoryCreate, SurveyResponse, SurveySubmit, Portrait, PortraitCreate, TalkingVideo, TalkCreate, Pet, PetCreate, Memory, MemoryCreate, MemoryUpdate, THEMES, SPECIES, PORTRAIT_STYLES, MEMORIAL_STYLES, PERSONALITY_OPTIONS, PERSONALITY_LABELS, EMOTIONS, EMOTION_LABELS, TALK_SCENARIOS, TALK_MESSAGE_MAX, now_utc, iso_now, new_id
+from models import Story, Slide, StoryCreate, SurveyResponse, SurveySubmit, Portrait, PortraitCreate, TalkingVideo, TalkCreate, Pet, PetCreate, PetUpdate, Memory, MemoryCreate, MemoryUpdate, THEMES, SPECIES, PORTRAIT_STYLES, MEMORIAL_STYLES, PERSONALITY_OPTIONS, PERSONALITY_LABELS, EMOTIONS, EMOTION_LABELS, TALK_SCENARIOS, TALK_MESSAGE_MAX, now_utc, iso_now, new_id
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / ".env")
@@ -228,6 +228,10 @@ def pet_public(p: Pet):
         "favorite_memory": p.favorite_memory,
         "photo_url": f"/api/media/{p.id}/{p.photo_file}" if p.photo_file else None,
         "intro_text": p.intro_text,
+        "birthday": p.birthday,
+        "adoption_date": p.adoption_date,
+        "public_enabled": p.public_enabled,
+        "share_slug": p.share_slug,
         "created_at": p.created_at,
     }
 
@@ -320,6 +324,67 @@ async def read_pet(pet_id: str, user=Depends(require_user)):
     return pet_public(pet)
 
 
+@api_router.put("/pets/{pet_id}")
+async def update_pet(pet_id: str, payload: PetUpdate, user=Depends(require_user)):
+    pet = await get_pet(pet_id, user["user_id"])
+    if not pet:
+        raise HTTPException(404, "Mascota no encontrada")
+    upd = {}
+    if payload.name is not None:
+        n = payload.name.strip()[:40]
+        if not n:
+            raise HTTPException(400, "El nombre no puede quedar vacío")
+        upd["name"] = n
+    if payload.species is not None:
+        upd["species"] = payload.species if payload.species in SPECIES else pet.species
+    if payload.personality is not None:
+        upd["personality"] = [k for k in payload.personality if k in PERSONALITY_LABELS][:5]
+    if payload.personality_text is not None:
+        upd["personality_text"] = payload.personality_text.strip()[:200] or None
+    if payload.birthday is not None:
+        upd["birthday"] = payload.birthday.strip()[:10] or None
+    if payload.adoption_date is not None:
+        upd["adoption_date"] = payload.adoption_date.strip()[:10] or None
+    if payload.public_enabled is not None:
+        upd["public_enabled"] = bool(payload.public_enabled)
+    await db.pets.update_one({"id": pet.id}, {"$set": upd})
+    return pet_public(await get_pet(pet.id, user["user_id"]))
+
+
+@api_router.delete("/pets/{pet_id}")
+async def delete_pet(pet_id: str, user=Depends(require_user)):
+    pet = await get_pet(pet_id, user["user_id"])
+    if not pet:
+        raise HTTPException(404, "Mascota no encontrada")
+    await db.pets.delete_one({"id": pet.id})
+    await db.memories.delete_many({"pet_id": pet.id, "user_id": user["user_id"]})
+    return {"ok": True}
+
+
+# ---------------- public pet album ("/u/:slug") ----------------
+@api_router.get("/u/{slug}")
+async def public_pet_album(slug: str):
+    pet_doc = await db.pets.find_one({"share_slug": slug, "public_enabled": True}, {"_id": 0})
+    if not pet_doc:
+        raise HTTPException(404, "Álbum no encontrado o privado")
+    pet = Pet(**pet_doc)
+    mems = await db.memories.find({"pet_id": pet.id, "shared": True}, {"_id": 0}).sort("created_at", -1).to_list(200)
+    return {
+        "name": pet.name, "species": pet.species, "intro_text": pet.intro_text,
+        "photo_url": f"/api/media/{pet.id}/{pet.photo_file}" if pet.photo_file else None,
+        "memories": [{
+            "title": m["title"],
+            "happened_on": None if m.get("date_unknown") else m.get("happened_on"),
+            "date_unknown": m.get("date_unknown", False),
+            "feeling_text": m.get("feeling_text"),
+            "emotion_labels": [{"key": k, "label": EMOTION_LABELS.get(k, k),
+                                "emoji": next((e["emoji"] for e in EMOTIONS if e["key"] == k), "")}
+                               for k in m.get("emotions", [])],
+            "photo_url": f"/api/media/{m['id']}/{m['photo_file']}" if m.get("photo_file") else None,
+        } for m in mems],
+    }
+
+
 @api_router.get("/pets/{pet_id}/creations")
 async def pet_creations(pet_id: str, user=Depends(require_user)):
     pet = await get_pet(pet_id, user["user_id"])
@@ -381,6 +446,7 @@ def memory_public(m: Memory):
                            for k in m.emotions],
         "photo_url": f"/api/media/{m.id}/{m.photo_file}" if m.photo_file else None,
         "ai_reflection": m.ai_reflection,
+        "shared": m.shared,
         "created_at": m.created_at,
         "updated_at": m.updated_at,
     }
@@ -466,6 +532,35 @@ async def hide_memory_reflection(memory_id: str, user=Depends(require_user)):
         raise HTTPException(404, "Recuerdo no encontrado")
     await db.memories.update_one({"id": m.id}, {"$set": {"ai_reflection": None}})
     return {"ok": True}
+
+
+@api_router.post("/memories/{memory_id}/share")
+async def toggle_memory_share(memory_id: str, user=Depends(require_user)):
+    m = await get_memory(memory_id, user["user_id"])
+    if not m:
+        raise HTTPException(404, "Recuerdo no encontrado")
+    new_val = not m.shared
+    await db.memories.update_one({"id": m.id}, {"$set": {"shared": new_val}})
+    return {"shared": new_val}
+
+
+VOICE_SAMPLE_TEXT = "¡Hola! Soy tu regalón. ¿Jugamos un ratito?"
+
+
+@api_router.get("/voice-sample/{voice_id}")
+async def voice_sample(voice_id: str):
+    vid = narration.valid_voice(voice_id)
+    name = f"{vid}.mp3"
+    if not await asyncio.to_thread(storage.exists, "voicesamples", name):
+        if not narration.NARRATION_ENABLED:
+            raise HTTPException(503, "Voces no disponibles")
+        try:
+            audio = await asyncio.to_thread(narration.generate_narration, VOICE_SAMPLE_TEXT, vid, 1.0)
+            await asyncio.to_thread(storage.save_bytes, "voicesamples", name, audio, "audio/mpeg")
+        except Exception:
+            logger.exception("voice sample failed")
+            raise HTTPException(502, "No se pudo generar la muestra")
+    return {"url": f"/api/media/voicesamples/{name}"}
 
 
 @api_router.get("/pets/{pet_id}/memories")

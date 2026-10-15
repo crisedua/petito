@@ -3,13 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import {
-  PawPrint, ArrowRight, ArrowLeft, X, Check, ImagePlus, Loader2, Mic, Volume2, Sparkles,
+  PawPrint, ArrowRight, ArrowLeft, X, Check, ImagePlus, Loader2, Mic, Volume2, Sparkles, Play,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  getConfig, createTalk, uploadTalkPhoto, generateTalk, getTalk,
+  getConfig, createTalk, uploadTalkPhoto, generateTalk, getTalk, voiceSample,
 } from "@/lib/api";
+import { mediaUrl } from "@/lib/api";
 import { InviteButton } from "@/components/InviteButton";
 
 const QUOTES = [
@@ -186,6 +187,29 @@ function StepMessage({ cfg, scenario, setScenario, message, setMessage, onBack, 
   );
 }
 
+function VoicePreview({ voiceId }) {
+  const [loading, setLoading] = useState(false);
+  const play = async (e) => {
+    e.stopPropagation();
+    setLoading(true);
+    try {
+      const { url } = await voiceSample(voiceId);
+      const audio = new Audio(mediaUrl(url));
+      audio.play().catch(() => {});
+    } catch {
+      toast.error("No se pudo reproducir la muestra");
+    } finally {
+      setLoading(false);
+    }
+  };
+  return (
+    <button onClick={play} data-testid={`talk-voice-play-${voiceId}`}
+      className="w-9 h-9 rounded-full bg-white border border-border grid place-items-center shrink-0 active:scale-95 transition-transform">
+      {loading ? <Loader2 className="w-4 h-4 animate-spin text-primary" /> : <Play className="w-4 h-4 text-primary" fill="currentColor" />}
+    </button>
+  );
+}
+
 function StepVoice({ cfg, voiceId, setVoiceId, onBack, onNext, busy }) {
   return (
     <Screen>
@@ -195,12 +219,13 @@ function StepVoice({ cfg, voiceId, setVoiceId, onBack, onNext, busy }) {
         <p className="text-sm text-muted-foreground mt-1">Elige el tono que más le pega a tu regalón.</p>
         <div className="mt-5 space-y-3">
           {(cfg.voices || []).map((v) => (
-            <button key={v.id} onClick={() => setVoiceId(v.id)} data-testid={`talk-voice-${v.id}`}
-              className={`w-full flex items-center gap-3 p-4 rounded-2xl border-2 text-left transition-all ${voiceId === v.id ? "border-primary bg-primary/10 ring-2 ring-primary/20" : "border-border bg-white"}`}>
+            <div key={v.id} onClick={() => setVoiceId(v.id)} data-testid={`talk-voice-${v.id}`}
+              className={`w-full flex items-center gap-3 p-4 rounded-2xl border-2 text-left transition-all cursor-pointer ${voiceId === v.id ? "border-primary bg-primary/10 ring-2 ring-primary/20" : "border-border bg-white"}`}>
               <div className={`w-10 h-10 rounded-full grid place-items-center ${voiceId === v.id ? "bg-primary text-white" : "bg-primary/10 text-primary"}`}><Volume2 className="w-5 h-5" /></div>
               <span className="flex-1 font-display font-semibold text-neutral-900">{v.label}</span>
+              <VoicePreview voiceId={v.id} />
               {voiceId === v.id && <Check className="w-5 h-5 text-primary" />}
-            </button>
+            </div>
           ))}
         </div>
       </div>

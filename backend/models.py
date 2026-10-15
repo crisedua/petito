@@ -170,7 +170,20 @@ class Pet(BaseModel):
     favorite_memory: Optional[str] = None
     photo_file: Optional[str] = None
     intro_text: Optional[str] = None
+    birthday: Optional[str] = None          # "YYYY-MM-DD" or "MM-DD"
+    adoption_date: Optional[str] = None     # "YYYY-MM-DD" or "MM-DD"
+    public_enabled: bool = False
     created_at: str = Field(default_factory=iso_now)
+
+
+class PetUpdate(BaseModel):
+    name: Optional[str] = None
+    species: Optional[str] = None
+    personality: Optional[List[str]] = None
+    personality_text: Optional[str] = None
+    birthday: Optional[str] = None
+    adoption_date: Optional[str] = None
+    public_enabled: Optional[bool] = None
 
 
 # ---------------- Memories ("Nuestra historia") ----------------
@@ -216,6 +229,7 @@ class Memory(BaseModel):
     emotions: List[str] = []
     photo_file: Optional[str] = None
     ai_reflection: Optional[str] = None       # Petito's gentle thought (IA), always labeled
+    shared: bool = False                      # included in the pet's public album when true
     created_at: str = Field(default_factory=iso_now)
     updated_at: Optional[str] = None
 
