@@ -155,7 +155,12 @@ export default function Universe() {
       <div className="flex-1 px-6 pt-3 pb-10 overflow-y-auto no-scrollbar">
         <motion.div {...fade(0)} className="relative rounded-[2rem] overflow-hidden border-4 border-white shadow-xl"
           style={{ aspectRatio: "4 / 3", maxHeight: 280 }}>
-          {active.photo_url && <img src={mediaUrl(active.photo_url)} alt={name} className="absolute inset-0 w-full h-full object-cover" />}
+          {active.photo_url && (
+            <>
+              <img src={mediaUrl(active.photo_url)} alt="" aria-hidden className="absolute inset-0 w-full h-full object-cover scale-110" style={{ filter: "blur(16px)", opacity: 0.6 }} />
+              <img src={mediaUrl(active.photo_url)} alt={name} className="absolute inset-0 w-full h-full object-contain" />
+            </>
+          )}
           <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(58,32,20,0.75), transparent 60%)" }} />
           <div className="absolute bottom-0 left-0 right-0 p-5">
             <div className="font-script text-4xl text-white">{name}</div>
