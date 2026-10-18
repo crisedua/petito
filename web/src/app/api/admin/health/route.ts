@@ -44,6 +44,9 @@ export const GET = handler(async (req: Request) => {
     TALK_VOICE_MODEL: env.talkVoiceModel,
     fast_text_model: llmModel(true),
     FAL_KEY: set(env.falKey),
+    fal_webhook: process.env.VERCEL_PROJECT_PRODUCTION_URL && process.env.VERCEL_AUTOMATION_BYPASS_SECRET
+      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL} (with protection bypass)`
+      : env.publicBaseUrl || process.env.VERCEL_PROJECT_PRODUCTION_URL || "none — jobs check fal every 15 s",
     INNGEST_EVENT_KEY: set(process.env.INNGEST_EVENT_KEY),
     INNGEST_SIGNING_KEY: set(process.env.INNGEST_SIGNING_KEY),
     PAYMENT_MODE: env.paymentMode,

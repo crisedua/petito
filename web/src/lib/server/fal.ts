@@ -16,12 +16,15 @@ let client: ReturnType<typeof createFalClient> | null = null;
 const fal = () => (client ??= createFalClient({ credentials: env.falKey }));
 
 /**
- * Where fal reports completion. Vercel's own production hostname is used first, because PUBLIC_BASE_URL
- * may still point at another site (e.g. before the domain moves) and a lost webhook costs up to 15 s.
+ * Where fal reports completion (a lost webhook costs up to 15 s per video). Vercel's own production
+ * hostname is preferred, with the "Protection Bypass for Automation" secret appended when deployment
+ * protection is on, since fal can't log in to Vercel. Otherwise PUBLIC_BASE_URL is used.
  */
 const webhookUrl = () => {
   const vercel = process.env.VERCEL_PROJECT_PRODUCTION_URL;
-  const base = vercel ? `https://${vercel}` : env.publicBaseUrl;
+  const bypass = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
+  if (vercel && bypass) return `https://${vercel}/api/webhooks/fal?x-vercel-protection-bypass=${encodeURIComponent(bypass)}`;
+  const base = env.publicBaseUrl || (vercel ? `https://${vercel}` : "");
   return base ? `${base.replace(/\/$/, "")}/api/webhooks/fal` : undefined;
 };
 
