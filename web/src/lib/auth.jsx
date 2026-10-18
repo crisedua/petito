@@ -1,5 +1,6 @@
 "use client";
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { toast } from "sonner";
 import { getMe, logoutApi } from "@/lib/api";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 
@@ -13,14 +14,26 @@ export function AuthProvider({ children }) {
     try {
       const u = await getMe();
       setUser(u);
-    } catch {
+    } catch (e) {
       setUser(null);
+      // 401 just means "not signed in"; anything else is a real problem worth showing.
+      if (e?.response?.status && e.response.status !== 401) toast.error(e.response.data?.detail || "No pudimos cargar tu cuenta");
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => { checkAuth(); }, [checkAuth]);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const authError = params.get("auth_error");
+    if (authError) {
+      toast.error(`No pudimos iniciar sesión: ${authError}`, { duration: 12000 });
+      params.delete("auth_error");
+      const q = params.toString();
+      window.history.replaceState(null, "", window.location.pathname + (q ? `?${q}` : ""));
+    }
+    checkAuth();
+  }, [checkAuth]);
 
   const logout = useCallback(async () => {
     try { await logoutApi(); } catch { /* ignore */ }
