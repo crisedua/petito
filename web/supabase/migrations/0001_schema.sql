@@ -1,0 +1,214 @@
+-- Petito schema. Ids are app-generated text (uuid strings, "user_" ids, 10-hex slugs) so rows
+-- migrated from the legacy MongoDB keep their ids and every existing share link keeps working.
+
+create table if not exists app_users (
+  user_id       text primary key,
+  auth_user_id  uuid unique references auth.users(id) on delete set null,
+  email         text not null unique,
+  name          text,
+  picture       text,
+  created_at    timestamptz not null default now()
+);
+
+create table if not exists subscriptions (
+  mp_id              text primary key,
+  user_id            text not null references app_users(user_id) on delete cascade,
+  plan               text not null check (plan in ('monthly','annual')),
+  external_reference text,
+  payer_email        text,
+  status             text,
+  membership_active  boolean not null default false,
+  plus_until         timestamptz,
+  next_payment_date  text,
+  courtesy           boolean not null default false,
+  created_at         timestamptz not null default now()
+);
+
+create table if not exists pets (
+  id               text primary key,
+  share_slug       text not null unique,
+  user_id          text not null references app_users(user_id) on delete cascade,
+  name             text not null,
+  species          text not null default 'perro',
+  personality      text[] not null default '{}',
+  personality_text text,
+  favorite_memory  text,
+  photo_file       text,
+  intro_text       text,
+  birthday         text,
+  adoption_date    text,
+  public_enabled   boolean not null default false,
+  created_at       timestamptz not null default now()
+);
+
+create table if not exists memories (
+  id            text primary key,
+  pet_id        text not null references pets(id) on delete cascade,
+  user_id       text not null references app_users(user_id) on delete cascade,
+  title         text not null default '',
+  happened_on   text,
+  date_unknown  boolean not null default false,
+  feeling_text  text,
+  emotions      text[] not null default '{}',
+  photo_file    text,
+  ai_reflection text,
+  shared        boolean not null default false,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now()
+);
+
+create table if not exists stories (
+  id                text primary key,
+  share_slug        text not null unique,
+  device_id         text,
+  user_id           text references app_users(user_id) on delete set null,
+  pet_id            text references pets(id) on delete set null,
+  pet_name          text not null,
+  species           text not null default 'otro',
+  traits            text[] not null default '{}',
+  theme             text not null,
+  status            text not null default 'draft',
+  progress_step     text not null default '',
+  progress_pct      integer not null default 0,
+  bonus_pending     boolean not null default false,
+  narration_pending boolean not null default false,
+  voice_id          text,
+  title             text,
+  price_clp         integer not null default 3990,
+  paid_at           timestamptz,
+  email             text,
+  bonus_enabled     boolean not null default true,
+  ai_cost_usd       numeric(10,6) not null default 0,
+  error             text,
+  photo_count       integer not null default 0,
+  generated_at      timestamptz,
+  created_at        timestamptz not null default now(),
+  expires_at        timestamptz
+);
+
+create table if not exists story_photos (
+  id         text primary key,
+  story_id   text not null references stories(id) on delete cascade,
+  idx        integer not null,
+  file       text not null,
+  created_at timestamptz not null default now(),
+  unique (story_id, idx)
+);
+
+create table if not exists slides (
+  id          text primary key,
+  story_id    text not null references stories(id) on delete cascade,
+  ord         integer not null,
+  caption     text not null default '',
+  kind        text not null default 'photo',
+  image_file  text not null default '',
+  audio_file  text not null default '',
+  locked_file text not null default '',
+  locked      boolean not null default false,
+  created_at  timestamptz not null default now(),
+  unique (story_id, ord)
+);
+
+create table if not exists portraits (
+  id               text primary key,
+  share_slug       text not null unique,
+  device_id        text,
+  user_id          text references app_users(user_id) on delete set null,
+  pet_id           text references pets(id) on delete set null,
+  pet_name         text,
+  style            text not null,
+  category         text not null default 'royal',
+  status           text not null default 'draft',
+  progress_step    text not null default '',
+  progress_pct     integer not null default 0,
+  preview_file     text not null default '',
+  clean_file       text not null default '',
+  price_clp        integer not null default 2990,
+  paid_at          timestamptz,
+  gift_enabled     boolean not null default false,
+  gift_to          text,
+  gift_from        text,
+  gift_message     text,
+  memorial_dates   text,
+  memorial_caption text,
+  ai_cost_usd      numeric(10,6) not null default 0,
+  error            text,
+  created_at       timestamptz not null default now(),
+  expires_at       timestamptz
+);
+
+create table if not exists portrait_photos (
+  id          text primary key,
+  portrait_id text not null references portraits(id) on delete cascade,
+  file        text not null,
+  created_at  timestamptz not null default now()
+);
+
+create table if not exists videos (
+  id            text primary key,
+  share_slug    text not null unique,
+  device_id     text,
+  user_id       text references app_users(user_id) on delete set null,
+  pet_id        text references pets(id) on delete set null,
+  pet_name      text,
+  species       text,
+  mode          text not null default 'full',
+  status        text not null default 'draft',
+  scenario      text,
+  message       text,
+  progress_step text not null default '',
+  progress_pct  integer not null default 0,
+  line          text,
+  voice_id      text,
+  media_base    text,
+  preview_file  text not null default '',
+  clean_file    text not null default '',
+  price_clp     integer not null default 2990,
+  paid_at       timestamptz,
+  ai_cost_usd   numeric(10,6) not null default 0,
+  error         text,
+  created_at    timestamptz not null default now(),
+  expires_at    timestamptz
+);
+
+create table if not exists talk_photos (
+  id         text primary key,
+  video_id   text not null references videos(id) on delete cascade,
+  file       text not null,
+  created_at timestamptz not null default now()
+);
+
+-- owner_id may be a story, portrait, video, pet or memory id (no FK on purpose).
+create table if not exists generation_logs (
+  id            text primary key,
+  owner_id      text not null,
+  step          text not null,
+  model         text not null,
+  input_tokens  integer not null default 0,
+  output_tokens integer not null default 0,
+  images        integer not null default 0,
+  cost_usd      numeric(10,6) not null default 0,
+  duration_ms   integer not null default 0,
+  created_at    timestamptz not null default now()
+);
+
+create table if not exists survey_responses (
+  id         text primary key,
+  device_id  text not null default '',
+  story_id   text not null default '',
+  answer     text not null check (answer in ('yes','no')),
+  price_clp  integer not null default 9900,
+  created_at timestamptz not null default now()
+);
+
+-- All access goes through the app's server code with the service-role key; nothing is exposed to
+-- anon/authenticated roles directly. RLS on with no policies = deny-all for those roles.
+do $$
+declare t text;
+begin
+  foreach t in array array['app_users','subscriptions','pets','memories','stories','story_photos','slides',
+                           'portraits','portrait_photos','videos','talk_photos','generation_logs','survey_responses']
+  loop
+    execute format('alter table %I enable row level security', t);
+  end loop;
+end $$;
