@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/lib/auth";
 import { SwRegister } from "@/components/app/SwRegister";
+import { WhatsAppButton } from "@/components/app/WhatsAppButton";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -34,6 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Toaster position="top-center" richColors />
           <AuthProvider>{children}</AuthProvider>
           <SwRegister />
+          <WhatsAppButton />
         </div>
       </body>
     </html>
