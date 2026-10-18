@@ -56,3 +56,15 @@ export function validSignature(xSignature: string | null, xRequestId: string | n
   const expected = createHmac("sha256", env.mpWebhookSecret).update(manifest).digest("hex");
   return expected.length === v1.length && timingSafeEqual(Buffer.from(expected), Buffer.from(v1));
 }
+
+let sellerEmail: string | null | undefined;
+/** Email of the Mercado Pago account that owns the access token (cached). */
+export async function getSellerEmail(): Promise<string | null> {
+  if (sellerEmail !== undefined) return sellerEmail;
+  try {
+    sellerEmail = String((await mp<any>("GET", "/users/me")).email || "").toLowerCase() || null;
+  } catch {
+    return null;
+  }
+  return sellerEmail;
+}

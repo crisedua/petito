@@ -1,7 +1,7 @@
 import { fail, handler, json, originFrom, readJson } from "@/lib/server/http";
 import { requireUser } from "@/lib/server/auth";
 import { PLUS_PLANS, isPlus, type PlanKey } from "@/lib/server/plus";
-import { createPreapproval, mpEnabled, MpHttpError } from "@/lib/server/mercadopago";
+import { createPreapproval, getSellerEmail, mpEnabled, MpHttpError } from "@/lib/server/mercadopago";
 import { db } from "@/lib/server/db";
 import { isoNow, newId } from "@/lib/server/ids";
 import { env } from "@/lib/server/env";
@@ -16,6 +16,10 @@ export const POST = handler(async (req: Request) => {
   // Mercado Pago requires the payer email to match the account that pays; the user confirms it.
   const payerEmail = (body.email || user.email || "").trim();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payerEmail)) throw fail(400, "Ingresa un correo válido de tu cuenta de Mercado Pago");
+  // Mercado Pago never lets the seller account pay itself: its Confirm button just stays disabled.
+  if (payerEmail.toLowerCase() === (await getSellerEmail())) {
+    throw fail(400, "Ese correo es la cuenta de Mercado Pago que recibe los pagos de Petito, y no puede pagarse a sí misma. Usa el correo de otra cuenta de Mercado Pago.");
+  }
   const p = PLUS_PLANS[plan];
   const ref = `${user.user_id}:${plan}:${newId()}`;
   const backUrl = `${(originFrom(req) || env.publicBaseUrl).replace(/\/$/, "")}/plus?pago=success`;
