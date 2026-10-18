@@ -8,7 +8,16 @@ export type VideoRow = Record<string, any> & { id: string; share_slug: string; s
 export async function getVideo(id: string): Promise<VideoRow> {
   const { data } = await db().from("videos").select("*").eq("id", id).maybeSingle();
   if (!data) throw fail(404, "Video no encontrado");
-  return data as VideoRow;
+  return expireStale(data as VideoRow);
+}
+
+/** A job still "generating" after 20 minutes is dead (lost or crashed run): fail it so screens stop spinning. */
+const STALE_MS = 20 * 60_000;
+async function expireStale(v: VideoRow): Promise<VideoRow> {
+  if (v.status !== "generating" || Date.now() - new Date(v.created_at as any).getTime() < STALE_MS) return v;
+  const patch = { status: "failed", progress_step: "Algo salió mal", progress_pct: 0, error: v.error || "Se demoró demasiado. Inténtalo de nuevo." };
+  await db().from("videos").update(patch).eq("id", v.id).eq("status", "generating");
+  return { ...v, ...patch } as VideoRow;
 }
 
 export async function getVideoBySlug(slug: string): Promise<VideoRow> {
