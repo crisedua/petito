@@ -1,10 +1,11 @@
+import { validVoice } from "@/lib/server/elevenlabs";
 import { deviceId, handler, json, originFrom, readJson } from "@/lib/server/http";
 import { requireUser } from "@/lib/server/auth";
 import { db } from "@/lib/server/db";
 import { validatePetId } from "@/lib/server/domain";
 import { isoNow, newId, newSlug } from "@/lib/server/ids";
 import { env } from "@/lib/server/env";
-import { TALK_MESSAGE_MAX, TALK_SCENARIOS, validVoice } from "@/lib/catalogs";
+import { TALK_MESSAGE_MAX, TALK_SCENARIOS } from "@/lib/catalogs";
 
 export const POST = handler(async (req: Request) => {
   const user = await requireUser(req);

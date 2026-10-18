@@ -6,12 +6,12 @@ import * as storage from "@/lib/server/storage";
 import { imageToB64, imageToDataUri, loadImage } from "@/lib/server/images";
 import { bonusScenePrompt, selectPhotos, writeCaptions } from "@/lib/server/prompts";
 import { llmCost, llmModel } from "@/lib/server/llm";
-import { generateNarration } from "@/lib/server/elevenlabs";
+import { generateNarration, validVoice } from "@/lib/server/elevenlabs";
 import { addSlide } from "@/lib/server/stories";
 import { decode, toJpeg } from "@/lib/render/core";
 import { closingSlide, photoSlide, titleSlide } from "@/lib/render/slides";
 import { env } from "@/lib/server/env";
-import { BONUS_ORDER_BASE, BRAND_NAME, BRAND_URL, CLOSING_ORDER, SPECIES, THEMES, validVoice } from "@/lib/catalogs";
+import { BONUS_ORDER_BASE, BRAND_NAME, BRAND_URL, CLOSING_ORDER, SPECIES, THEMES } from "@/lib/catalogs";
 
 const loadStory = async (id: string) => (await db().from("stories").select("*").eq("id", id).single()).data!;
 

@@ -1,9 +1,9 @@
 import { fail, handler, json } from "@/lib/server/http";
 import { env } from "@/lib/server/env";
 import * as storage from "@/lib/server/storage";
-import { generateNarration } from "@/lib/server/elevenlabs";
+import { generateNarration, validVoice, voices } from "@/lib/server/elevenlabs";
 import type { Ctx } from "@/lib/server/route";
-import { VOICE_SAMPLE_TEXT, validVoice } from "@/lib/catalogs";
+import { VOICE_SAMPLE_TEXT } from "@/lib/catalogs";
 
 export const maxDuration = 60;
 

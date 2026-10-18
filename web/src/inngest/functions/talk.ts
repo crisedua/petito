@@ -7,11 +7,11 @@ import * as storage from "@/lib/server/storage";
 import { imageToB64, loadImage } from "@/lib/server/images";
 import { writePetLine } from "@/lib/server/prompts";
 import { llmCost, llmModel } from "@/lib/server/llm";
-import { generateNarration } from "@/lib/server/elevenlabs";
+import { generateNarration, validVoice } from "@/lib/server/elevenlabs";
 import { talkSource } from "@/lib/render/watermarks";
 import { env } from "@/lib/server/env";
 import { hex16 } from "@/lib/server/ids";
-import { BRAND_NAME, TALK_MESSAGE_MAX, TALK_SCENARIOS, validVoice } from "@/lib/catalogs";
+import { BRAND_NAME, TALK_MESSAGE_MAX, TALK_SCENARIOS } from "@/lib/catalogs";
 
 const loadVideo = async (id: string) => (await db().from("videos").select("*").eq("id", id).single()).data!;
 const firstPhoto = async (id: string) =>

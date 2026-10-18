@@ -1,9 +1,9 @@
+import { defaultVoiceId } from "@/lib/server/elevenlabs";
 import { db } from "./db";
 import { dayStartIso, deviceId, fail, originFrom } from "./http";
 import { env } from "./env";
 import { isoNow, newId, newSlug } from "./ids";
 import { retentionIso } from "./jobPhotos";
-import { DEFAULT_VOICE_ID } from "@/lib/catalogs";
 
 export async function startPreview(req: Request) {
   const device = deviceId(req);
@@ -14,7 +14,7 @@ export async function startPreview(req: Request) {
   }
   const v = {
     id: newId(), share_slug: newSlug(), device_id: device || null, mode: "preview_free", price_clp: env.talkPriceClp,
-    voice_id: DEFAULT_VOICE_ID, media_base: originFrom(req), status: "draft", progress_step: "", progress_pct: 0,
+    voice_id: defaultVoiceId(), media_base: originFrom(req), status: "draft", progress_step: "", progress_pct: 0,
     created_at: isoNow(), expires_at: retentionIso(env.retentionDays),
   };
   const { error } = await db().from("videos").insert(v);

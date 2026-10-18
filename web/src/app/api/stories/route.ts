@@ -1,10 +1,11 @@
+import { validVoice } from "@/lib/server/elevenlabs";
 import { deviceId, fail, handler, json, readJson } from "@/lib/server/http";
 import { requireUser } from "@/lib/server/auth";
 import { db } from "@/lib/server/db";
 import { validatePetId } from "@/lib/server/domain";
 import { isoNow, newId, newSlug } from "@/lib/server/ids";
 import { env } from "@/lib/server/env";
-import { SPECIES, THEMES, TRAITS, validVoice } from "@/lib/catalogs";
+import { SPECIES, THEMES, TRAITS } from "@/lib/catalogs";
 
 export const POST = handler(async (req: Request) => {
   const user = await requireUser(req);

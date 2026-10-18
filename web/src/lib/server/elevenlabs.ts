@@ -1,9 +1,26 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { env } from "./env";
-import { validVoice } from "@/lib/catalogs";
+import { VOICES as DEFAULT_VOICES, type Voice } from "@/lib/catalogs";
 
 const API = "https://api.elevenlabs.io/v1/text-to-speech";
+
+/**
+ * Voices offered in the app. Override with ELEVENLABS_VOICES="voiceId:Label|voiceId:Label" (first = default)
+ * to use voices from your own ElevenLabs library (see scripts/voices.ts to find Chilean / neutral Spanish ones).
+ */
+export function voices(): Voice[] {
+  const raw = (process.env.ELEVENLABS_VOICES ?? "").trim();
+  if (!raw) return DEFAULT_VOICES;
+  const list = raw.split("|").map((p) => p.trim()).filter(Boolean).map((p) => {
+    const i = p.indexOf(":");
+    return i > 0 ? { id: p.slice(0, i).trim(), label: p.slice(i + 1).trim() } : { id: p, label: p };
+  }).filter((v) => /^[A-Za-z0-9]{10,40}$/.test(v.id));
+  return list.length ? list : DEFAULT_VOICES;
+}
+export const defaultVoiceId = () => voices()[0].id;
+export const validVoice = (voiceId?: string | null): string =>
+  voiceId && voices().some((v) => v.id === voiceId) ? voiceId : defaultVoiceId();
 
 // Slow, clear and warm delivery (narration.py _VOICE_SETTINGS).
 const VOICE_SETTINGS = { stability: 0.5, similarity_boost: 0.8, style: 0.0, use_speaker_boost: true, speed: 0.8 };
