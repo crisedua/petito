@@ -17,6 +17,9 @@ const fal = () => (client ??= createFalClient({ credentials: env.falKey }));
 
 const webhookUrl = () => (env.publicBaseUrl ? `${env.publicBaseUrl}/api/webhooks/fal` : undefined);
 
+/** A configuration/input problem that retrying won't fix (missing/invalid key, no credit, bad input). */
+export class PermanentFalError extends Error {}
+
 // MOCK_AI: request ids that encode the input so "results" can be produced locally.
 const mockInputs = new Map<string, unknown>();
 
@@ -26,8 +29,15 @@ async function submit(endpoint: string, input: Record<string, unknown>): Promise
     mockInputs.set(id, input);
     return id;
   }
-  const res = await fal().queue.submit(endpoint as any, { input: input as any, webhookUrl: webhookUrl() });
-  return res.request_id;
+  if (!env.falKey) throw new PermanentFalError("FAL_KEY no está configurada");
+  try {
+    const res = await fal().queue.submit(endpoint as any, { input: input as any, webhookUrl: webhookUrl() });
+    return res.request_id;
+  } catch (e: any) {
+    const st = Number(e?.status ?? 0);
+    if (st >= 400 && st < 500 && st !== 408 && st !== 429) throw new PermanentFalError(`fal.ai ${st}: ${String(e?.message ?? e).slice(0, 300)}`);
+    throw e;
+  }
 }
 
 /** nano-banana/edit: image (data URI) + prompt → one JPEG. */

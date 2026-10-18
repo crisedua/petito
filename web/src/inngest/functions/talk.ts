@@ -1,5 +1,6 @@
+import { NonRetriableError } from "inngest";
 import { inngest, EV } from "../client";
-import { awaitElevenVideo, awaitFal, progress } from "../helpers";
+import { awaitElevenVideo, awaitFal, creepingProgress, progress } from "../helpers";
 import { db, logGeneration } from "@/lib/server/db";
 import * as fal from "@/lib/server/fal";
 import * as eleven from "@/lib/server/elevenvideo";
@@ -17,24 +18,47 @@ const loadVideo = async (id: string) => (await db().from("videos").select("*").e
 const firstPhoto = async (id: string) =>
   (await db().from("talk_photos").select("file").eq("video_id", id).order("created_at", { ascending: false }).limit(1).maybeSingle()).data?.file as string | undefined;
 
+const WAIT_TEXT = "Moviéndole la boquita... puede tardar 1 a 3 minutos";
+
 /**
- * Photo (already cropped to 9:16) + audio.mp3 → MP4 bytes stored as `outFile`, through the configured
- * provider. ElevenLabs takes the inputs inline; fal needs them reachable at a public URL.
+ * Photo (already cropped to 9:16) + audio.mp3 → MP4 stored as `outFile`. ElevenLabs takes the inputs
+ * inline; fal needs them reachable at a public URL. Configuration problems (plan, permission, key)
+ * fail at once with a readable reason; if ElevenLabs refuses and FAL_KEY is set, fal is used instead.
  */
-async function lipsyncToStorage(step: any, key: string, id: string, sourceFile: string, outFile: string, hd: boolean, mediaBase: string) {
+async function lipsyncToStorage(step: any, key: string, id: string, sourceFile: string, outFile: string, hd: boolean, mediaBase: string, progressFrom: number) {
   const t0 = Date.now();
+  const tick = creepingProgress("videos", id, WAIT_TEXT, progressFrom, 95);
+  let elevenError: string | null = null;
   if (env.talkVideoProvider === "elevenlabs") {
-    const genId: string = await step.run(`${key}-submit`, async () =>
-      eleven.submitLipsync(await loadImage(id, sourceFile), (await storage.get(id, "audio.mp3")).buf, hd ? "720p" : "480p"));
-    const url = await awaitElevenVideo(step, key, genId);
-    await step.run(`${key}-save`, async () => { await storage.put(id, outFile, await eleven.download(url), "video/mp4"); });
-    return { model: `elevenlabs/${eleven.ELEVEN_VIDEO_MODEL}`, ms: Date.now() - t0 };
+    const sub: { id?: string; error?: string } = await step.run(`${key}-submit`, async () => {
+      try {
+        return { id: await eleven.submitLipsync(await loadImage(id, sourceFile), (await storage.get(id, "audio.mp3")).buf, hd ? "720p" : "480p") };
+      } catch (e) {
+        if (e instanceof eleven.PermanentVideoError) return { error: e.message };
+        throw e;
+      }
+    });
+    if (sub.id) {
+      const url = await awaitElevenVideo(step, key, sub.id, 60, tick);
+      await step.run(`${key}-save`, async () => { await storage.put(id, outFile, await eleven.download(url), "video/mp4"); });
+      return { model: `elevenlabs/${eleven.ELEVEN_VIDEO_MODEL}`, ms: Date.now() - t0 };
+    }
+    elevenError = sub.error ?? "ElevenLabs rechazó la solicitud";
+    if (!env.falKey) throw new NonRetriableError(elevenError);
+    console.warn(`talk ${id}: ${elevenError} — falling back to fal.ai`);
   }
   const base = mediaBase.replace(/\/$/, "");
-  const requestId: string = await step.run(`${key}-submit`, () =>
-    fal.submitLipsync(storage.publicMediaUrl(id, sourceFile, base), storage.publicMediaUrl(id, "audio.mp3", base)));
-  const url = await awaitFal(step, key, env.falTalkModel, requestId, 30);
-  await step.run(`${key}-save`, async () => { await storage.put(id, outFile, await fal.download(url), "video/mp4"); });
+  const fsub: { id?: string; error?: string } = await step.run(`${key}-fal-submit`, async () => {
+    try {
+      return { id: await fal.submitLipsync(storage.publicMediaUrl(id, sourceFile, base), storage.publicMediaUrl(id, "audio.mp3", base)) };
+    } catch (e) {
+      if (e instanceof fal.PermanentFalError) return { error: e.message };
+      throw e;
+    }
+  });
+  if (!fsub.id) throw new NonRetriableError([elevenError, fsub.error].filter(Boolean).join(" · "));
+  const url = await awaitFal(step, `${key}-fal`, env.falTalkModel, fsub.id, 30, tick);
+  await step.run(`${key}-fal-save`, async () => { await storage.put(id, outFile, await fal.download(url), "video/mp4"); });
   return { model: env.falTalkModel, ms: Date.now() - t0 };
 }
 
@@ -83,7 +107,7 @@ export const generateTalk = inngest.createFunction(
       const src = await talkSource(await loadImage(id, photo), true, long ? 720 : 384, BRAND_NAME);
       await storage.put(id, "source.jpg", src, "image/jpeg");
     });
-    const gen = await lipsyncToStorage(step, "lipsync", id, "source.jpg", "preview.mp4", false, v.media_base || env.publicBaseUrl);
+    const gen = await lipsyncToStorage(step, "lipsync", id, "source.jpg", "preview.mp4", false, v.media_base || env.publicBaseUrl, 62);
     await step.run("done", async () => {
       await logGeneration({ ownerId: id, step: "talk_video", model: gen.model, costUsd: env.talkVideoCostPerSec * (long ? 8 : 3), durationMs: gen.ms });
       await db().from("videos").update({ status: "preview_ready", preview_file: "preview.mp4", progress_pct: 100, progress_step: "¡Listo!" }).eq("id", id);
@@ -108,7 +132,7 @@ export const talkClean = inngest.createFunction(
       await storage.put(id, "source_hd.jpg", src, "image/jpeg");
     });
     const name = `clean_${hex16()}.mp4`;
-    const gen = await lipsyncToStorage(step, "lipsync-hd", id, "source_hd.jpg", name, true, v.media_base || env.publicBaseUrl);
+    const gen = await lipsyncToStorage(step, "lipsync-hd", id, "source_hd.jpg", name, true, v.media_base || env.publicBaseUrl, 52);
     await step.run("done", async () => {
       await logGeneration({ ownerId: id, step: "talk_video_hd", model: gen.model, costUsd: env.talkVideoCostPerSec * 8, durationMs: gen.ms });
       await db().from("videos").update({ clean_file: name, progress_pct: 100, progress_step: "¡HD listo!" }).eq("id", id);

@@ -12,6 +12,9 @@ export const ELEVEN_VIDEO_MODEL = "creatify-aurora";
 
 export type VideoState = { state: "PENDING" | "COMPLETED" | "FAILED"; url?: string; error?: string };
 
+/** A configuration/plan problem that retrying won't fix (bad key, plan too low, missing permission, bad input). */
+export class PermanentVideoError extends Error {}
+
 async function call<T>(method: string, url: string, body?: unknown): Promise<T> {
   const res = await fetch(url, {
     method,
@@ -21,7 +24,10 @@ async function call<T>(method: string, url: string, body?: unknown): Promise<T> 
   });
   if (!res.ok) {
     const text = (await res.text()).slice(0, 300);
-    if (res.status === 402) throw new Error(`ElevenLabs video requires a Pro plan or above (${text})`);
+    if (res.status === 402) throw new PermanentVideoError(`ElevenLabs: el video requiere plan Pro o superior (${text})`);
+    if (text.includes("invalid_api_key")) throw new PermanentVideoError("ElevenLabs: la API key no es válida");
+    if (res.status === 401 || res.status === 403) throw new PermanentVideoError(`ElevenLabs: la API key no tiene permiso de Image & Video (${res.status}: ${text})`);
+    if (res.status >= 400 && res.status < 500 && res.status !== 408 && res.status !== 429) throw new PermanentVideoError(`ElevenLabs video ${res.status}: ${text}`);
     throw new Error(`ElevenLabs video ${res.status}: ${text}`);
   }
   return res.json() as Promise<T>;
