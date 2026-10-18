@@ -1429,9 +1429,10 @@ async def admin_set_plus(user_id: str, request: Request, user=Depends(require_ad
 
 
 async def _delete_pet_cascade(pet_id: str):
+    story_ids = [s["id"] for s in await db.stories.find({"pet_id": pet_id}, {"id": 1, "_id": 0}).to_list(500)]
+    await db.slides.delete_many({"story_id": {"$in": story_ids}})
     await db.memories.delete_many({"pet_id": pet_id})
     await db.stories.delete_many({"pet_id": pet_id})
-    await db.slides.delete_many({"story_id": {"$in": [s["id"] for s in await db.stories.find({"pet_id": pet_id}, {"id": 1, "_id": 0}).to_list(500)]}})
     await db.portraits.delete_many({"pet_id": pet_id})
     await db.videos.delete_many({"pet_id": pet_id})
     await db.pets.delete_one({"id": pet_id})
