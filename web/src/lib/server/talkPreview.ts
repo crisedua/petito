@@ -1,4 +1,4 @@
-import { defaultVoiceId } from "@/lib/server/elevenlabs";
+import { defaultVoiceId, ensureVoices } from "@/lib/server/elevenlabs";
 import { db } from "./db";
 import { dayStartIso, deviceId, fail, originFrom } from "./http";
 import { env } from "./env";
@@ -6,6 +6,7 @@ import { isoNow, newId, newSlug } from "./ids";
 import { retentionIso } from "./jobPhotos";
 
 export async function startPreview(req: Request) {
+  await ensureVoices();
   const device = deviceId(req);
   if (device) {
     const { count } = await db().from("videos").select("id", { count: "exact", head: true })

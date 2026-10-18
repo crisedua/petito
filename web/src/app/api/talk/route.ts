@@ -1,4 +1,4 @@
-import { validVoice } from "@/lib/server/elevenlabs";
+import { ensureVoices, validVoice } from "@/lib/server/elevenlabs";
 import { deviceId, handler, json, originFrom, readJson } from "@/lib/server/http";
 import { requireUser } from "@/lib/server/auth";
 import { db } from "@/lib/server/db";
@@ -9,6 +9,7 @@ import { TALK_MESSAGE_MAX, TALK_SCENARIOS } from "@/lib/catalogs";
 
 export const POST = handler(async (req: Request) => {
   const user = await requireUser(req);
+  await ensureVoices();
   const b = await readJson<{ pet_name?: string; voice_id?: string; pet_id?: string; scenario?: string; message?: string }>(req);
   const v = {
     id: newId(), share_slug: newSlug(), device_id: deviceId(req), user_id: user.user_id, mode: "full",

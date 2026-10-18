@@ -1,13 +1,14 @@
 import { fail, handler, json } from "@/lib/server/http";
 import { env } from "@/lib/server/env";
 import * as storage from "@/lib/server/storage";
-import { generateNarration, validVoice, voices } from "@/lib/server/elevenlabs";
+import { ensureVoices, generateNarration, validVoice } from "@/lib/server/elevenlabs";
 import type { Ctx } from "@/lib/server/route";
 import { VOICE_SAMPLE_TEXT } from "@/lib/catalogs";
 
 export const maxDuration = 60;
 
 export const GET = handler(async (_req: Request, ctx: Ctx<{ id: string }>) => {
+  await ensureVoices();
   const vid = validVoice((await ctx.params).id);
   const name = `${vid}.mp3`;
   if (!(await storage.exists("voicesamples", name))) {

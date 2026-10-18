@@ -8,7 +8,7 @@ import * as storage from "@/lib/server/storage";
 import { imageToB64, loadImage } from "@/lib/server/images";
 import { writePetLine } from "@/lib/server/prompts";
 import { llmCost, llmModel } from "@/lib/server/llm";
-import { generateNarration, validVoice } from "@/lib/server/elevenlabs";
+import { ensureVoices, generateNarration, validVoice } from "@/lib/server/elevenlabs";
 import { talkSource } from "@/lib/render/watermarks";
 import { env } from "@/lib/server/env";
 import { hex16 } from "@/lib/server/ids";
@@ -100,6 +100,7 @@ export const generateTalk = inngest.createFunction(
         }
         await db().from("videos").update({ line: text, species, progress_step: "Buscando la voz perfecta...", progress_pct: 40 }).eq("id", id);
         const lineMs = Date.now() - tLine;
+        await ensureVoices();
         const tVoice = Date.now();
         const audio = await generateNarration(text, validVoice(v.voice_id), 1.0, env.talkVoiceModel);
         const voiceMs = Date.now() - tVoice;

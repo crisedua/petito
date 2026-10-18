@@ -2,6 +2,10 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { env } from "./env";
 import { VOICES as DEFAULT_VOICES, type Voice } from "@/lib/catalogs";
+import { cachedLibraryVoices, loadLibraryVoices } from "./voiceLibrary";
+
+/** Make sure the saved Chilean/neutral catalog is loaded before voices() is read. */
+export const ensureVoices = () => loadLibraryVoices();
 
 const API = "https://api.elevenlabs.io/v1/text-to-speech";
 
@@ -11,7 +15,7 @@ const API = "https://api.elevenlabs.io/v1/text-to-speech";
  */
 export function voices(): Voice[] {
   const raw = (process.env.ELEVENLABS_VOICES ?? "").trim();
-  if (!raw) return DEFAULT_VOICES;
+  if (!raw) return cachedLibraryVoices()?.map(({ id, label }) => ({ id, label })) ?? DEFAULT_VOICES;
   const list = raw.split("|").map((p) => p.trim()).filter(Boolean).map((p) => {
     const i = p.indexOf(":");
     return i > 0 ? { id: p.slice(0, i).trim(), label: p.slice(i + 1).trim() } : { id: p, label: p };

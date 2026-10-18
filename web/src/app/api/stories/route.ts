@@ -1,4 +1,4 @@
-import { validVoice } from "@/lib/server/elevenlabs";
+import { ensureVoices, validVoice } from "@/lib/server/elevenlabs";
 import { deviceId, fail, handler, json, readJson } from "@/lib/server/http";
 import { requireUser } from "@/lib/server/auth";
 import { db } from "@/lib/server/db";
@@ -9,6 +9,7 @@ import { SPECIES, THEMES, TRAITS } from "@/lib/catalogs";
 
 export const POST = handler(async (req: Request) => {
   const user = await requireUser(req);
+  await ensureVoices();
   const b = await readJson<{ pet_name?: string; species?: string; traits?: string[]; theme?: string; email?: string; voice_id?: string; pet_id?: string }>(req);
   if (!b.theme || !(b.theme in THEMES)) throw fail(400, "Tema inválido");
   const s = {

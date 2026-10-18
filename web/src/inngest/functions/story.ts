@@ -6,7 +6,7 @@ import * as storage from "@/lib/server/storage";
 import { imageToB64, imageToDataUri, loadImage } from "@/lib/server/images";
 import { bonusScenePrompt, selectPhotos, writeCaptions } from "@/lib/server/prompts";
 import { llmCost, llmModel } from "@/lib/server/llm";
-import { generateNarration, validVoice } from "@/lib/server/elevenlabs";
+import { ensureVoices, generateNarration, validVoice } from "@/lib/server/elevenlabs";
 import { addSlide } from "@/lib/server/stories";
 import { decode, toJpeg } from "@/lib/render/core";
 import { closingSlide, photoSlide, titleSlide } from "@/lib/render/slides";
@@ -23,6 +23,7 @@ export const narrateSlide = inngest.createFunction(
     if (!env.narrationEnabled || !text?.trim()) return { ok: false };
     return step.run("narrate", async () => {
       try {
+        await ensureVoices();
         const audio = await generateNarration(text, validVoice(voice_id));
         const file = `narration_${ord}.mp3`;
         await storage.put(story_id, file, audio, "audio/mpeg");
