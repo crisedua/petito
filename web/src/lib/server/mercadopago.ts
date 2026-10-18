@@ -11,7 +11,7 @@ export class MpHttpError extends Error {
   }
 }
 
-async function mp<T = any>(method: string, path: string, body?: unknown): Promise<T> {
+export async function mp<T = any>(method: string, path: string, body?: unknown): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     method,
     headers: { Authorization: `Bearer ${env.mpToken}`, "Content-Type": "application/json" },
