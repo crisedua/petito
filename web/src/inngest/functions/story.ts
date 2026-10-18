@@ -5,7 +5,7 @@ import * as fal from "@/lib/server/fal";
 import * as storage from "@/lib/server/storage";
 import { imageToB64, imageToDataUri, loadImage } from "@/lib/server/images";
 import { bonusScenePrompt, selectPhotos, writeCaptions } from "@/lib/server/prompts";
-import { claudeCost } from "@/lib/server/anthropic";
+import { llmCost, llmModel } from "@/lib/server/llm";
 import { generateNarration } from "@/lib/server/elevenlabs";
 import { addSlide } from "@/lib/server/stories";
 import { decode, toJpeg } from "@/lib/render/core";
@@ -117,7 +117,7 @@ export const generateStory = inngest.createFunction(
       const t0 = Date.now();
       const b64s = await Promise.all(photos.map((p) => imageToB64(id, p.file)));
       const r = await selectPhotos(b64s, story.pet_name, species, story.traits ?? [], theme.label);
-      await logGeneration({ ownerId: id, step: "selection", model: env.claudeModel, usage: r.usage, costUsd: claudeCost(r.usage), durationMs: Date.now() - t0 });
+      await logGeneration({ ownerId: id, step: "selection", model: llmModel(), usage: r.usage, costUsd: llmCost(r.usage), durationMs: Date.now() - t0 });
       return { selected: r.selected, best: r.best };
     });
 
@@ -125,7 +125,7 @@ export const generateStory = inngest.createFunction(
     const copy = await step.run("write-captions", async () => {
       const t0 = Date.now();
       const r = await writeCaptions(story.pet_name, species, story.traits ?? [], theme.label, sel.selected.map((s: any) => s.scene_description ?? ""));
-      await logGeneration({ ownerId: id, step: "captions", model: env.claudeModel, usage: r.usage, costUsd: claudeCost(r.usage), durationMs: Date.now() - t0 });
+      await logGeneration({ ownerId: id, step: "captions", model: llmModel(), usage: r.usage, costUsd: llmCost(r.usage), durationMs: Date.now() - t0 });
       return { title: r.title, captions: r.captions, stickers: r.stickers };
     });
     const bestFile = (photos[sel.best] ?? photos[0]).file;

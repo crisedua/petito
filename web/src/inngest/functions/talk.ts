@@ -5,7 +5,7 @@ import * as fal from "@/lib/server/fal";
 import * as storage from "@/lib/server/storage";
 import { imageToB64, loadImage } from "@/lib/server/images";
 import { writePetLine } from "@/lib/server/prompts";
-import { claudeCost } from "@/lib/server/anthropic";
+import { llmCost, llmModel } from "@/lib/server/llm";
 import { generateNarration } from "@/lib/server/elevenlabs";
 import { talkSource } from "@/lib/render/watermarks";
 import { env } from "@/lib/server/env";
@@ -46,7 +46,7 @@ export const generateTalk = inngest.createFunction(
         ({ line: text, species, usage } = await writePetLine(b64, v.pet_name, long ? "long" : "mini", hint));
       }
       await db().from("videos").update({ line: text, species }).eq("id", id);
-      if (usage) await logGeneration({ ownerId: id, step: "talk_line", model: env.claudeModel, usage, costUsd: claudeCost(usage) });
+      if (usage) await logGeneration({ ownerId: id, step: "talk_line", model: llmModel(), usage, costUsd: llmCost(usage) });
       return text;
     });
 

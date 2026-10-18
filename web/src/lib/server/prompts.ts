@@ -2,7 +2,8 @@
  * Claude prompts, ported verbatim from backend/ai_pipeline.py (Chilean Spanish voice, never invent facts).
  * Post-processing (caption padding, sticker length, fallbacks) matches the legacy behaviour.
  */
-import { extractJson, runClaude, type ClaudeUsage } from "./anthropic";
+import { extractJson, type ClaudeUsage } from "./anthropic";
+import { runLlm as runClaude } from "./llm";
 
 type Selected = { photo_index: number; slide_order?: number; score?: number; scene_description?: string };
 

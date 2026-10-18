@@ -42,6 +42,7 @@ Authorized redirect URI: `https://<project-ref>.supabase.co/auth/v1/callback`.
 | Service | Where | Env var |
 |---|---|---|
 | Anthropic (Claude) | console.anthropic.com → API keys | `ANTHROPIC_API_KEY` |
+| OpenAI (alternative to Claude for text) | platform.openai.com → API keys | `OPENAI_API_KEY` (+ `AI_PROVIDER=openai`) |
 | fal.ai | fal.ai/dashboard/keys | `FAL_KEY` |
 | ElevenLabs | elevenlabs.io → API keys (same account as today) | `ELEVENLABS_API_KEY` |
 | Mercado Pago | Tus integraciones → credenciales de producción | `MERCADOPAGO_ACCESS_TOKEN` |
@@ -101,4 +102,6 @@ npx inngest-cli dev -u http://localhost:3000/api/inngest      # background jobs 
   every query goes through the API with the service-role key and explicit ownership checks.
 - Media is private in Storage and served through `/api/media/{owner}/{name}` (same URLs as before, so
   shared links keep working). Paid assets are protected by unguessable `clean_*` file names, as before.
-- Claude model: `CLAUDE_MODEL` (default `claude-opus-5-5`). `claude-sonnet-5-5` is a cheaper option.
+- Text/vision model: Anthropic by default (`CLAUDE_MODEL`, default `claude-opus-5-5`; `claude-sonnet-5-5` is cheaper).
+  Set `OPENAI_API_KEY` and `AI_PROVIDER=openai` to use ChatGPT models instead (`OPENAI_MODEL`, default `gpt-5-mini`).
+  Images and videos always use fal.ai.

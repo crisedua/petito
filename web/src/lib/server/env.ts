@@ -33,6 +33,9 @@ export const env = {
   // AI providers
   anthropicKey: process.env.ANTHROPIC_API_KEY ?? "",
   claudeModel: process.env.CLAUDE_MODEL ?? "claude-opus-5-5",
+  openaiKey: process.env.OPENAI_API_KEY ?? "",
+  openaiModel: process.env.OPENAI_MODEL ?? "gpt-5-mini",
+  aiProvider: (process.env.AI_PROVIDER ?? "").toLowerCase(),
   falKey: process.env.FAL_KEY ?? "",
   falImageModel: process.env.FAL_IMAGE_MODEL ?? "fal-ai/nano-banana/edit",
   falTalkModel: process.env.FAL_TALK_MODEL ?? "fal-ai/sync-lipsync/v3/image-to-video",

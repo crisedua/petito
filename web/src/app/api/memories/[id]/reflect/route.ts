@@ -5,8 +5,7 @@ import { getMemory } from "@/lib/server/domain";
 import { isPlus } from "@/lib/server/plus";
 import { imageToB64 } from "@/lib/server/images";
 import { reflectionFallback, writeMemoryReflection } from "@/lib/server/prompts";
-import { claudeCost } from "@/lib/server/anthropic";
-import { env } from "@/lib/server/env";
+import { llmCost, llmModel } from "@/lib/server/llm";
 import type { Ctx } from "@/lib/server/route";
 import { EMOTION_LABELS } from "@/lib/catalogs";
 
@@ -37,6 +36,6 @@ export const POST = handler(async (req: Request, ctx: Ctx<{ id: string }>) => {
     reflection = reflectionFallback(petName);
   }
   await db().from("memories").update({ ai_reflection: reflection }).eq("id", m.id);
-  if (usage) await logGeneration({ ownerId: m.id, step: "memory_reflection", model: env.claudeModel, usage, costUsd: claudeCost(usage) });
+  if (usage) await logGeneration({ ownerId: m.id, step: "memory_reflection", model: llmModel(), usage, costUsd: llmCost(usage) });
   return json({ ai_reflection: reflection });
 });

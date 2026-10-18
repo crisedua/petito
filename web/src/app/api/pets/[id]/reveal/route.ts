@@ -4,8 +4,7 @@ import { db, logGeneration } from "@/lib/server/db";
 import { getPet } from "@/lib/server/domain";
 import { imageToB64 } from "@/lib/server/images";
 import { petIntroFallback, writePetIntro } from "@/lib/server/prompts";
-import { claudeCost } from "@/lib/server/anthropic";
-import { env } from "@/lib/server/env";
+import { llmCost, llmModel } from "@/lib/server/llm";
 import type { Ctx } from "@/lib/server/route";
 import { PERSONALITY_LABELS } from "@/lib/catalogs";
 
@@ -27,6 +26,6 @@ export const POST = handler(async (req: Request, ctx: Ctx<{ id: string }>) => {
     intro = petIntroFallback(pet.name);
   }
   await db().from("pets").update({ intro_text: intro }).eq("id", pet.id);
-  if (usage) await logGeneration({ ownerId: pet.id, step: "pet_intro", model: env.claudeModel, usage, costUsd: claudeCost(usage) });
+  if (usage) await logGeneration({ ownerId: pet.id, step: "pet_intro", model: llmModel(), usage, costUsd: llmCost(usage) });
   return json({ intro_text: intro });
 });
