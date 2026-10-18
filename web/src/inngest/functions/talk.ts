@@ -89,6 +89,7 @@ export const generateTalk = inngest.createFunction(
       step.run("line-and-voice", async () => {
         await db().from("videos").update({ progress_step: "Escuchando a tu mascota...", progress_pct: 20 }).eq("id", id);
         let text: string, species: string, usage = null;
+        const tLine = Date.now();
         if (v.message) {
           text = String(v.message).trim().slice(0, TALK_MESSAGE_MAX);
           species = v.species || "otro";
@@ -98,9 +99,13 @@ export const generateTalk = inngest.createFunction(
           ({ line: text, species, usage } = await writePetLine(b64, v.pet_name, long ? "long" : "mini", hint));
         }
         await db().from("videos").update({ line: text, species, progress_step: "Buscando la voz perfecta...", progress_pct: 40 }).eq("id", id);
-        if (usage) await logGeneration({ ownerId: id, step: "talk_line", model: llmModel(true), usage, costUsd: llmCost(usage, true) });
+        const lineMs = Date.now() - tLine;
+        const tVoice = Date.now();
         const audio = await generateNarration(text, validVoice(v.voice_id), 1.0, env.talkVoiceModel);
+        const voiceMs = Date.now() - tVoice;
         await storage.put(id, "audio.mp3", audio, "audio/mpeg");
+        await logGeneration({ ownerId: id, step: "talk_line", model: v.message ? "owner-message" : llmModel(true), usage, costUsd: usage ? llmCost(usage, true) : 0, durationMs: lineMs });
+        await logGeneration({ ownerId: id, step: "talk_voice", model: env.talkVoiceModel, durationMs: voiceMs });
       }),
       step.run("source", async () => {
         const src = await talkSource(await loadImage(id, photo), true, long ? 720 : 480, BRAND_NAME);

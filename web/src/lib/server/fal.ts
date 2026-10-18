@@ -15,7 +15,15 @@ export const FAL_VIDEO_COST_PER_SEC = 0.1333;
 let client: ReturnType<typeof createFalClient> | null = null;
 const fal = () => (client ??= createFalClient({ credentials: env.falKey }));
 
-const webhookUrl = () => (env.publicBaseUrl ? `${env.publicBaseUrl}/api/webhooks/fal` : undefined);
+/**
+ * Where fal reports completion. Vercel's own production hostname is used first, because PUBLIC_BASE_URL
+ * may still point at another site (e.g. before the domain moves) and a lost webhook costs up to 15 s.
+ */
+const webhookUrl = () => {
+  const vercel = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+  const base = vercel ? `https://${vercel}` : env.publicBaseUrl;
+  return base ? `${base.replace(/\/$/, "")}/api/webhooks/fal` : undefined;
+};
 
 /** A configuration/input problem that retrying won't fix (missing/invalid key, no credit, bad input). */
 export class PermanentFalError extends Error {}

@@ -99,14 +99,30 @@ export const GET = handler(async (req: Request) => {
     }),
   ]);
 
-  const { data: recent } = await db().from("videos").select("id, share_slug, mode, status, progress_step, progress_pct, error, created_at")
+  const { data: recent } = await db().from("videos").select("id, share_slug, mode, status, progress_step, progress_pct, error, created_at, expires_at")
     .order("created_at", { ascending: false }).limit(5);
+  const ids = (recent ?? []).map((v) => v.id);
+  const { data: logs } = ids.length
+    ? await db().from("generation_logs").select("owner_id, step, model, duration_ms, created_at").in("owner_id", ids)
+    : { data: [] as any[] };
+  // expires_at is set to (moment generation started + retention days), so it gives the start time.
+  const timing = (vid: string, expires: string | null) => {
+    const mine = (logs ?? []).filter((l) => l.owner_id === vid);
+    const pick = (step: string) => mine.find((l) => l.step === step);
+    const sec = (ms?: number | null) => (ms == null ? null : Math.round(ms / 100) / 10);
+    const video = pick("talk_video");
+    return {
+      line_s: sec(pick("talk_line")?.duration_ms), voice_s: sec(pick("talk_voice")?.duration_ms),
+      video_s: sec(video?.duration_ms), video_model: video?.model ?? null,
+      total_s: video && expires ? sec(new Date(video.created_at).getTime() - (new Date(expires).getTime() - env.retentionDays * 86400_000)) : null,
+    };
+  };
 
   const checks = { database, storage: mediaStorage, renderer, elevenlabs_account: elevenlabsAccount, elevenlabs_video: elevenlabsVideo, public_base_url: publicBase };
   return json({
     ok: Object.values(checks).every((c) => c.ok),
     config,
     checks,
-    recent_videos: (recent ?? []).map((v) => ({ ...v, created_at: iso(v.created_at) })),
+    recent_videos: (recent ?? []).map((v) => ({ ...v, created_at: iso(v.created_at), seconds: timing(v.id, v.expires_at) })),
   });
 });
