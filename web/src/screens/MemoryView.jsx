@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "@/lib/router";
 import { motion, useReducedMotion } from "framer-motion";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2, Pencil, Trash2, Sparkles, Calendar, Check, X, Share2 } from "lucide-react";
+import { ArrowLeft, Loader2, Pencil, Trash2, Sparkles, Calendar, Check, X, Share2, Users } from "lucide-react";
 import { getMemory, updateMemory, deleteMemory, reflectMemory, hideMemoryReflection, toggleMemoryShare, getEmotions, mediaUrl } from "@/lib/api";
 
 export default function MemoryView() {
@@ -149,6 +149,12 @@ export default function MemoryView() {
                   : <><Sparkles className="w-4 h-4" style={{ color: "#C2683F" }} /> Pedir un pensamiento de Petito</>}
               </button>
             )}
+
+            <button onClick={() => nav(`/amigos?compartir=memory:${m.id}`)} data-testid="memory-share-friends"
+              className="mt-3 w-full py-3.5 rounded-2xl font-display font-semibold text-sm flex items-center justify-center gap-2 text-white"
+              style={{ background: "#B85C3C" }}>
+              <Users className="w-4 h-4" /> Compartir con mis amigos
+            </button>
           </>
         ) : (
           <div className="mt-5" data-testid="memory-edit-form">

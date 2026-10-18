@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "@/lib/router";
-import { LogOut, Images, LogIn } from "lucide-react";
+import { LogOut, Images, LogIn, Users } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 
 export function ProfileMenu() {
@@ -44,6 +44,10 @@ export function ProfileMenu() {
           <button onClick={() => { setOpen(false); nav("/mis-creaciones"); }} data-testid="menu-my-creations"
             className="w-full flex items-center gap-2.5 px-4 py-3 text-sm font-semibold text-neutral-700 hover:bg-neutral-50">
             <Images className="w-4 h-4 text-primary" /> Mis creaciones
+          </button>
+          <button onClick={() => { setOpen(false); nav("/amigos"); }} data-testid="menu-friends"
+            className="w-full flex items-center gap-2.5 px-4 py-3 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 border-t border-border">
+            <Users className="w-4 h-4 text-primary" /> Amigos de Petito
           </button>
           <button onClick={() => { setOpen(false); logout(); nav("/"); }} data-testid="menu-logout"
             className="w-full flex items-center gap-2.5 px-4 py-3 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 border-t border-border">

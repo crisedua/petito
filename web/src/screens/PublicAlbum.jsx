@@ -2,17 +2,36 @@
 import { useEffect, useState } from "react";
 import { useParams } from "@/lib/router";
 import { motion } from "framer-motion";
-import { Loader2, PawPrint, Calendar, Heart } from "lucide-react";
-import { publicAlbum, mediaUrl } from "@/lib/api";
+import { toast } from "sonner";
+import { Loader2, PawPrint, Calendar, Heart, UserPlus, Check } from "lucide-react";
+import { useNavigate } from "@/lib/router";
+import { useAuth } from "@/lib/auth";
+import { publicAlbum, requestConnection, mediaUrl } from "@/lib/api";
 
 export default function PublicAlbum() {
   const { slug } = useParams();
   const [data, setData] = useState(null);
   const [notFound, setNotFound] = useState(false);
+  const [asking, setAsking] = useState(false);
+  const { user, loading, login } = useAuth();
+  const nav = useNavigate();
 
   useEffect(() => {
+    if (loading) return;
     publicAlbum(slug).then(setData).catch(() => setNotFound(true));
-  }, [slug]);
+  }, [slug, loading, user]);
+
+  // Ask this pet's owner to connect (they accept from their Amigos screen).
+  const connect = async () => {
+    if (!user) { login(`/u/${slug}`); return; }
+    setAsking(true);
+    try {
+      const r = await requestConnection(slug);
+      setData((d) => ({ ...d, connection: r.status === "accepted" ? "friends" : "pending" }));
+      toast.success(r.status === "accepted" ? "¡Ahora están conectados! 🐾" : "Solicitud enviada. Te avisaremos cuando acepten 🐾");
+    } catch (e) { toast.error(e?.response?.data?.detail || "No se pudo enviar la solicitud"); }
+    finally { setAsking(false); }
+  };
 
   if (notFound) {
     return (
@@ -42,6 +61,28 @@ export default function PublicAlbum() {
           )}
           <h1 className="mt-4 font-script text-4xl" style={{ color: "#B85C3C" }} data-testid="public-album-name">{data.name}</h1>
           {data.intro_text && <p className="mt-2 text-sm font-display leading-relaxed" style={{ color: "#6E5B4E" }}>{data.intro_text}</p>}
+          {data.connection && data.connection !== "self" && (
+            <div className="mt-4" data-testid="public-album-connect-block">
+              {data.connection === "friends" ? (
+                <button onClick={() => nav("/amigos")} className="inline-flex items-center gap-1.5 px-4 h-10 rounded-full text-sm font-display font-semibold border" style={{ borderColor: "#CFE0C6", color: "#5E8C4F", background: "#F1F7EE" }}>
+                  <Check className="w-4 h-4" /> Ya están conectados
+                </button>
+              ) : data.connection === "pending" ? (
+                <span className="inline-flex items-center gap-1.5 px-4 h-10 rounded-full text-sm font-display font-semibold bg-white border" style={{ borderColor: "#EADFCF", color: "#8A7868" }} data-testid="public-album-pending">
+                  Solicitud enviada
+                </span>
+              ) : data.connection === "incoming" ? (
+                <button onClick={() => nav("/amigos?tab=amigos")} className="inline-flex items-center gap-1.5 px-4 h-10 rounded-full text-sm font-display font-semibold text-white" style={{ background: "#B85C3C" }}>
+                  <UserPlus className="w-4 h-4" /> Quiere conectar contigo
+                </button>
+              ) : (
+                <button onClick={connect} disabled={asking} data-testid="public-album-connect"
+                  className="inline-flex items-center gap-1.5 px-4 h-10 rounded-full text-sm font-display font-semibold text-white" style={{ background: "#B85C3C" }}>
+                  {asking ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />} Conectar con su familia
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="mt-8 space-y-4">

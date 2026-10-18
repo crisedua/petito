@@ -3,13 +3,23 @@ import { db } from "@/lib/server/db";
 import { mediaPath } from "@/lib/server/storage";
 import { emotionLabels } from "@/lib/server/serializers";
 import type { Ctx } from "@/lib/server/route";
+import { getCurrentUser } from "@/lib/server/auth";
+import { connectionBetween } from "@/lib/server/social";
 
-export const GET = handler(async (_req: Request, ctx: Ctx<{ slug: string }>) => {
+export const GET = handler(async (req: Request, ctx: Ctx<{ slug: string }>) => {
   const { slug } = await ctx.params;
   const { data: pet } = await db().from("pets").select("*").eq("share_slug", slug).eq("public_enabled", true).maybeSingle();
   if (!pet) throw fail(404, "Álbum no encontrado o privado");
   const { data: mems } = await db().from("memories").select("*").eq("pet_id", pet.id).eq("shared", true).order("created_at", { ascending: false }).limit(200);
+  // Lets a signed-in visitor ask to connect with this pet's owner (the owner's identity stays hidden).
+  const me = await getCurrentUser(req).catch(() => null);
+  let connection: "anon" | "self" | "friends" | "pending" | "incoming" | "none" = "anon";
+  if (me) {
+    const c = me.user_id === pet.user_id ? null : await connectionBetween(me.user_id, pet.user_id);
+    connection = me.user_id === pet.user_id ? "self" : !c ? "none" : c.status === "accepted" ? "friends" : c.addressee_id === me.user_id ? "incoming" : "pending";
+  }
   return json({
+    connection,
     name: pet.name, species: pet.species, intro_text: pet.intro_text,
     photo_url: pet.photo_file ? mediaPath(pet.id, pet.photo_file) : null,
     memories: (mems ?? []).map((m) => ({

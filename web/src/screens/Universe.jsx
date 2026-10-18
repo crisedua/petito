@@ -2,10 +2,10 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "@/lib/router";
 import { motion, useReducedMotion } from "framer-motion";
-import { Loader2, Mic, Film, Crown, Plus as PlusIcon, ChevronDown, Heart, CalendarHeart, Images, ArrowRight, BookHeart, Settings, Cake } from "lucide-react";
+import { Loader2, Mic, Film, Crown, Plus as PlusIcon, ChevronDown, Heart, CalendarHeart, Images, ArrowRight, BookHeart, Settings, Cake, Users } from "lucide-react";
 import { toast } from "sonner";
 import { ProfileMenu } from "@/components/ProfileMenu";
-import { mediaUrl, getPets, petCreations, getActivePetId, setActivePetId, plusStatus } from "@/lib/api";
+import { mediaUrl, getPets, petCreations, getActivePetId, setActivePetId, plusStatus, friendsSummary } from "@/lib/api";
 
 const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 
@@ -53,6 +53,7 @@ export default function Universe() {
   const [creations, setCreations] = useState([]);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [plus, setPlus] = useState(false);
+  const [friendRequests, setFriendRequests] = useState(0);
 
   const loadCreations = useCallback((petId) => {
     petCreations(petId).then(setCreations).catch(() => setCreations([]));
@@ -69,6 +70,7 @@ export default function Universe() {
       loadCreations(chosen.id);
     }).catch(() => nav("/", { replace: true }));
     plusStatus().then((s) => setPlus(s.active)).catch(() => {});
+    friendsSummary().then((s) => setFriendRequests(s.pending)).catch(() => {});
     if (new URLSearchParams(window.location.search).get("plus") === "success") {
       toast.success("¡Bienvenido a Petito Plus! 👑 Ahora todo es ilimitado.");
     }
@@ -179,6 +181,19 @@ export default function Universe() {
             {active.intro_text}
           </motion.p>
         )}
+
+        <motion.button {...fade(0.15)} whileTap={reduce ? undefined : { scale: 0.98 }} onClick={() => nav(friendRequests ? "/amigos?tab=amigos" : "/amigos")} data-testid="universe-friends"
+          className="mt-6 w-full flex items-center gap-3.5 p-4 rounded-2xl border text-left" style={{ background: "#fff", borderColor: "#EEE3D2" }}>
+          <div className="relative w-12 h-12 rounded-xl grid place-items-center shrink-0" style={{ background: "#FBEEE4", color: "#B85C3C" }}>
+            <Users className="w-6 h-6" />
+            {friendRequests > 0 && <span className="absolute -top-1.5 -right-1.5 min-w-5 h-5 px-1 rounded-full text-[11px] font-bold grid place-items-center bg-red-500 text-white" data-testid="universe-friends-badge">{friendRequests}</span>}
+          </div>
+          <div className="flex-1">
+            <div className="font-display font-bold" style={{ color: "#3A2A20" }}>Amigos de Petito</div>
+            <div className="text-xs mt-0.5" style={{ color: "#8A7868" }}>{friendRequests > 0 ? `${friendRequests} ${friendRequests === 1 ? "dueño quiere" : "dueños quieren"} conectar contigo` : `Comparte las aventuras de ${name} con otros dueños`}</div>
+          </div>
+          <ArrowRight className="w-5 h-5" style={{ color: "#B85C3C" }} />
+        </motion.button>
 
         <h2 className="mt-8 font-display font-bold text-lg" style={{ color: "#3A2A20" }}>¿Qué quieres vivir hoy?</h2>
         <div className="mt-3 space-y-3">

@@ -130,3 +130,21 @@ export const generateTalk = (id) => api.post(`/talk/${id}/generate`).then((r) =>
 export const getTalk = (id) => api.get(`/talk/${id}`).then((r) => r.data);
 export const getTalkBySlug = (slug) => api.get(`/talk/slug/${slug}`).then((r) => r.data);
 export const talkCheckout = (id) => api.post(`/talk/${id}/checkout`).then((r) => r.data);
+
+// ---- Amigos de Petito ----
+export const getFriends = () => api.get("/amigos").then((r) => r.data);
+export const friendsSummary = () => api.get("/amigos/summary").then((r) => r.data);
+export const resetFriendCode = () => api.post("/amigos/code").then((r) => r.data);
+export const getInvite = (code) => api.get(`/amigos/invite/${code}`).then((r) => r.data);
+export const acceptInvite = (code) => api.post(`/amigos/invite/${code}`).then((r) => r.data);
+export const requestConnection = (petSlug) => api.post("/amigos/request", { pet_slug: petSlug }).then((r) => r.data);
+export const acceptConnection = (id) => api.post(`/amigos/${id}/accept`).then((r) => r.data);
+export const endConnection = (id) => api.delete(`/amigos/${id}`).then((r) => r.data);
+export const getFeed = (before) => api.get("/feed", { params: before ? { before } : {} }).then((r) => r.data);
+export const shareOptions = () => api.get("/shares/options").then((r) => r.data);
+export const createShare = (kind, itemId, note) => api.post("/shares", { kind, item_id: itemId, note }).then((r) => r.data);
+export const deleteShare = (id) => api.delete(`/shares/${id}`).then((r) => r.data);
+export const toggleHeart = (id) => api.post(`/shares/${id}/heart`).then((r) => r.data);
+export const getComments = (id) => api.get(`/shares/${id}/comments`).then((r) => r.data);
+export const addComment = (id, body) => api.post(`/shares/${id}/comments`, { body }).then((r) => r.data);
+export const deleteComment = (id, cid) => api.delete(`/shares/${id}/comments/${cid}`).then((r) => r.data);

@@ -10,9 +10,9 @@ src/screens/        the original React screens, unchanged apart from imports
 src/lib/server/     server modules: auth, db, storage, images, prompts, anthropic, fal, elevenlabs, mercadopago, plus
 src/lib/render/     slide renderer (port of backend/renderer.py, @napi-rs/canvas + sharp)
 src/inngest/        background jobs: story, narration, bonus scenes, portrait, talking video, HD video
-supabase/migrations SQL schema (13 tables), indexes, private `media` bucket, admin metrics function
+supabase/migrations SQL schema (17 tables), indexes, private `media` bucket, admin metrics function, Amigos de Petito (0005)
 scripts/migrate/    one-time data migration from the old MongoDB + Emergent storage
-tests/test_api.py   API acceptance tests (pytest + requests)
+tests/             API acceptance tests (pytest + requests): test_api.py, test_social.py
 ```
 
 ## 1. One-time setup
@@ -20,7 +20,7 @@ tests/test_api.py   API acceptance tests (pytest + requests)
 ### Supabase
 1. Create a project (region `sa-east-1`, São Paulo, is closest to Chile).
 2. Apply the schema: `npx supabase link --project-ref <ref>` then `npx supabase db push`
-   (or paste the four files in `supabase/migrations/` into the SQL editor, in order).
+   (or paste the files in `supabase/migrations/` into the SQL editor, in order; `supabase/schema.sql` has them all in one file).
 3. **Authentication → Providers → Google**: enable it and paste the Google client ID/secret (next step).
 4. **Authentication → URL configuration**: Site URL `https://petito.pro`; add redirect URLs
    `https://petito.pro/auth/callback`, `http://localhost:3000/auth/callback` and your Vercel preview pattern.
