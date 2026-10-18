@@ -34,7 +34,7 @@ export const generatePortrait = inngest.createFunction(
     const t0 = Date.now();
     const requestId: string = await step.run("submit", async () =>
       fal.submitEdit(await imageToDataUri(id, photo), portraitPrompt("mascota", style.prompt), "3:4"));
-    const url = await awaitFal(step, "portrait", env.falImageModel, requestId, 4);
+    const url = await awaitFal(step, "portrait", env.falImageModel, requestId, 20);
 
     await progress(step, "portraits", id, "80", { progress_step: "Poniéndole el marco dorado...", progress_pct: 80 });
     await step.run("save", async () => {

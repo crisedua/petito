@@ -58,10 +58,10 @@ export const generateBonusScenes = inngest.createFunction(
     const ids: string[] = await Promise.all(scenes.map((_, i) => submitScene(i, 0)));
     const urls = await Promise.all(scenes.map(async (_, i) => {
       try {
-        return await awaitFal(step, `bonus-${i}`, env.falImageModel, ids[i], 4);
+        return await awaitFal(step, `bonus-${i}`, env.falImageModel, ids[i], 20);
       } catch {
         try {
-          return await awaitFal(step, `bonus-${i}-retry`, env.falImageModel, await submitScene(i, 1), 4);
+          return await awaitFal(step, `bonus-${i}-retry`, env.falImageModel, await submitScene(i, 1), 20);
         } catch (e) {
           console.warn(`Bonus scene ${i} skipped`, e);
           return null;

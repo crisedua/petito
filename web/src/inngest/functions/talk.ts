@@ -65,7 +65,7 @@ export const generateTalk = inngest.createFunction(
     const t0 = Date.now();
     const requestId: string = await step.run("submit", () =>
       fal.submitLipsync(storage.publicMediaUrl(id, "source.jpg", base), storage.publicMediaUrl(id, "audio.mp3", base)));
-    const url = await awaitFal(step, "lipsync", env.falTalkModel, requestId, 6);
+    const url = await awaitFal(step, "lipsync", env.falTalkModel, requestId, 30);
     await step.run("save", async () => {
       await storage.put(id, "preview.mp4", await fal.download(url), "video/mp4");
       await logGeneration({ ownerId: id, step: "talk_video", model: env.falTalkModel, costUsd: fal.FAL_VIDEO_COST_PER_SEC * (long ? 8 : 3), durationMs: Date.now() - t0 });
@@ -94,7 +94,7 @@ export const talkClean = inngest.createFunction(
     const t0 = Date.now();
     const requestId: string = await step.run("submit", () =>
       fal.submitLipsync(storage.publicMediaUrl(id, "source_hd.jpg", base), storage.publicMediaUrl(id, "audio.mp3", base)));
-    const url = await awaitFal(step, "lipsync-hd", env.falTalkModel, requestId, 6);
+    const url = await awaitFal(step, "lipsync-hd", env.falTalkModel, requestId, 30);
     await step.run("save", async () => {
       const name = `clean_${hex16()}.mp4`;
       await storage.put(id, name, await fal.download(url), "video/mp4");
