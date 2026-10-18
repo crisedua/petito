@@ -1,70 +1,80 @@
-# Panel de administración: gestionar usuarios, planes, perfiles y creaciones
+# Que el panel muestre a TODOS los usuarios que se registraron en petito.pro
 
-Da al administrador de Petito el control para gestionar la comunidad desde el panel: ver
-usuarios, otorgar o quitar Petito Plus de cortesía, y eliminar perfiles de mascota, cuentas
-completas o creaciones puntuales cuando haga falta.
+El panel de administración en petito.pro muestra solo 2 usuarios (dos cuentas de prueba),
+cuando deberían aparecer todas las personas que iniciaron sesión con Google en el sitio
+publicado. Este trabajo encuentra por qué faltan y lo corrige para que la lista refleje a
+todos los usuarios reales.
 
 ## Para quién es
-Para el dueño de Petito (y cualquier correo en la lista de administradores), que necesita
-moderar y dar soporte: activar Plus a alguien, borrar contenido inapropiado o de prueba, y
-limpiar cuentas o mascotas duplicadas.
+Para el dueño de Petito, que necesita ver en el panel a todas las personas que realmente se
+registraron (iniciaron sesión con Google) en petito.pro, para gestionar la comunidad.
 
-## Core features y experiencia (Fase 1, MVP)
-Todo esto queda disponible solo para administradores, tanto en preview como en producción.
+## Qué está pasando (diagnóstico de partida)
+- La app ya guarda un registro por cada persona que inicia sesión con Google, y el panel ya
+  está hecho para listar a **todas** sin filtros ni límites prácticos. Es decir, el código que
+  crea y lista usuarios es correcto.
+- Por eso, que petito.pro muestre solo 2 usuarios —y que uno sea la cuenta de prueba
+  "test.petito.norm@example.com", que es un dato sembrado para desarrollo— apunta a un problema
+  de **datos/base de datos en producción**, no a la pantalla en sí. Las dos hipótesis más
+  probables son:
+  1. **El sitio publicado está leyendo/escribiendo en una base de datos equivocada** (por
+     ejemplo, una base de prueba o vacía, distinta de donde se guardan los registros reales).
+     Eso explicaría que aparezcan cuentas de prueba y no las reales.
+  2. **El inicio de sesión con Google no se está completando en producción** (por configuración
+     del login en el sitio en vivo), de modo que las personas no llegan a quedar registradas y
+     por eso no hay registros que mostrar.
+- La captura corresponde al sitio publicado (petito.pro), según lo confirmado.
 
-- **Nueva vista "Usuarios" en el panel.** Lista de todas las personas registradas, con
-  buscador por correo o nombre. Cada usuario muestra su correo, nombre, si es Plus, y cuántas
-  mascotas y creaciones tiene.
-- **Cambiar el plan (Plus de cortesía).** Desde un usuario, el admin puede **activar** o
-  **quitar** Petito Plus con un toque. Es un acceso de cortesía: no genera ningún cobro en
-  Mercado Pago y puede revertirse cuando se quiera. (No se eligen mensual/anual ni fecha: solo
-  Plus sí/no.)
-- **Eliminar un perfil de mascota.** Borra una mascota puntual y su contenido asociado
-  (recuerdos y creaciones ligadas a ella), tras confirmar.
-- **Eliminar una cuenta de usuario completa.** Borra al usuario junto con todas sus mascotas,
-  recuerdos y creaciones, tras una confirmación clara (acción fuerte).
-- **Eliminar creaciones.** El admin puede borrar **historias, retratos y videos** de forma
-  individual, tras confirmar. La lista de creaciones del panel se amplía para incluir los tres
-  tipos (hoy solo muestra historias).
-- **Confirmación antes de borrar.** Toda eliminación pide confirmación y es **permanente**
-  (no hay papelera ni deshacer).
-
-Lo que ya existe se mantiene: KPIs, encuesta y la lista de creaciones con filtros y "Ver".
+## Qué se construye (Fase 1, MVP)
+- **Leer la base de datos de producción y el flujo de inicio de sesión del sitio en vivo** para
+  determinar con certeza cuál de las dos causas aplica: cuántos registros de usuario hay
+  realmente en producción, en qué base de datos están, y si los inicios de sesión con Google en
+  petito.pro están quedando guardados.
+- **Corregir la causa encontrada** para que el panel liste a todos los usuarios que iniciaron
+  sesión con Google en petito.pro:
+  - Si el sitio está apuntando a una base de datos equivocada o distinta de donde están los
+    registros reales, se corrige esa conexión para que el panel lea donde efectivamente se
+    guardan los usuarios (puede requerir ajustar la configuración del sitio publicado y volver
+    a publicar).
+  - Si el inicio de sesión con Google no se completa en producción, se corrige para que cada
+    inicio de sesión quede registrado correctamente.
+- **Limpieza de datos de prueba en producción (si corresponde):** si en la base de producción
+  quedaron cuentas de prueba (como "test.petito.norm@example.com"), se retiran para que el
+  panel muestre solo usuarios reales. La cuenta de administrador del dueño se conserva.
+- **Hacer evidente que están todos:** la lista muestra un **conteo total de usuarios** y se
+  ordena del más reciente al más antiguo, para que a simple vista se note si aparecen todos.
+- **Resultado esperado:** al abrir la pestaña "Usuarios" en petito.pro, aparecen todas las
+  personas que iniciaron sesión con Google, con el total visible.
 
 ## User flow
-1. El admin entra al panel y abre la pestaña **Usuarios**.
-2. Busca a una persona por correo o nombre y la abre.
-3. Ahí puede: activar o quitar **Plus**; ver sus **mascotas** y **creaciones**; **eliminar**
-   una mascota, una creación, o la **cuenta completa**.
-4. Cada borrado pide confirmación; al confirmar, el cambio es inmediato y permanente.
-5. Alternativamente, desde la lista general de creaciones (ahora con historias, retratos y
-   videos) puede eliminar una creación puntual sin pasar por el usuario.
+1. El dueño entra al panel en petito.pro y abre "Usuarios".
+2. Ve el total de usuarios y la lista completa, del más reciente al más antiguo.
+3. Puede buscar por correo o nombre y abrir a cualquiera para gestionarlo (como hoy).
 
 ## UI/UX feel
-Sin rediseño. Se mantiene la estética actual del panel (tarjetas blancas, acentos terracota,
-tono cálido en español de Chile). Las acciones destructivas (eliminar cuenta/mascota/creación)
-se muestran claramente diferenciadas en rojo y siempre detrás de una confirmación, para evitar
-borrados accidentales.
+Sin rediseño. Se mantiene la estética y el tono actuales del panel. El único cambio visible es
+que ahora aparecen todos los usuarios reales, con un conteo total arriba y orden por más
+reciente.
 
 ## Fases
-- **Fase 1 (ahora, MVP):** vista de Usuarios con buscador; activar/quitar Plus de cortesía;
-  eliminar mascota, cuenta completa y creaciones (historias, retratos y videos); confirmaciones
-  antes de borrar. Re-publicar para que quede en vivo en petito.pro.
-- **Fase 2 (después):** registro de acciones del administrador (quién hizo qué y cuándo) y
-  poder cancelar una suscripción **real** de Mercado Pago de un usuario desde el panel.
-- **Fase 3 (futuro):** más moderación y soporte: suspender temporalmente una cuenta, reenviar
-  enlaces, exportar datos de un usuario, y métricas por usuario.
+- **Fase 1 (ahora, MVP):** leer la base de datos de producción y el inicio de sesión del sitio
+  en vivo, identificar por qué faltan usuarios, corregir la causa (conexión a la base correcta
+  o registro del login), retirar cuentas de prueba de producción si las hubiera, y mostrar el
+  conteo total con orden por más reciente. Volver a publicar para que quede en vivo.
+- **Fase 2 (después):** más detalle por usuario en la lista (fecha de registro, último inicio
+  de sesión) y exportación de la lista.
+- **Fase 3 (futuro):** métricas de actividad por usuario (mascotas, creaciones, uso) y
+  segmentos para soporte y comunicación.
 
 ## Supuestos
-- "Eliminar perfiles" cubre **ambas** cosas: eliminar una mascota puntual y eliminar una
-  cuenta de usuario completa (con todo su contenido).
-- "Cambiar el plan" significa **solo activar o quitar Plus** como cortesía, sin cobro en
-  Mercado Pago y reversible; no se eligen mensual/anual ni fecha de vencimiento en esta fase.
-- "Eliminar creaciones" cubre los **tres tipos**: historias, retratos y videos.
-- Se agrega una **vista de Usuarios** al panel para gestionar planes y perfiles.
-- El acceso de administrador sigue basándose en la lista de correos permitidos existente
-  (ningún usuario normal ve ni puede usar estas acciones).
-- Todos los borrados son **permanentes** y piden confirmación; no hay papelera ni deshacer en
-  esta fase.
-- Las creaciones ya generadas que se eliminen dejan de estar disponibles por su enlace público.
-- Para que el cambio quede en vivo en petito.pro hace falta re-publicar después de aplicarlo.
+- "Usuario" = solo quienes iniciaron sesión con Google en petito.pro (confirmado).
+- Los usuarios reales se guardan en la base de datos de producción, que es **separada** de la
+  del entorno de preview; por eso el preview solo tiene cuentas de prueba.
+- La causa más probable es de datos/configuración en producción (base equivocada o login que no
+  queda registrado), no de la pantalla, porque el código ya guarda y lista a todos los usuarios.
+- Las cuentas de prueba que aparezcan en producción se consideran datos de desarrollo y se
+  pueden retirar; la cuenta de administrador del dueño se mantiene.
+- Si el arreglo implica ajustar la configuración del sitio publicado (por ejemplo, la conexión
+  a la base de datos), hace falta volver a publicar petito.pro para que tome efecto.
+- No se cambia el diseño ni las acciones del panel ya existentes (Plus de cortesía, eliminar,
+  etc.).

@@ -1369,8 +1369,9 @@ async def admin_users(user=Depends(require_admin), q: str = ""):
             "user_id": uid, "email": d.get("email"), "name": d.get("name"),
             "picture": d.get("picture"), "is_admin": (d.get("email", "") or "").lower() in ADMIN_EMAILS,
             "is_plus": await is_plus(uid), "pet_count": pets, "creation_count": creations,
+            "created_at": d.get("created_at"),
         })
-    out.sort(key=lambda u: (u["email"] or "").lower())
+    out.sort(key=lambda u: u.get("created_at") or "", reverse=True)
     return out
 
 
@@ -1458,7 +1459,7 @@ async def admin_delete_user(user_id: str, user=Depends(require_admin)):
     await db.memories.delete_many({"user_id": user_id})
     await db.pets.delete_many({"user_id": user_id})
     await db.subscriptions.delete_many({"user_id": user_id})
-    await db.sessions.delete_many({"user_id": user_id})
+    await db.user_sessions.delete_many({"user_id": user_id})
     await db.users.delete_one({"user_id": user_id})
     return {"ok": True}
 

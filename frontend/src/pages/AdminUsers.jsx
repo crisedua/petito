@@ -127,6 +127,10 @@ export default function AdminUsers() {
 
   return (
     <div data-testid="admin-users-panel">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-sm font-display font-bold text-neutral-800">Usuarios</span>
+        {rows !== null && <span className="text-xs text-muted-foreground" data-testid="admin-users-total">{rows.length} en total</span>}
+      </div>
       <div className="relative mb-3">
         <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por correo o nombre" data-testid="admin-users-search"
@@ -148,7 +152,10 @@ export default function AdminUsers() {
                 </div>
                 <div className="text-xs text-muted-foreground truncate">{u.email}</div>
               </div>
-              <div className="text-right text-[11px] text-muted-foreground">{u.pet_count} 🐾 · {u.creation_count} ✨</div>
+              <div className="text-right shrink-0">
+                <div className="text-[11px] text-muted-foreground">{u.pet_count} 🐾 · {u.creation_count} ✨</div>
+                {u.created_at && <div className="text-[10px] text-muted-foreground/70">{new Date(u.created_at).toLocaleDateString("es-CL")}</div>}
+              </div>
             </button>
           ))}
         </div>
