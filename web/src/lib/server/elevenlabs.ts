@@ -26,7 +26,7 @@ export const validVoice = (voiceId?: string | null): string =>
 const VOICE_SETTINGS = { stability: 0.5, similarity_boost: 0.8, style: 0.0, use_speaker_boost: true, speed: 0.8 };
 
 /** ElevenLabs TTS (BYOK), same request as backend/narration.py. Returns MP3 bytes. */
-export async function generateNarration(text: string, voiceId: string, speed?: number): Promise<Buffer> {
+export async function generateNarration(text: string, voiceId: string, speed?: number, modelId = env.narrationModel): Promise<Buffer> {
   if (env.mockAi) return readFile(path.join(process.cwd(), "assets", "mock", "voice.mp3"));
   if (!env.elevenKey || !text?.trim()) throw new Error("Narration unavailable");
   const res = await fetch(`${API}/${validVoice(voiceId)}?output_format=mp3_44100_128`, {
@@ -34,7 +34,7 @@ export async function generateNarration(text: string, voiceId: string, speed?: n
     headers: { "xi-api-key": env.elevenKey, "Content-Type": "application/json", Accept: "audio/mpeg" },
     body: JSON.stringify({
       text: text.trim().slice(0, 900),
-      model_id: env.narrationModel,
+      model_id: modelId,
       voice_settings: { ...VOICE_SETTINGS, ...(speed !== undefined ? { speed } : {}) },
     }),
     signal: AbortSignal.timeout(90_000),

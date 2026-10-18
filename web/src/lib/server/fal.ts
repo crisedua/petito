@@ -44,8 +44,31 @@ async function submit(endpoint: string, input: Record<string, unknown>): Promise
 export const submitEdit = (imageDataUri: string, prompt: string, aspectRatio: "9:16" | "3:4") =>
   submit(env.falImageModel, { image_urls: [imageDataUri], prompt, num_images: 1, output_format: "jpeg", aspect_ratio: aspectRatio });
 
-/** sync-lipsync image-to-video: public image URL + public audio URL → MP4 (duration follows the audio). */
-export const submitLipsync = (imageUrl: string, audioUrl: string) => submit(env.falTalkModel, { image_url: imageUrl, audio_url: audioUrl });
+/**
+ * Talking-video lip-sync: photo + voice → MP4 (duration follows the audio). Inputs are uploaded to
+ * fal's own storage first, so this works no matter where the app is hosted. VEED Fabric models take a
+ * resolution; the older sync-lipsync model doesn't.
+ */
+export async function submitLipsync(imageJpeg: Buffer, audioMp3: Buffer, hd: boolean): Promise<{ requestId: string; model: string }> {
+  const model = hd ? env.falLipsyncHdModel : env.falLipsyncModel;
+  if (env.mockAi) return { requestId: await submit(model, {}), model };
+  if (!env.falKey) throw new PermanentFalError("FAL_KEY no está configurada");
+  let imageUrl: string, audioUrl: string;
+  try {
+    [imageUrl, audioUrl] = await Promise.all([
+      fal().storage.upload(new Blob([new Uint8Array(imageJpeg)], { type: "image/jpeg" })),
+      fal().storage.upload(new Blob([new Uint8Array(audioMp3)], { type: "audio/mpeg" })),
+    ]);
+  } catch (e: any) {
+    const st = Number(e?.status ?? 0);
+    if (st === 401 || st === 403) throw new PermanentFalError(`fal.ai rechazó la FAL_KEY (${st})`);
+    if (st === 402) throw new PermanentFalError("fal.ai: sin saldo en la cuenta (402)");
+    throw e;
+  }
+  const input: Record<string, unknown> = { image_url: imageUrl, audio_url: audioUrl };
+  if (model.includes("fabric")) input.resolution = hd ? "720p" : "480p";
+  return { requestId: await submit(model, input), model };
+}
 
 export type FalState = "PENDING" | "COMPLETED" | "FAILED";
 

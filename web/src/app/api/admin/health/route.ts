@@ -40,7 +40,9 @@ export const GET = handler(async (req: Request) => {
     OPENAI_API_KEY: set(env.openaiKey),
     ELEVENLABS_API_KEY: set(env.elevenKey),
     ELEVENLABS_VOICES: process.env.ELEVENLABS_VOICES ? voices().map((v) => v.label) : "default list",
-    TALK_VIDEO_PROVIDER: env.talkVideoProvider,
+    LIPSYNC_PROVIDER: `${env.talkVideoProvider} (${env.talkVideoProvider === "fal" ? `${env.falLipsyncModel}, HD ${env.falLipsyncHdModel}` : "creatify-aurora"})`,
+    TALK_VOICE_MODEL: env.talkVoiceModel,
+    fast_text_model: llmModel(true),
     FAL_KEY: set(env.falKey),
     INNGEST_EVENT_KEY: set(process.env.INNGEST_EVENT_KEY),
     INNGEST_SIGNING_KEY: set(process.env.INNGEST_SIGNING_KEY),
@@ -78,7 +80,7 @@ export const GET = handler(async (req: Request) => {
       return { tier: d.tier, characters_used: d.character_count, characters_limit: d.character_limit, status: d.status };
     }),
     check(async () => {
-      if (env.talkVideoProvider !== "elevenlabs") return "not used (TALK_VIDEO_PROVIDER=fal)";
+      if (env.talkVideoProvider !== "elevenlabs") return "not used (lip-sync runs on fal; ElevenLabs is only the fallback)";
       if (!env.elevenKey) throw new Error("ELEVENLABS_API_KEY missing");
       const r = await fetch("https://api.elevenlabs.io/v1/flows/video?page_size=1", { headers: { "xi-api-key": env.elevenKey } });
       const text = (await r.text()).slice(0, 200);

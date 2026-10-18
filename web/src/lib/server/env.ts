@@ -35,13 +35,19 @@ export const env = {
   claudeModel: process.env.CLAUDE_MODEL ?? "claude-opus-5-5",
   openaiKey: process.env.OPENAI_API_KEY ?? "",
   openaiModel: process.env.OPENAI_MODEL ?? "gpt-5-mini",
+  // Fast models for short, latency-sensitive text (the line a pet says in a talking video).
+  claudeFastModel: process.env.CLAUDE_FAST_MODEL ?? "claude-haiku-5-5",
+  openaiFastModel: process.env.OPENAI_FAST_MODEL ?? "gpt-5-mini",
   aiProvider: (process.env.AI_PROVIDER ?? "").toLowerCase(),
   falKey: process.env.FAL_KEY ?? "",
   falImageModel: process.env.FAL_IMAGE_MODEL ?? "fal-ai/nano-banana/edit",
-  falTalkModel: process.env.FAL_TALK_MODEL ?? "fal-ai/sync-lipsync/v3/image-to-video",
   elevenKey: process.env.ELEVENLABS_API_KEY ?? "",
-  // "elevenlabs" (creatify-aurora lip-sync, inline inputs) or "fal" (sync-lipsync, needs public media URLs)
-  talkVideoProvider: (process.env.TALK_VIDEO_PROVIDER ?? "elevenlabs").toLowerCase() === "fal" ? "fal" : "elevenlabs",
+  // Lip-sync for talking videos: "fal" (VEED Fabric, fastest) or "elevenlabs" (Creatify Aurora). Default: fal when FAL_KEY is set.
+  talkVideoProvider: ((process.env.LIPSYNC_PROVIDER ?? "").toLowerCase() === "elevenlabs" || ((process.env.LIPSYNC_PROVIDER ?? "").toLowerCase() !== "fal" && !process.env.FAL_KEY)) ? "elevenlabs" : "fal",
+  falLipsyncModel: process.env.FAL_LIPSYNC_MODEL ?? "veed/fabric-1.0/fast",
+  falLipsyncHdModel: process.env.FAL_LIPSYNC_HD_MODEL ?? "veed/fabric-1.0",
+  // Voice for talking videos: ElevenLabs' low-latency model (story narration keeps NARRATION_MODEL).
+  talkVoiceModel: process.env.TALK_VOICE_MODEL ?? "eleven_flash_v2_5",
   talkVideoCostPerSec: Number(process.env.TALK_VIDEO_COST_PER_SEC ?? "0.1333"),
   narrationModel: process.env.NARRATION_MODEL ?? "eleven_multilingual_v2",
   narrationEnabled: bool("NARRATION_ENABLED", true) && (Boolean(process.env.ELEVENLABS_API_KEY) || process.env.MOCK_AI === "1"),

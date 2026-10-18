@@ -13,10 +13,14 @@ export const llmProvider = (): "anthropic" | "openai" => {
   return env.anthropicKey || !env.openaiKey ? "anthropic" : "openai";
 };
 
-export const llmModel = () => (llmProvider() === "openai" ? env.openaiModel : env.claudeModel);
+/** `fast` picks the low-latency model for short, interactive text (e.g. the talking-video line). */
+export const llmModel = (fast = false) =>
+  llmProvider() === "openai" ? (fast ? env.openaiFastModel : env.openaiModel) : fast ? env.claudeFastModel : env.claudeModel;
 
-export const runLlm = (system: string, text: string, imagesB64: string[] = []) =>
-  llmProvider() === "openai" && !env.mockAi ? runOpenAI(system, text, imagesB64) : runClaude(system, text, imagesB64);
+export const runLlm = (system: string, text: string, imagesB64: string[] = [], fast = false) =>
+  llmProvider() === "openai" && !env.mockAi
+    ? runOpenAI(system, text, imagesB64, llmModel(fast))
+    : runClaude(system, text, imagesB64, llmModel(fast));
 
-export const llmCost = (usage: LlmUsage | null | undefined) =>
-  llmProvider() === "openai" ? openaiCost(usage) : claudeCost(usage);
+export const llmCost = (usage: LlmUsage | null | undefined, fast = false) =>
+  llmProvider() === "openai" ? openaiCost(usage, llmModel(fast)) : claudeCost(usage, llmModel(fast));

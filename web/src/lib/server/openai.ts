@@ -23,13 +23,13 @@ export function openaiCost(usage: Usage | null | undefined, model = env.openaiMo
 }
 
 /** Same contract as runClaude: system + one user message (text and optional JPEG images) → text + usage. */
-export async function runOpenAI(system: string, text: string, imagesB64: string[] = []) {
+export async function runOpenAI(system: string, text: string, imagesB64: string[] = [], model = env.openaiModel) {
   const content: OpenAI.Chat.ChatCompletionContentPart[] = [
     ...imagesB64.map((data) => ({ type: "image_url" as const, image_url: { url: `data:image/jpeg;base64,${data}`, detail: "low" as const } })),
     { type: "text" as const, text },
   ];
   const res = await openai().chat.completions.create({
-    model: env.openaiModel,
+    model,
     max_completion_tokens: 4096,
     messages: [{ role: "system", content: system }, { role: "user", content }],
   });

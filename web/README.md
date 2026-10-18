@@ -46,17 +46,18 @@ Authorized redirect URI: `https://<project-ref>.supabase.co/auth/v1/callback`.
 | fal.ai | fal.ai/dashboard/keys | `FAL_KEY` |
 | ElevenLabs | elevenlabs.io → API keys (same account as today) | `ELEVENLABS_API_KEY` |
 
-Talking videos use ElevenLabs' lip-sync video model by default (`TALK_VIDEO_PROVIDER=elevenlabs`): the
-photo and voice clip are sent inline, no public URL needed. It requires an ElevenLabs **Pro plan or above**
-and an API key with the *Image & Video* permission. Set `TALK_VIDEO_PROVIDER=fal` to use fal.ai instead.
+Talking videos: the voice is ElevenLabs (`TALK_VOICE_MODEL`, default `eleven_flash_v2_5`, low latency) and the
+lip-sync video is fal.ai with VEED Fabric (`veed/fabric-1.0/fast`, HD with `veed/fabric-1.0`), the fastest option.
+Photo and voice are uploaded to fal's storage, so it doesn't depend on `PUBLIC_BASE_URL`. If fal refuses, ElevenLabs'
+lip-sync (Creatify Aurora, needs a Pro plan) is used instead; `LIPSYNC_PROVIDER=elevenlabs` makes it the first choice.
 | Mercado Pago | Tus integraciones → credenciales de producción | `MERCADOPAGO_ACCESS_TOKEN` |
 
 Mercado Pago → Webhooks: URL `https://petito.pro/api/payments/webhook/mercadopago`, events
 *Pagos*, *Planes y suscripciones* (`subscription_preapproval`, `subscription_authorized_payment`);
 copy the signing secret into `MERCADOPAGO_WEBHOOK_SECRET`.
 
-`PUBLIC_BASE_URL` must be the public origin (`https://petito.pro`): Mercado Pago returns there, and with
-`TALK_VIDEO_PROVIDER=fal` fal.ai downloads media from `/api/media/...` on that origin.
+`PUBLIC_BASE_URL` must be the public origin (`https://petito.pro`): Mercado Pago returns there and fal.ai sends
+its completion webhook there (without it, jobs check fal every 15 s instead).
 
 ## 2. Moving the existing data (once, then again on cutover day)
 

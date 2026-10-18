@@ -24,7 +24,9 @@ export function claudeCost(usage: ClaudeUsage | null | undefined, model = env.cl
  * the legacy `_run_claude`: returns the concatenated text and the token usage.
  * Short JSON-producing tasks, so effort is low; refusals fall back server-side to a suitable model.
  */
-export async function runClaude(system: string, text: string, imagesB64: string[] = []) {
+const FALLBACK_MODELS = new Set(["claude-opus-5-5", "claude-opus-5", "claude-sonnet-5-5", "claude-fable-5-1"]);
+
+export async function runClaude(system: string, text: string, imagesB64: string[] = [], model = env.claudeModel) {
   if (env.mockAi) return mockClaude(imagesB64.length);
   const content: Anthropic.Beta.BetaContentBlockParam[] = [
     ...imagesB64.map((data) => ({
@@ -34,12 +36,12 @@ export async function runClaude(system: string, text: string, imagesB64: string[
     { type: "text" as const, text },
   ];
   const stream = anthropic().beta.messages.stream({
-    model: env.claudeModel,
+    model,
     max_tokens: 4096,
     system,
     output_config: { effort: "low" },
-    betas: ["server-side-fallback-2026-07-01"],
-    fallbacks: "default",
+    // Server-side refusal fallback exists for the larger models only.
+    ...(FALLBACK_MODELS.has(model) ? { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" } : {}),
     messages: [{ role: "user", content }],
   } as Anthropic.Beta.MessageCreateParamsStreaming);
   const msg = await stream.finalMessage();

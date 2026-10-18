@@ -65,7 +65,8 @@ export async function writePetLine(photoB64: string, petName: string | null, len
     "como si fueras la mascota de la foto. Español de Chile, cálido y chistoso, con modismos " +
     "suaves (regalón, pancito, choro, aperrado, bacán, al tiro), sin groserías ni humor " +
     "ofensivo. Respondes SOLO JSON válido.";
-  const words = { mini: "6 a 9", short: "11 a 15", long: "20 a 26" }[length] ?? "11 a 15";
+  // Video render time grows with clip length, so full videos use a ~5 s line (was 20–26 words, ~8 s).
+  const words = { mini: "6 a 9", short: "11 a 15", long: "12 a 16" }[length] ?? "11 a 15";
   const nameTxt = petName ? `Mi nombre es ${petName}. ` : "";
   const intent = scenarioHint ? `La frase debe ser ${scenarioHint}. ` : "Inventa UNA sola frase graciosa en primera persona ";
   const prompt =
@@ -74,7 +75,7 @@ export async function writePetLine(photoB64: string, petName: string | null, len
     `que la mascota diría mirando a la cámara en un video, de ${words} palabras, ` +
     `con tono cálido y chileno. Usa el nombre si lo tienes.\n` +
     `Responde JSON: {"species": "perro|gato|otro", "line": "<frase>"}`;
-  const { text, usage } = await runClaude(system, prompt, [photoB64]);
+  const { text, usage } = await runClaude(system, prompt, [photoB64], true);
   const data = extractJson<{ species?: string; line?: string }>(text);
   const line = (data.line ?? "").trim() || `¡Hola! Soy ${petName || "tu regalón"}, el más choro de la casa.`;
   return { line, species: data.species || "otro", usage };

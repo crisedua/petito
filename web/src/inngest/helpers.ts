@@ -26,18 +26,18 @@ export const progress = (step: Step, table: "stories" | "portraits" | "videos", 
   });
 
 /**
- * Wait for a fal request: check status, otherwise sleep until fal's webhook wakes us or 30 s pass,
- * then check again. Returns the output URL. Throws on failure or after `rounds × 30 s`.
+ * Wait for a fal request: check status, otherwise sleep until fal's webhook wakes us or 15 s pass,
+ * then check again. Returns the output URL. Throws on failure or after `rounds × 15 s`.
  */
 export async function awaitFal(step: Step, key: string, endpoint: string, requestId: string, rounds = 30, tick?: Tick): Promise<string> {
   for (let i = 0; i < rounds; i++) {
     const st: fal.FalState = await step.run(`${key}-status-${i}`, async () => {
-      if (tick) await tick(i * 30);
+      if (tick) await tick(i * 15);
       return fal.status(endpoint, requestId);
     });
     if (st === "COMPLETED") return step.run(`${key}-result`, () => fal.resultUrl(endpoint, requestId));
     if (st === "FAILED") throw new Error(`Generation failed (${key})`);
-    await step.waitForEvent(`${key}-wait-${i}`, { event: EV.falResult, timeout: "30s", if: `async.data.request_id == "${requestId}"` });
+    await step.waitForEvent(`${key}-wait-${i}`, { event: EV.falResult, timeout: "15s", if: `async.data.request_id == "${requestId}"` });
   }
   throw new Error(`Generation timed out (${key})`);
 }
