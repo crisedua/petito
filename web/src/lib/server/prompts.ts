@@ -75,8 +75,15 @@ export async function writePetLine(photoB64: string, petName: string | null, len
     `que la mascota diría mirando a la cámara en un video, de ${words} palabras, ` +
     `con tono cálido y chileno. Usa el nombre si lo tienes.\n` +
     `Responde JSON: {"species": "perro|gato|otro", "line": "<frase>"}`;
-  const { text, usage } = await runClaude(system, prompt, [photoB64], true);
-  const data = extractJson<{ species?: string; line?: string }>(text);
+  let text = "", usage: Awaited<ReturnType<typeof runClaude>>["usage"] | null = null;
+  try {
+    ({ text, usage } = await runClaude(system, prompt, [photoB64], true));
+  } catch (e) {
+    // A failed line must not sink the whole video: fall back to the stock line below.
+    console.error("writePetLine failed, using fallback line", e);
+  }
+  let data: { species?: string; line?: string } = {};
+  try { data = text ? extractJson<{ species?: string; line?: string }>(text) : {}; } catch { data = {}; }
   const line = (data.line ?? "").trim() || `¡Hola! Soy ${petName || "tu regalón"}, el más choro de la casa.`;
   return { line, species: data.species || "otro", usage };
 }

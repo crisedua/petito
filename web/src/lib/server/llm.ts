@@ -9,7 +9,9 @@ import { openaiCost, runOpenAI } from "./openai";
 export type LlmUsage = ClaudeUsage;
 
 export const llmProvider = (): "anthropic" | "openai" => {
-  if (env.aiProvider === "openai" || env.aiProvider === "anthropic") return env.aiProvider;
+  // Honour AI_PROVIDER only when that provider's key is actually set; otherwise use the key we have.
+  if (env.aiProvider === "openai" && env.openaiKey) return "openai";
+  if (env.aiProvider === "anthropic" && env.anthropicKey) return "anthropic";
   return env.anthropicKey || !env.openaiKey ? "anthropic" : "openai";
 };
 
