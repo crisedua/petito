@@ -31,9 +31,9 @@ export const env = {
   bonusEnabled: bool("BONUS_SCENES_ENABLED", true),
   bonusScenesCount: Math.max(1, Math.min(3, int("BONUS_SCENES_COUNT", 3))),
   // AI providers
-  anthropicKey: process.env.ANTHROPIC_API_KEY ?? "",
+  anthropicKey: (process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_KEY || process.env.CLAUDE_API_KEY || "").trim(),
   claudeModel: process.env.CLAUDE_MODEL ?? "claude-opus-5-5",
-  openaiKey: process.env.OPENAI_API_KEY ?? "",
+  openaiKey: (process.env.OPENAI_API_KEY || process.env.OPENAI_KEY || process.env.CHATGPT_API_KEY || process.env.OPEN_AI_API_KEY || "").trim(),
   openaiModel: process.env.OPENAI_MODEL ?? "gpt-5-mini",
   // Fast models for short, latency-sensitive text (the line a pet says in a talking video).
   claudeFastModel: process.env.CLAUDE_FAST_MODEL ?? "claude-haiku-5-5",
