@@ -1346,6 +1346,165 @@ async def admin_stories(user=Depends(require_admin), filter: str = "all"):
     return out
 
 
+async def _counts_for_user(uid: str):
+    pets = await db.pets.count_documents({"user_id": uid})
+    creations = (await db.stories.count_documents({"user_id": uid, "status": {"$ne": "draft"}})
+                 + await db.portraits.count_documents({"user_id": uid})
+                 + await db.videos.count_documents({"user_id": uid}))
+    return pets, creations
+
+
+@api_router.get("/admin/users")
+async def admin_users(user=Depends(require_admin), q: str = ""):
+    query = {}
+    if q.strip():
+        rx = {"$regex": re.escape(q.strip()), "$options": "i"}
+        query = {"$or": [{"email": rx}, {"name": rx}]}
+    docs = await db.users.find(query, {"_id": 0}).to_list(1000)
+    out = []
+    for d in docs:
+        uid = d.get("user_id")
+        pets, creations = await _counts_for_user(uid)
+        out.append({
+            "user_id": uid, "email": d.get("email"), "name": d.get("name"),
+            "picture": d.get("picture"), "is_admin": (d.get("email", "") or "").lower() in ADMIN_EMAILS,
+            "is_plus": await is_plus(uid), "pet_count": pets, "creation_count": creations,
+        })
+    out.sort(key=lambda u: (u["email"] or "").lower())
+    return out
+
+
+@api_router.get("/admin/users/{user_id}")
+async def admin_user_detail(user_id: str, user=Depends(require_admin)):
+    d = await db.users.find_one({"user_id": user_id}, {"_id": 0})
+    if not d:
+        raise HTTPException(404, "Usuario no encontrado")
+    pets = await db.pets.find({"user_id": user_id}, {"_id": 0}).to_list(200)
+    pet_out = []
+    for p in pets:
+        pet_out.append({
+            "id": p["id"], "name": p.get("name"), "species": p.get("species"),
+            "photo_url": f"/api/media/{p['id']}/{p['photo_file']}" if p.get("photo_file") else None,
+            "memory_count": await db.memories.count_documents({"pet_id": p["id"]}),
+        })
+    creations = []
+    for d2 in await db.stories.find({"user_id": user_id, "status": {"$ne": "draft"}}, {"_id": 0}).sort("created_at", -1).to_list(300):
+        creations.append({"kind": "story", "id": d2["id"], "slug": d2.get("share_slug"),
+                          "title": d2.get("pet_name") or "Historia", "status": d2.get("status"),
+                          "view_path": f"/h/{d2.get('share_slug')}", "created_at": d2.get("created_at")})
+    for d2 in await db.portraits.find({"user_id": user_id}, {"_id": 0}).sort("created_at", -1).to_list(300):
+        creations.append({"kind": "portrait", "id": d2["id"], "slug": d2.get("share_slug"),
+                          "title": d2.get("pet_name") or "Retrato", "status": d2.get("status"),
+                          "view_path": f"/r/{d2.get('share_slug')}", "created_at": d2.get("created_at")})
+    for d2 in await db.videos.find({"user_id": user_id}, {"_id": 0}).sort("created_at", -1).to_list(300):
+        creations.append({"kind": "video", "id": d2["id"], "slug": d2.get("share_slug"),
+                          "title": d2.get("pet_name") or "Video", "status": d2.get("status"),
+                          "view_path": f"/v/{d2.get('share_slug')}", "created_at": d2.get("created_at")})
+    creations.sort(key=lambda c: c.get("created_at") or "", reverse=True)
+    sub = await db.subscriptions.find_one({"user_id": user_id}, {"_id": 0}, sort=[("created_at", -1)])
+    return {
+        "user_id": user_id, "email": d.get("email"), "name": d.get("name"),
+        "picture": d.get("picture"), "is_admin": (d.get("email", "") or "").lower() in ADMIN_EMAILS,
+        "is_plus": await is_plus(user_id), "plus_status": sub.get("status") if sub else None,
+        "pets": pet_out, "creations": creations,
+    }
+
+
+@api_router.post("/admin/users/{user_id}/plus")
+async def admin_set_plus(user_id: str, request: Request, user=Depends(require_admin)):
+    d = await db.users.find_one({"user_id": user_id}, {"_id": 0})
+    if not d:
+        raise HTTPException(404, "Usuario no encontrado")
+    body = await request.json()
+    if body.get("active"):
+        await db.subscriptions.update_one(
+            {"user_id": user_id},
+            {"$set": {"mp_id": f"courtesy-{new_id()}", "user_id": user_id, "plan": "monthly",
+                      "status": "authorized", "membership_active": True, "courtesy": True,
+                      "plus_until": _plus_until_from(None, 3650), "created_at": iso_now()}},
+            upsert=True)
+    else:
+        await db.subscriptions.delete_many({"user_id": user_id})
+    return {"is_plus": await is_plus(user_id)}
+
+
+async def _delete_pet_cascade(pet_id: str):
+    await db.memories.delete_many({"pet_id": pet_id})
+    await db.stories.delete_many({"pet_id": pet_id})
+    await db.slides.delete_many({"story_id": {"$in": [s["id"] for s in await db.stories.find({"pet_id": pet_id}, {"id": 1, "_id": 0}).to_list(500)]}})
+    await db.portraits.delete_many({"pet_id": pet_id})
+    await db.videos.delete_many({"pet_id": pet_id})
+    await db.pets.delete_one({"id": pet_id})
+
+
+@api_router.delete("/admin/pets/{pet_id}")
+async def admin_delete_pet(pet_id: str, user=Depends(require_admin)):
+    if not await db.pets.find_one({"id": pet_id}, {"_id": 0}):
+        raise HTTPException(404, "Mascota no encontrada")
+    await _delete_pet_cascade(pet_id)
+    return {"ok": True}
+
+
+@api_router.delete("/admin/users/{user_id}")
+async def admin_delete_user(user_id: str, user=Depends(require_admin)):
+    if not await db.users.find_one({"user_id": user_id}, {"_id": 0}):
+        raise HTTPException(404, "Usuario no encontrado")
+    story_ids = [s["id"] for s in await db.stories.find({"user_id": user_id}, {"id": 1, "_id": 0}).to_list(1000)]
+    await db.slides.delete_many({"story_id": {"$in": story_ids}})
+    await db.stories.delete_many({"user_id": user_id})
+    await db.portraits.delete_many({"user_id": user_id})
+    await db.videos.delete_many({"user_id": user_id})
+    await db.memories.delete_many({"user_id": user_id})
+    await db.pets.delete_many({"user_id": user_id})
+    await db.subscriptions.delete_many({"user_id": user_id})
+    await db.sessions.delete_many({"user_id": user_id})
+    await db.users.delete_one({"user_id": user_id})
+    return {"ok": True}
+
+
+@api_router.delete("/admin/creations/{kind}/{item_id}")
+async def admin_delete_creation(kind: str, item_id: str, user=Depends(require_admin)):
+    if kind == "story":
+        if not await db.stories.find_one({"id": item_id}, {"_id": 0}):
+            raise HTTPException(404, "No encontrado")
+        await db.slides.delete_many({"story_id": item_id})
+        await db.stories.delete_one({"id": item_id})
+    elif kind == "portrait":
+        if not await db.portraits.find_one({"id": item_id}, {"_id": 0}):
+            raise HTTPException(404, "No encontrado")
+        await db.portraits.delete_one({"id": item_id})
+    elif kind == "video":
+        if not await db.videos.find_one({"id": item_id}, {"_id": 0}):
+            raise HTTPException(404, "No encontrado")
+        await db.videos.delete_one({"id": item_id})
+    else:
+        raise HTTPException(400, "Tipo inválido")
+    return {"ok": True}
+
+
+@api_router.get("/admin/creations")
+async def admin_creations(user=Depends(require_admin)):
+    out = []
+    for d in await db.stories.find({"status": {"$ne": "draft"}}, {"_id": 0}).sort("created_at", -1).to_list(500):
+        out.append({"kind": "story", "id": d["id"], "slug": d.get("share_slug"),
+                    "title": d.get("pet_name") or "Historia", "status": d.get("status"),
+                    "paid": d.get("status") == "paid", "view_path": f"/h/{d.get('share_slug')}",
+                    "email": d.get("email"), "created_at": d.get("created_at")})
+    for d in await db.portraits.find({}, {"_id": 0}).sort("created_at", -1).to_list(500):
+        out.append({"kind": "portrait", "id": d["id"], "slug": d.get("share_slug"),
+                    "title": d.get("pet_name") or "Retrato", "status": d.get("status"),
+                    "paid": d.get("status") == "paid", "view_path": f"/r/{d.get('share_slug')}",
+                    "created_at": d.get("created_at")})
+    for d in await db.videos.find({}, {"_id": 0}).sort("created_at", -1).to_list(500):
+        out.append({"kind": "video", "id": d["id"], "slug": d.get("share_slug"),
+                    "title": d.get("pet_name") or "Video", "status": d.get("status"),
+                    "paid": d.get("status") == "paid", "view_path": f"/v/{d.get('share_slug')}",
+                    "created_at": d.get("created_at")})
+    out.sort(key=lambda c: c.get("created_at") or "", reverse=True)
+    return out
+
+
+
 # ---------------- portraits (royalty portrait: free preview -> paid HD) ----------------
 def portrait_public(p: Portrait):
     paid = p.status == "paid"

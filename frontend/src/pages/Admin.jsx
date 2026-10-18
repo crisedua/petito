@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { adminMetrics, adminStories, adminSurvey } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import Login from "@/pages/Login";
+import AdminUsers, { AdminCreations } from "@/pages/AdminUsers";
 
 const clp = (n) => new Intl.NumberFormat("es-CL").format(n || 0);
 
@@ -16,6 +17,7 @@ export default function Admin() {
   const [rows, setRows] = useState([]);
   const [survey, setSurvey] = useState(null);
   const [filter, setFilter] = useState("all");
+  const [tab, setTab] = useState("panel");
 
   const isAdmin = user?.is_admin;
 
@@ -64,6 +66,15 @@ export default function Admin() {
       </div>
 
       <div className="flex-1 px-5 pt-4 pb-10 overflow-y-auto no-scrollbar">
+        <div className="flex gap-2 mb-4" data-testid="admin-tabs">
+          {[["panel", "Resumen"], ["usuarios", "Usuarios"], ["creaciones", "Creaciones"]].map(([k, l]) => (
+            <button key={k} onClick={() => setTab(k)} data-testid={`admin-tab-${k}`}
+              className={`px-4 py-2 rounded-full text-sm font-semibold ${tab === k ? "bg-primary text-white" : "bg-white border border-border text-neutral-600"}`}>{l}</button>
+          ))}
+        </div>
+        {tab === "usuarios" && <AdminUsers />}
+        {tab === "creaciones" && <AdminCreations />}
+        {tab === "panel" && (<>
         <div className="grid grid-cols-2 gap-3" data-testid="admin-kpis">
           {KPIS.map((k) => (
             <div key={k.label} className="bg-white rounded-2xl border border-border p-4">
@@ -129,6 +140,7 @@ export default function Admin() {
             </div>
           ))}
         </div>
+        </>)}
       </div>
     </div>
   );

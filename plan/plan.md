@@ -1,63 +1,70 @@
-# Que toda creación nueva diga "Petito" (y nunca más "Cuentapatas")
+# Panel de administración: gestionar usuarios, planes, perfiles y creaciones
 
-Fija la marca "Petito" de forma permanente en todo lo que Petito genera —videos, retratos
-e historias— para que el nombre viejo "Cuentapatas" no vuelva a aparecer en ninguna
-creación nueva, sin importar la configuración del servidor.
+Da al administrador de Petito el control para gestionar la comunidad desde el panel: ver
+usuarios, otorgar o quitar Petito Plus de cortesía, y eliminar perfiles de mascota, cuentas
+completas o creaciones puntuales cuando haga falta.
 
 ## Para quién es
-Para el dueño de Petito, que vio el nombre viejo "Cuentapatas" grabado en un video de
-"Petito Habla" en petito.pro y necesita que, de ahora en adelante, toda creación muestre
-"Petito".
+Para el dueño de Petito (y cualquier correo en la lista de administradores), que necesita
+moderar y dar soporte: activar Plus a alguien, borrar contenido inapropiado o de prueba, y
+limpiar cuentas o mascotas duplicadas.
 
-## Qué está pasando (diagnóstico)
-- El nombre que se "quema" en los videos, retratos e historias viene de una marca que hoy el
-  servidor puede configurar. El código ya trae "Petito" por defecto, pero producción puede
-  quedar apuntando al nombre viejo, y entonces lo nuevo sale con "Cuentapatas".
-- En los videos, el nombre queda grabado en los píxeles del video al momento de crearlo; por
-  eso un video viejo seguirá mostrando "Cuentapatas" para siempre. Eso no se corrige en esta
-  tarea (decisión acordada: los viejos se dejan como están).
+## Core features y experiencia (Fase 1, MVP)
+Todo esto queda disponible solo para administradores, tanto en preview como en producción.
 
-## Qué se construye (Fase 1, MVP)
-- **Marca fija "Petito" en todo lo que se genera.** Se deja "Petito" (y el sitio
-  "petito.pro") como el único nombre que se graba en:
-  - la marca de agua en diagonal y el nombre al pie del video de "Petito Habla",
-  - la marca de agua del retrato en vista previa,
-  - el nombre al pie de las diapositivas de las historias, el título, la portada y la
-    diapositiva de cierre, y la vista previa bloqueada.
-  Queda fijo en el propio producto, de modo que ninguna configuración del servidor pueda
-  volver a cambiarlo por "Cuentapatas".
-- **Resultado esperado:** cualquier creación nueva (video, retrato, historia) hecha después
-  de publicar mostrará "Petito". Las creaciones viejas quedan intactas.
-- **Sin cambios visuales de diseño:** mismo estilo, color y posición de la marca; solo cambia
-  el texto a "Petito".
+- **Nueva vista "Usuarios" en el panel.** Lista de todas las personas registradas, con
+  buscador por correo o nombre. Cada usuario muestra su correo, nombre, si es Plus, y cuántas
+  mascotas y creaciones tiene.
+- **Cambiar el plan (Plus de cortesía).** Desde un usuario, el admin puede **activar** o
+  **quitar** Petito Plus con un toque. Es un acceso de cortesía: no genera ningún cobro en
+  Mercado Pago y puede revertirse cuando se quiera. (No se eligen mensual/anual ni fecha: solo
+  Plus sí/no.)
+- **Eliminar un perfil de mascota.** Borra una mascota puntual y su contenido asociado
+  (recuerdos y creaciones ligadas a ella), tras confirmar.
+- **Eliminar una cuenta de usuario completa.** Borra al usuario junto con todas sus mascotas,
+  recuerdos y creaciones, tras una confirmación clara (acción fuerte).
+- **Eliminar creaciones.** El admin puede borrar **historias, retratos y videos** de forma
+  individual, tras confirmar. La lista de creaciones del panel se amplía para incluir los tres
+  tipos (hoy solo muestra historias).
+- **Confirmación antes de borrar.** Toda eliminación pide confirmación y es **permanente**
+  (no hay papelera ni deshacer).
+
+Lo que ya existe se mantiene: KPIs, encuesta y la lista de creaciones con filtros y "Ver".
 
 ## User flow
-1. El dueño (o cualquier usuario) crea un nuevo video de "Petito Habla", un retrato o una
-   historia.
-2. La marca grabada dice "Petito" y el sitio "petito.pro".
-3. Los videos/imágenes creados antes del cambio siguen mostrando el nombre viejo; no se tocan.
+1. El admin entra al panel y abre la pestaña **Usuarios**.
+2. Busca a una persona por correo o nombre y la abre.
+3. Ahí puede: activar o quitar **Plus**; ver sus **mascotas** y **creaciones**; **eliminar**
+   una mascota, una creación, o la **cuenta completa**.
+4. Cada borrado pide confirmación; al confirmar, el cambio es inmediato y permanente.
+5. Alternativamente, desde la lista general de creaciones (ahora con historias, retratos y
+   videos) puede eliminar una creación puntual sin pasar por el usuario.
 
 ## UI/UX feel
-Sin rediseño. Se mantiene el tono cálido en español de Chile y la estética actual; el único
-cambio perceptible es que el texto de marca ahora dice "Petito" en las creaciones nuevas.
+Sin rediseño. Se mantiene la estética actual del panel (tarjetas blancas, acentos terracota,
+tono cálido en español de Chile). Las acciones destructivas (eliminar cuenta/mascota/creación)
+se muestran claramente diferenciadas en rojo y siempre detrás de una confirmación, para evitar
+borrados accidentales.
 
 ## Fases
-- **Fase 1 (ahora, MVP):** fijar "Petito"/"petito.pro" como marca en todas las creaciones
-  nuevas, independiente de la configuración del servidor; dejar las creaciones viejas como
-  están; re-publicar para que quede en vivo en petito.pro.
-- **Fase 2 (después):** opción para que el dueño re-marque sin costo los retratos e historias
-  ya creados (volver a aplicar "Petito" sobre la versión limpia guardada), si más adelante lo
-  quiere.
-- **Fase 3 (futuro):** regenerar videos "Petito Habla" viejos para reemplazar la marca grabada
-  (implica reprocesar con IA), solo si se decide hacerlo.
+- **Fase 1 (ahora, MVP):** vista de Usuarios con buscador; activar/quitar Plus de cortesía;
+  eliminar mascota, cuenta completa y creaciones (historias, retratos y videos); confirmaciones
+  antes de borrar. Re-publicar para que quede en vivo en petito.pro.
+- **Fase 2 (después):** registro de acciones del administrador (quién hizo qué y cuándo) y
+  poder cancelar una suscripción **real** de Mercado Pago de un usuario desde el panel.
+- **Fase 3 (futuro):** más moderación y soporte: suspender temporalmente una cuenta, reenviar
+  enlaces, exportar datos de un usuario, y métricas por usuario.
 
 ## Supuestos
-- La marca de Petito es permanentemente "Petito" y el sitio "petito.pro"; no se necesita que
-  el nombre sea configurable, así que se fija en el producto para evitar que vuelva a cambiarse
-  por error.
-- Solo se corrigen las creaciones NUEVAS; las viejas (incluido el video que mostró
-  "Cuentapatas") se dejan tal cual, según lo acordado.
-- El arreglo cubre todos los tipos de creación (video que habla, retrato e historia) porque
-  todos usan la misma marca.
-- No hay cambios de diseño, posición ni estilo de la marca de agua; solo cambia el texto.
+- "Eliminar perfiles" cubre **ambas** cosas: eliminar una mascota puntual y eliminar una
+  cuenta de usuario completa (con todo su contenido).
+- "Cambiar el plan" significa **solo activar o quitar Plus** como cortesía, sin cobro en
+  Mercado Pago y reversible; no se eligen mensual/anual ni fecha de vencimiento en esta fase.
+- "Eliminar creaciones" cubre los **tres tipos**: historias, retratos y videos.
+- Se agrega una **vista de Usuarios** al panel para gestionar planes y perfiles.
+- El acceso de administrador sigue basándose en la lista de correos permitidos existente
+  (ningún usuario normal ve ni puede usar estas acciones).
+- Todos los borrados son **permanentes** y piden confirmación; no hay papelera ni deshacer en
+  esta fase.
+- Las creaciones ya generadas que se eliminen dejan de estar disponibles por su enlace público.
 - Para que el cambio quede en vivo en petito.pro hace falta re-publicar después de aplicarlo.
