@@ -39,7 +39,8 @@ export async function runClaude(system: string, text: string, imagesB64: string[
     model,
     max_tokens: 4096,
     system,
-    output_config: { effort: "low" },
+    // Haiku models don't take the effort setting; sending it makes the request fail.
+    ...(model.includes("haiku") ? {} : { output_config: { effort: "low" } }),
     // Server-side refusal fallback exists for the larger models only.
     ...(FALLBACK_MODELS.has(model) ? { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" } : {}),
     messages: [{ role: "user", content }],
