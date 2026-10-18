@@ -45,14 +45,18 @@ Authorized redirect URI: `https://<project-ref>.supabase.co/auth/v1/callback`.
 | OpenAI (alternative to Claude for text) | platform.openai.com → API keys | `OPENAI_API_KEY` (+ `AI_PROVIDER=openai`) |
 | fal.ai | fal.ai/dashboard/keys | `FAL_KEY` |
 | ElevenLabs | elevenlabs.io → API keys (same account as today) | `ELEVENLABS_API_KEY` |
+
+Talking videos use ElevenLabs' lip-sync video model by default (`TALK_VIDEO_PROVIDER=elevenlabs`): the
+photo and voice clip are sent inline, no public URL needed. It requires an ElevenLabs **Pro plan or above**
+and an API key with the *Image & Video* permission. Set `TALK_VIDEO_PROVIDER=fal` to use fal.ai instead.
 | Mercado Pago | Tus integraciones → credenciales de producción | `MERCADOPAGO_ACCESS_TOKEN` |
 
 Mercado Pago → Webhooks: URL `https://petito.pro/api/payments/webhook/mercadopago`, events
 *Pagos*, *Planes y suscripciones* (`subscription_preapproval`, `subscription_authorized_payment`);
 copy the signing secret into `MERCADOPAGO_WEBHOOK_SECRET`.
 
-`PUBLIC_BASE_URL` must be the public origin (`https://petito.pro`): fal.ai downloads the talking-video
-image and audio from `/api/media/...` on that origin, and calls back `/api/webhooks/fal`.
+`PUBLIC_BASE_URL` must be the public origin (`https://petito.pro`): Mercado Pago returns there, and with
+`TALK_VIDEO_PROVIDER=fal` fal.ai downloads media from `/api/media/...` on that origin.
 
 ## 2. Moving the existing data (once, then again on cutover day)
 

@@ -40,6 +40,9 @@ export const env = {
   falImageModel: process.env.FAL_IMAGE_MODEL ?? "fal-ai/nano-banana/edit",
   falTalkModel: process.env.FAL_TALK_MODEL ?? "fal-ai/sync-lipsync/v3/image-to-video",
   elevenKey: process.env.ELEVENLABS_API_KEY ?? "",
+  // "elevenlabs" (creatify-aurora lip-sync, inline inputs) or "fal" (sync-lipsync, needs public media URLs)
+  talkVideoProvider: (process.env.TALK_VIDEO_PROVIDER ?? "elevenlabs").toLowerCase() === "fal" ? "fal" : "elevenlabs",
+  talkVideoCostPerSec: Number(process.env.TALK_VIDEO_COST_PER_SEC ?? "0.1333"),
   narrationModel: process.env.NARRATION_MODEL ?? "eleven_multilingual_v2",
   narrationEnabled: bool("NARRATION_ENABLED", true) && (Boolean(process.env.ELEVENLABS_API_KEY) || process.env.MOCK_AI === "1"),
   // payments
