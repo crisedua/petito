@@ -2,12 +2,12 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "@/lib/router";
 import { motion, useReducedMotion } from "framer-motion";
-import { PawPrint, ArrowRight, Sparkles, Heart, BookHeart, Mic, Smartphone } from "lucide-react";
+import { PawPrint, ArrowRight, Sparkles, Heart, BookHeart, Mic } from "lucide-react";
 import { ProfileMenu } from "@/components/ProfileMenu";
 import { useAuth } from "@/lib/auth";
 import { getPets } from "@/lib/api";
-import { openInstallSheet } from "@/components/app/InstallPrompt";
-import { isStandalone } from "@/lib/install";
+import { openInstallSheet, useInstallOffer } from "@/components/app/InstallPrompt";
+import { isMobile, isStandalone } from "@/lib/install";
 
 const HERO_IMG = "https://images.unsplash.com/photo-1558788353-f76d92427f16?crop=entropy&cs=srgb&fm=jpg&q=85&w=900";
 
@@ -22,6 +22,7 @@ export default function Landing() {
   const { user } = useAuth();
   const reduce = useReducedMotion();
   const [hasPets, setHasPets] = useState(false);
+  const installOffer = useInstallOffer();
 
   useEffect(() => {
     if (!user) { setHasPets(false); return; }
@@ -53,7 +54,19 @@ export default function Landing() {
         <ProfileMenu />
       </div>
 
-      <div className="flex-1 px-6 pt-6 pb-10 overflow-y-auto no-scrollbar">
+      <div className="flex-1 px-6 pt-4 pb-10 overflow-y-auto no-scrollbar">
+        {installOffer && (
+          <button onClick={openInstallSheet} data-testid="landing-install"
+            className="mb-4 w-full flex items-center gap-3 p-3 rounded-2xl border text-left shadow-sm" style={{ background: "#fff", borderColor: "#EEE3D2" }}>
+            <img src="/apple-touch-icon.png" alt="" className="w-10 h-10 rounded-xl shrink-0" />
+            <div className="flex-1 min-w-0">
+              <div className="font-display font-bold text-sm" style={{ color: "#3A2A20" }}>{isMobile() ? "Agrega Petito a tu teléfono" : "Instala Petito en tu computador"}</div>
+              <div className="text-xs mt-0.5" style={{ color: "#8A7868" }}>{isMobile() ? "Un ícono en tu inicio, como una app." : "En su propia ventana, como una app."} Sin descargar nada.</div>
+            </div>
+            <span className="px-3 h-9 rounded-full text-xs font-display font-bold text-white grid place-items-center shrink-0" style={{ background: "#B85C3C" }}>Agregar</span>
+          </button>
+        )}
+
         <motion.div {...fade(0)}
           className="relative rounded-[2rem] overflow-hidden shadow-xl border-4 border-white"
           style={{ aspectRatio: "4 / 5", maxHeight: 360, margin: "0 auto" }}>
@@ -117,18 +130,6 @@ export default function Landing() {
             Lo imaginado por IA siempre va marcado. Tus recuerdos reales son solo tuyos. 🐾
           </p>
         </div>
-
-        {!isStandalone() && (
-          <button onClick={openInstallSheet} data-testid="landing-install"
-            className="mt-8 w-full flex items-center gap-3 p-4 rounded-2xl border text-left" style={{ background: "#fff", borderColor: "#EEE3D2" }}>
-            <img src="/apple-touch-icon.png" alt="" className="w-11 h-11 rounded-xl shrink-0" />
-            <div className="flex-1">
-              <div className="font-display font-bold text-sm" style={{ color: "#3A2A20" }}>Agrega Petito a tu teléfono</div>
-              <div className="text-xs mt-0.5" style={{ color: "#8A7868" }}>Un ícono en tu inicio, como una app. Sin descargar nada.</div>
-            </div>
-            <Smartphone className="w-5 h-5 shrink-0" style={{ color: "#B85C3C" }} />
-          </button>
-        )}
 
         <button onClick={() => nav("/admin")} className="w-full mt-10 text-xs" style={{ color: "#C3B4A3" }} data-testid="landing-admin-link">
           Panel de administración

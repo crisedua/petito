@@ -10,17 +10,88 @@
   "orientation": "portrait",
   "background_color": "#FAF6F0",
   "theme_color": "#E05A47",
-  "categories": ["lifestyle", "entertainment", "photo"],
+  "categories": [
+    "lifestyle",
+    "entertainment",
+    "photo"
+  ],
   "icons": [
-    { "src": "/icon-192.png", "type": "image/png", "sizes": "192x192", "purpose": "any" },
-    { "src": "/icon-512.png", "type": "image/png", "sizes": "512x512", "purpose": "any" },
-    { "src": "/icon-maskable-192.png", "type": "image/png", "sizes": "192x192", "purpose": "maskable" },
-    { "src": "/icon-maskable-512.png", "type": "image/png", "sizes": "512x512", "purpose": "maskable" }
+    {
+      "src": "/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-maskable-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
+    }
   ],
   "shortcuts": [
-    { "name": "Mi mascota", "short_name": "Universo", "url": "/universo?app=1", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] },
-    { "name": "Hacer que hable", "short_name": "Hablar", "url": "/hablar?app=1", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] },
-    { "name": "Amigos de Petito", "short_name": "Amigos", "url": "/amigos?app=1", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] },
-    { "name": "Álbum de recuerdos", "short_name": "Álbum", "url": "/album?app=1", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] }
-  ]
+    {
+      "name": "Mi mascota",
+      "short_name": "Universo",
+      "url": "/universo?app=1",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Hacer que hable",
+      "short_name": "Hablar",
+      "url": "/hablar?app=1",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Amigos de Petito",
+      "short_name": "Amigos",
+      "url": "/amigos?app=1",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Álbum de recuerdos",
+      "short_name": "Álbum",
+      "url": "/album?app=1",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ],
+  "related_applications": [
+    {
+      "platform": "webapp",
+      "url": "https://www.petito.pro/manifest.json"
+    }
+  ],
+  "prefer_related_applications": false
 }

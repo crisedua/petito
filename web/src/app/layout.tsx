@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/lib/auth";
 import { SwRegister } from "@/components/app/SwRegister";
@@ -31,6 +32,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es-CL">
       <body>
+        {/* Chrome/Edge/Samsung offer their install dialog once, early in page load; keep it for our "Agregar" buttons. */}
+        <Script id="install-capture" strategy="beforeInteractive">{`
+          window.addEventListener("beforeinstallprompt", function (e) { e.preventDefault(); window.__petitoBIP = e; window.dispatchEvent(new Event("petito:bip")); });
+          window.addEventListener("appinstalled", function () { window.__petitoInstalled = true; window.__petitoBIP = null; });
+        `}</Script>
         <noscript>Necesitas activar JavaScript para usar Petito.</noscript>
         <div className="App">
           <Toaster position="top-center" richColors />
