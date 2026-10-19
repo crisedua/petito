@@ -181,7 +181,8 @@ function StepStyle({ cfg, style, setStyle, gift, setGift, onBack, onNext, busy }
             <button key={s.key} onClick={() => setStyle(s.key)} data-testid={`portrait-style-${s.key}`}
               className={`relative w-full flex items-center gap-4 p-3 rounded-2xl border-2 text-left transition-all ${style === s.key ? "border-primary bg-primary/10 ring-2 ring-primary/20" : "border-border bg-white"}`}>
               <div className="w-16 h-20 rounded-xl overflow-hidden bg-stone-200 shrink-0">
-                {STYLE_IMG[s.key] && <img src={STYLE_IMG[s.key]} alt={s.label} className="w-full h-full object-cover" />}
+                {STYLE_IMG[s.key] ? <img src={STYLE_IMG[s.key]} alt={s.label} className="w-full h-full object-cover" />
+                  : <div className="w-full h-full grid place-items-center text-3xl bg-gradient-to-b from-stone-700 to-stone-900">{s.emoji}</div>}
               </div>
               <div className="flex-1">
                 <div className="font-display font-semibold text-neutral-900">{s.emoji} {s.label}</div>
