@@ -10,16 +10,27 @@ export type AppUser = {
   name: string | null;
   picture: string | null;
   created_at: string;
+  is_admin?: boolean;
+  suspended_at?: string | null;
+  admin_note?: string | null;
 };
 
-export const isAdmin = (email: string | null | undefined) => env.adminEmails.has((email ?? "").toLowerCase());
+/** Admins listed in ADMIN_EMAILS (Vercel). They can't be demoted, suspended or deleted from the panel. */
+export const isOwnerAdmin = (email: string | null | undefined) => env.adminEmails.has((email ?? "").toLowerCase());
+
+/** Admin either from ADMIN_EMAILS or made admin in the panel (app_users.is_admin). */
+export const isAdmin = (u: string | { email: string | null; is_admin?: boolean | null } | null | undefined) =>
+  !u ? false : typeof u === "string" ? isOwnerAdmin(u) : isOwnerAdmin(u.email) || Boolean(u.is_admin);
+
+export const SUSPENDED_DETAIL = "Tu cuenta está suspendida. Escríbenos por WhatsApp si crees que es un error.";
 
 export const userPublic = (u: AppUser) => ({
   user_id: u.user_id,
   email: u.email,
   name: u.name,
   picture: u.picture,
-  is_admin: isAdmin(u.email),
+  is_admin: isAdmin(u),
+  suspended: Boolean(u.suspended_at),
 });
 
 async function findOrCreateByEmail(email: string, name: string | null, picture: string | null, authUserId: string | null) {
@@ -71,11 +82,12 @@ export async function getCurrentUser(req: Request): Promise<AppUser | null> {
 export async function requireUser(req: Request): Promise<AppUser> {
   const u = await getCurrentUser(req);
   if (!u) throw fail(401, "Inicia sesión para continuar");
+  if (u.suspended_at) throw fail(403, SUSPENDED_DETAIL);
   return u;
 }
 
 export async function requireAdmin(req: Request): Promise<AppUser> {
   const u = await requireUser(req);
-  if (!isAdmin(u.email)) throw fail(403, "No autorizado");
+  if (!isAdmin(u)) throw fail(403, "No autorizado");
   return u;
 }

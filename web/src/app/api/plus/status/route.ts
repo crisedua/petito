@@ -16,6 +16,6 @@ export const GET = handler(async (req: Request) => {
     monthly_clp: env.plusMonthlyClp,
     annual_clp: env.plusAnnualClp,
     free_mode: env.freeMode,
-    is_admin: isAdmin(user.email),
+    is_admin: isAdmin(user),
   });
 });
