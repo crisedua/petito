@@ -108,7 +108,7 @@ export default function TalkView() {
         <PawPrint className="w-12 h-12 text-primary mb-4" />
         <h2 className="font-display font-bold text-xl text-neutral-900">No pudimos crear el video</h2>
         <p className="text-sm text-muted-foreground mt-2">{t.error || "Intenta con otra foto."}</p>
-        <Button onClick={() => nav("/hablar")} className="mt-6 rounded-2xl">Intentar de nuevo</Button>
+        <Button onClick={() => nav(t.mode === "preview_free" ? "/" : "/hablar")} className="mt-6 rounded-2xl">Intentar de nuevo</Button>
       </div>
     );
   }

@@ -119,8 +119,8 @@ export const myPortraits = () => api.get("/me/portraits").then((r) => r.data);
 export const myVideos = () => api.get("/me/videos").then((r) => r.data);
 
 // ---- talking video ("Petito Habla") ----
-export const createTalkPreview = async (file) => {
-  const { data: start } = await api.post("/talk/preview/start");
+export const createTalkPreview = async (file, meta = {}) => {
+  const { data: start } = await api.post("/talk/preview/start", meta);
   await uploadFiles(`/talk/preview/${start.id}`, [file]);
   return api.post(`/talk/preview/${start.id}/generate`).then((r) => r.data);
 };

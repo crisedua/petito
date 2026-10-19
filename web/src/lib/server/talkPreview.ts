@@ -4,8 +4,9 @@ import { dayStartIso, deviceId, fail, originFrom } from "./http";
 import { env } from "./env";
 import { isoNow, newId, newSlug } from "./ids";
 import { retentionIso } from "./jobPhotos";
+import { TALK_SCENARIOS } from "@/lib/catalogs";
 
-export async function startPreview(req: Request) {
+export async function startPreview(req: Request, meta: { pet_name?: string; scenario?: string } = {}) {
   await ensureVoices();
   const device = deviceId(req);
   if (device) {
@@ -15,6 +16,8 @@ export async function startPreview(req: Request) {
   }
   const v = {
     id: newId(), share_slug: newSlug(), device_id: device || null, mode: "preview_free", price_clp: env.talkPriceClp,
+    pet_name: (meta.pet_name ?? "").trim().slice(0, 40) || null,
+    scenario: meta.scenario && meta.scenario in TALK_SCENARIOS ? meta.scenario : null,
     voice_id: defaultVoiceId(), media_base: originFrom(req), status: "draft", progress_step: "", progress_pct: 0,
     created_at: isoNow(), expires_at: retentionIso(env.retentionDays),
   };
