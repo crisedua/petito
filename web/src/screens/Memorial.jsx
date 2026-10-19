@@ -260,7 +260,7 @@ function StepResult({ portrait, setPortrait, portraitId, slug, cfg, price, capti
   useEffect(() => {
     if (!portraitId || paid || autoTried.current) return;
     autoTried.current = true;
-    portraitCheckout(portraitId).then((r) => { if (r?.already_paid || r?.mode === "plus") refresh(); }).catch(() => {});
+    portraitCheckout(portraitId, true).then((r) => { if (r?.already_paid || r?.mode === "plus") refresh(); }).catch(() => {});
   }, [portraitId, paid]);
 
   const unlock = async () => {
@@ -268,7 +268,7 @@ function StepResult({ portrait, setPortrait, portraitId, slug, cfg, price, capti
     try {
       const res = await portraitCheckout(portraitId);
       if (res.already_paid || res.mode === "plus") { await refresh(); toast.success("¡Retrato desbloqueado en HD! 🤍"); }
-      else { nav("/plus"); }
+      else { nav("/plus?from=memorial"); }
     } catch (e) { toast.error(e?.response?.data?.detail || "No se pudo desbloquear"); }
     finally { setBusy(false); }
   };

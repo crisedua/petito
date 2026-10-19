@@ -1,3 +1,4 @@
+import { track } from "@/lib/server/events";
 import { inngest, EV } from "../client";
 import { awaitFal, progress } from "../helpers";
 import { db, logGeneration } from "@/lib/server/db";
@@ -156,6 +157,7 @@ export const generateStory = inngest.createFunction(
         status: "preview_ready", title: copy.title, progress_pct: 100, bonus_pending: bonus, narration_pending: narrate,
         progress_step: bonus ? "Agregando escenas mágicas..." : "¡Tu historia está lista!",
       }).eq("id", id);
+      await track("result_ready", { feature: "story", deviceId: story.device_id, userId: story.user_id, props: { theme: story.theme } });
     });
 
     // Narration and magic scenes stream in while the person already watches the story.

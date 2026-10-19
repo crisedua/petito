@@ -1,23 +1,32 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
+import { OG_IMAGE, SITE_DESCRIPTION, SITE_TITLE, SITE_URL } from "@/lib/site";
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/lib/auth";
 import { SwRegister } from "@/components/app/SwRegister";
 import { WhatsAppButton } from "@/components/app/WhatsAppButton";
 import { InstallPrompt } from "@/components/app/InstallPrompt";
+import { Analytics } from "@/components/app/Analytics";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Petito · Tu mascota cuenta su historia",
-  description: "Petito: tu mascota cuenta su historia. Crea una historia vertical con humor chileno en segundos.",
+  metadataBase: new URL(SITE_URL),
+  title: SITE_TITLE,
+  description: SITE_DESCRIPTION,
+  applicationName: "Petito",
   manifest: "/manifest.json",
   icons: { icon: "/icon-192.png", apple: "/apple-touch-icon.png" },
   appleWebApp: { capable: true, statusBarStyle: "default", title: "Petito" },
+  // What WhatsApp, Instagram, Facebook, X and iMessage show when someone shares a Petito link.
   openGraph: {
-    title: "Petito · Tu mascota cuenta su historia",
-    description: "Crea una historia vertical de tu mascota con humor chileno.",
     type: "website",
+    siteName: "Petito",
+    locale: "es_CL",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    images: [OG_IMAGE],
   },
+  twitter: { card: "summary_large_image", title: SITE_TITLE, description: SITE_DESCRIPTION, images: ["/og-image.jpg"] },
 };
 
 export const viewport: Viewport = {
@@ -44,6 +53,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <SwRegister />
           <WhatsAppButton />
           <InstallPrompt />
+          <Analytics />
         </div>
       </body>
     </html>

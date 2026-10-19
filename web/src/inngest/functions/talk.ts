@@ -1,3 +1,4 @@
+import { track } from "@/lib/server/events";
 import { NonRetriableError } from "inngest";
 import { inngest, EV } from "../client";
 import { awaitElevenVideo, awaitFal, creepingProgress } from "../helpers";
@@ -118,6 +119,7 @@ export const generateTalk = inngest.createFunction(
     await step.run("done", async () => {
       await logGeneration({ ownerId: id, step: "talk_video", model: gen.model, costUsd: env.talkVideoCostPerSec * (long ? 5 : 3), durationMs: gen.ms });
       await db().from("videos").update({ status: "preview_ready", preview_file: "preview.mp4", progress_pct: 100, progress_step: "¡Listo!" }).eq("id", id);
+      await track("result_ready", { feature: "video", deviceId: v.device_id, userId: v.user_id, props: { mode: v.mode } });
     });
     return { ok: true };
   },

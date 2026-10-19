@@ -1,3 +1,4 @@
+import { trackLater } from "@/lib/server/events";
 import { fail, handler, json } from "@/lib/server/http";
 import { db } from "@/lib/server/db";
 import { getStory } from "@/lib/server/stories";
@@ -24,5 +25,6 @@ export const POST = handler(async (req: Request, ctx: Ctx<{ id: string }>) => {
   if (!saved.length) throw fail(400, "No se pudieron procesar las fotos");
   await db().from("story_photos").insert(saved);
   await db().from("stories").update({ photo_count: saved.length }).eq("id", s.id);
+  trackLater("photo_uploaded", { req, feature: "story", userId: s.user_id, props: { count: saved.length } });
   return json({ uploaded: saved.length });
 });

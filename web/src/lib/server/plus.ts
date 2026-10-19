@@ -2,6 +2,7 @@ import { db } from "./db";
 import { isoNow, newId } from "./ids";
 import { env } from "./env";
 import { cancelPreapproval, mpEnabled } from "./mercadopago";
+import { lastCheckoutFeature, track } from "./events";
 
 export const PLUS_PLANS = {
   monthly: { reason: "Petito Plus mensual", amount: env.plusMonthlyClp, frequency: 1, days: 31 },
@@ -52,13 +53,44 @@ export async function grantPlus(userId: string, plan: PlanKey, prefix: "dev" | "
 
 /** Port of `_activate_plus`: update a local subscription from a real Mercado Pago preapproval status. */
 export async function activatePlus(preapprovalId: string, status: string | undefined, nextPaymentDate?: string | null) {
-  const { data: sub } = await db().from("subscriptions").select("plan").eq("mp_id", preapprovalId).maybeSingle();
+  const { data: sub } = await db().from("subscriptions").select("plan, user_id, membership_active").eq("mp_id", preapprovalId).maybeSingle();
   if (!sub) return;
   const active = status === "authorized";
   const days = (PLUS_PLANS[sub.plan as PlanKey] ?? PLUS_PLANS.monthly).days;
   const upd: Record<string, unknown> = { status, membership_active: active, next_payment_date: nextPaymentDate ?? null };
   if (active) upd.plus_until = new Date(Date.now() + days * 86400_000).toISOString();
   await db().from("subscriptions").update(upd).eq("mp_id", preapprovalId);
+  if (active && !sub.membership_active) await recordPayment(preapprovalId, sub.user_id, sub.plan, "new");
+}
+
+/**
+ * Funnel: a Mercado Pago subscription became active ("new", charged the plan price), or a later
+ * monthly/annual charge went through ("renewal"). Credited to the feature where the person last hit
+ * the paywall. Deduplicated, since webhooks and the return-from-checkout sync can both fire.
+ */
+export async function recordPayment(mpId: string, userId: string, plan: string, kind: "new" | "renewal", charge?: { id: string; amount: number }) {
+  try {
+    const key = kind === "new" ? ["props->>mp_id", mpId] : ["props->>payment_id", charge!.id];
+    const { data: dup } = await db().from("events").select("id").eq("name", "paid").eq(key[0], key[1]).limit(1).maybeSingle();
+    if (dup) return;
+    const amount = charge?.amount ?? (PLUS_PLANS[plan as PlanKey] ?? PLUS_PLANS.monthly).amount;
+    await track("paid", {
+      userId, feature: (await lastCheckoutFeature(userId)) ?? "plus",
+      props: { mp_id: mpId, plan, kind, amount, ...(charge ? { payment_id: charge.id } : {}) },
+    });
+  } catch (e) {
+    console.warn("recordPayment failed", e);
+  }
+}
+
+/** A charge on a subscription that was already active for a week or more counts as a renewal. */
+export async function recordRenewalIfAny(mpId: string, charge: { id: string; amount: number }) {
+  const { data: sub } = await db().from("subscriptions").select("plan, user_id").eq("mp_id", mpId).maybeSingle();
+  if (!sub) return;
+  const { data: first } = await db().from("events").select("created_at").eq("name", "paid").eq("props->>mp_id", mpId)
+    .order("created_at", { ascending: true }).limit(1).maybeSingle();
+  if (!first || Date.now() - new Date(first.created_at).getTime() < 7 * 86_400_000) return; // that's the first charge
+  await recordPayment(mpId, sub.user_id, sub.plan, "renewal", charge);
 }
 
 export async function latestSubscription(userId: string) {
