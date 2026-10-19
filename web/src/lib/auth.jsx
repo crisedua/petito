@@ -17,7 +17,12 @@ export function AuthProvider({ children }) {
     } catch (e) {
       setUser(null);
       // 401 just means "not signed in"; anything else is a real problem worth showing.
-      if (e?.response?.status && e.response.status !== 401) toast.error(e.response.data?.detail || "No pudimos cargar tu cuenta");
+      if (e?.response?.status && e.response.status !== 401) toast.error(e.response.data?.detail || "No pudimos cargar tu cuenta", { duration: 12000 });
+      // Suspended accounts are signed out so they don't bounce back into a half-signed-in state.
+      if (e?.response?.status === 403 && e.response.data?.suspended) {
+        try { await logoutApi(); } catch { /* ignore */ }
+        try { await supabaseBrowser().auth.signOut(); } catch { /* ignore */ }
+      }
     } finally {
       setLoading(false);
     }

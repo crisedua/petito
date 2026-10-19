@@ -103,9 +103,11 @@ export const adminLogin = (password) => api.post("/admin/login", { password }).t
 export const adminMetrics = () => api.get("/admin/metrics").then((r) => r.data);
 export const adminSurvey = () => api.get("/admin/survey").then((r) => r.data);
 export const adminStories = (filter = "all") => api.get(`/admin/stories?filter=${filter}`).then((r) => r.data);
-export const adminUsers = (q = "") => api.get(`/admin/users?q=${encodeURIComponent(q)}`).then((r) => r.data);
+export const adminUsers = (q = "", filter = "") => api.get("/admin/users", { params: { q, filter } }).then((r) => r.data);
+export const adminCreateUser = (payload) => api.post("/admin/users", payload).then((r) => r.data);
+export const adminUpdateUser = (id, patch) => api.patch(`/admin/users/${id}`, patch).then((r) => r.data);
 export const adminUserDetail = (id) => api.get(`/admin/users/${id}`).then((r) => r.data);
-export const adminSetPlus = (id, active) => api.post(`/admin/users/${id}/plus`, { active }).then((r) => r.data);
+export const adminSetPlus = (id, active, opts = {}) => api.post(`/admin/users/${id}/plus`, { active, ...opts }).then((r) => r.data);
 export const adminDeletePet = (id) => api.delete(`/admin/pets/${id}`).then((r) => r.data);
 export const adminDeleteUser = (id) => api.delete(`/admin/users/${id}`).then((r) => r.data);
 export const adminDeleteCreation = (kind, id) => api.delete(`/admin/creations/${kind}/${id}`).then((r) => r.data);

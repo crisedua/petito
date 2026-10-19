@@ -7,6 +7,8 @@ import { PawPrint, ArrowRight, Sparkles, Heart, BookHeart, Mic, Camera, Loader2 
 import { ProfileMenu } from "@/components/ProfileMenu";
 import { useAuth } from "@/lib/auth";
 import { createTalkPreview, getPets } from "@/lib/api";
+import { openInstallSheet, useInstallOffer } from "@/components/app/InstallPrompt";
+import { isMobile, isStandalone } from "@/lib/install";
 
 const HERO_IMG = "https://images.unsplash.com/photo-1558788353-f76d92427f16?crop=entropy&cs=srgb&fm=jpg&q=85&w=900";
 
@@ -26,11 +28,16 @@ export default function Landing() {
   const { user } = useAuth();
   const reduce = useReducedMotion();
   const [hasPets, setHasPets] = useState(false);
+  const installOffer = useInstallOffer();
 
   useEffect(() => {
     if (!user) { setHasPets(false); return; }
-    getPets().then((p) => setHasPets(p.length > 0)).catch(() => setHasPets(false));
-  }, [user]);
+    getPets().then((p) => {
+      setHasPets(p.length > 0);
+      // Opened from the home-screen icon: skip the landing and go straight to their pet.
+      if (p.length > 0 && (isStandalone() || new URLSearchParams(window.location.search).get("app") === "1")) nav("/universo", { replace: true });
+    }).catch(() => setHasPets(false));
+  }, [user]); // eslint-disable-line
 
   const startUniverse = () => {
     if (user) nav(hasPets ? "/universo" : "/bienvenida");
@@ -53,7 +60,19 @@ export default function Landing() {
         <ProfileMenu />
       </div>
 
-      <div className="flex-1 px-6 pt-6 pb-10 overflow-y-auto no-scrollbar">
+      <div className="flex-1 px-6 pt-4 pb-10 overflow-y-auto no-scrollbar">
+        {installOffer && (
+          <button onClick={openInstallSheet} data-testid="landing-install"
+            className="mb-4 w-full flex items-center gap-3 p-3 rounded-2xl border text-left shadow-sm" style={{ background: "#fff", borderColor: "#EEE3D2" }}>
+            <img src="/apple-touch-icon.png" alt="" className="w-10 h-10 rounded-xl shrink-0" />
+            <div className="flex-1 min-w-0">
+              <div className="font-display font-bold text-sm" style={{ color: "#3A2A20" }}>{isMobile() ? "Agrega Petito a tu teléfono" : "Instala Petito en tu computador"}</div>
+              <div className="text-xs mt-0.5" style={{ color: "#8A7868" }}>{isMobile() ? "Un ícono en tu inicio, como una app." : "En su propia ventana, como una app."} Sin descargar nada.</div>
+            </div>
+            <span className="px-3 h-9 rounded-full text-xs font-display font-bold text-white grid place-items-center shrink-0" style={{ background: "#B85C3C" }}>Agregar</span>
+          </button>
+        )}
+
         <motion.div {...fade(0)}
           className="relative rounded-[2rem] overflow-hidden shadow-xl border-4 border-white"
           style={{ aspectRatio: "4 / 5", maxHeight: 200, margin: "0 auto" }}>
@@ -69,13 +88,13 @@ export default function Landing() {
           data-testid="landing-headline">
           Su vida es parte de tu historia. <span style={{ color: "#B85C3C" }}>Hagamos que sea inolvidable.</span>
         </motion.h1>
-        <motion.p {...fade(0.2)} className="mt-2 text-[0.95rem] leading-snug" style={{ color: "#7A6A5E" }}>
-          Convierte los momentos con tu mascota en historias, recuerdos, aventuras y pequeñas sorpresas llenas de cariño.
-        </motion.p>
-
         <motion.div {...fade(0.28)}>
           <VoicePreviewCard onDone={(slug) => nav(`/v/${slug}`)} />
         </motion.div>
+
+        <motion.p {...fade(0.3)} className="mt-5 text-[0.95rem] leading-snug" style={{ color: "#7A6A5E" }}>
+          Convierte los momentos con tu mascota en historias, recuerdos, aventuras y pequeñas sorpresas llenas de cariño.
+        </motion.p>
 
         <motion.button {...fade(0.32)} whileTap={reduce ? undefined : { scale: 0.97 }}
           onClick={startUniverse} data-testid="landing-create-universe"
@@ -158,7 +177,7 @@ function VoicePreviewCard({ onDone }) {
   };
 
   return (
-    <div className="mt-5 rounded-3xl bg-white border p-4 shadow-xl" style={{ borderColor: "#EEE3D2", boxShadow: "0 14px 30px -14px rgba(194,104,63,0.45)" }}
+    <div className="mt-4 rounded-3xl bg-white border p-4 shadow-xl" style={{ borderColor: "#EEE3D2", boxShadow: "0 14px 30px -14px rgba(194,104,63,0.45)" }}
       data-testid="landing-voice-card">
       <div className="font-display font-bold text-lg" style={{ color: "#3A2A20" }}>Escucha lo que te diría 🐾</div>
       <div className="text-sm mt-0.5" style={{ color: "#8A7868" }}>Sube su foto y en un minuto te habla. Gratis y sin cuenta.</div>

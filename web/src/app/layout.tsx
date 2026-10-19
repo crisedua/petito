@@ -1,15 +1,17 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/lib/auth";
 import { SwRegister } from "@/components/app/SwRegister";
 import { WhatsAppButton } from "@/components/app/WhatsAppButton";
+import { InstallPrompt } from "@/components/app/InstallPrompt";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Petito · Tu mascota cuenta su historia",
   description: "Petito: tu mascota cuenta su historia. Crea una historia vertical con humor chileno en segundos.",
   manifest: "/manifest.json",
-  icons: { apple: "/icon-192.png" },
+  icons: { icon: "/icon-192.png", apple: "/apple-touch-icon.png" },
   appleWebApp: { capable: true, statusBarStyle: "default", title: "Petito" },
   openGraph: {
     title: "Petito · Tu mascota cuenta su historia",
@@ -30,12 +32,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es-CL">
       <body>
+        {/* Chrome/Edge/Samsung offer their install dialog once, early in page load; keep it for our "Agregar" buttons. */}
+        <Script id="install-capture" strategy="beforeInteractive">{`
+          window.addEventListener("beforeinstallprompt", function (e) { e.preventDefault(); window.__petitoBIP = e; window.dispatchEvent(new Event("petito:bip")); });
+          window.addEventListener("appinstalled", function () { window.__petitoInstalled = true; window.__petitoBIP = null; });
+        `}</Script>
         <noscript>Necesitas activar JavaScript para usar Petito.</noscript>
         <div className="App">
           <Toaster position="top-center" richColors />
           <AuthProvider>{children}</AuthProvider>
           <SwRegister />
           <WhatsAppButton />
+          <InstallPrompt />
         </div>
       </body>
     </html>
