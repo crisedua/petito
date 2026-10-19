@@ -14,7 +14,6 @@ import {
 } from "@/lib/api";
 import { StoryCarousel } from "@/components/StoryCarousel";
 import { InviteButton } from "@/components/InviteButton";
-import { SurveyCard } from "@/components/SurveyCard";
 
 const SPECIES = [
   { key: "perro", label: "Perro", emoji: "🐶" },
@@ -444,7 +443,6 @@ function StepResult({ story, setStory, storyId, slug, cfg, price, nav }) {
           </div>
         )}
 
-        <SurveyCard storyId={storyId} />
       </div>
 
       {!paid && (

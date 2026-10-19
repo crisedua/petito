@@ -90,7 +90,6 @@ export const getStory = (id) => api.get(`/stories/${id}`).then((r) => r.data);
 export const getStoryBySlug = (slug) => api.get(`/stories/slug/${slug}`).then((r) => r.data);
 export const checkout = (id) => api.post(`/stories/${id}/checkout`).then((r) => r.data);
 export const saveEmail = (id, email) => api.post(`/stories/${id}/email`, { email }).then((r) => r.data);
-export const submitSurvey = (storyId, answer) => api.post("/survey", { story_id: storyId, answer }).then((r) => r.data);
 
 export const createPortrait = (payload) => api.post("/portraits", { pet_id: getActivePetId() || undefined, ...payload }).then((r) => r.data);
 export const uploadPortraitPhoto = (id, file) => uploadFiles(`/portraits/${id}/photo`, [file]);

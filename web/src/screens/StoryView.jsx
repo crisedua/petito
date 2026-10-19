@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { getStoryBySlug, mediaUrl } from "@/lib/api";
 import { StoryCarousel } from "@/components/StoryCarousel";
 import { InviteButton } from "@/components/InviteButton";
-import { SurveyCard } from "@/components/SurveyCard";
 
 export default function StoryView() {
   const { slug } = useParams();
@@ -102,7 +101,6 @@ export default function StoryView() {
           </div>
         )}
 
-        <SurveyCard storyId={story.id} />
       </div>
     </div>
   );
