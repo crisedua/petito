@@ -21,6 +21,10 @@ const STYLE_IMG = {
   renacentista: "/portrait-styles/renacentista.jpg",
   victoriano: "/portrait-styles/victoriano.jpg",
   halloween: "/portrait-styles/halloween.jpg",
+  vampiro: "/portrait-styles/vampiro.jpg",
+  bruja: "/portrait-styles/bruja.jpg",
+  calabazas: "/portrait-styles/calabazas.jpg",
+  casa_embrujada: "/portrait-styles/casa_embrujada.jpg",
 };
 const QUOTES = [
   "Me estoy poniendo la mejor pose, aguanta...",
