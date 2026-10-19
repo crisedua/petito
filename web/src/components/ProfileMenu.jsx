@@ -1,7 +1,9 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "@/lib/router";
-import { LogOut, Images, LogIn, Users } from "lucide-react";
+import { LogOut, Images, LogIn, Users, Smartphone } from "lucide-react";
+import { openInstallSheet } from "@/components/app/InstallPrompt";
+import { isStandalone } from "@/lib/install";
 import { useAuth } from "@/lib/auth";
 
 export function ProfileMenu() {
@@ -49,6 +51,12 @@ export function ProfileMenu() {
             className="w-full flex items-center gap-2.5 px-4 py-3 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 border-t border-border">
             <Users className="w-4 h-4 text-primary" /> Amigos de Petito
           </button>
+          {!isStandalone() && (
+            <button onClick={() => { setOpen(false); openInstallSheet(); }} data-testid="menu-install"
+              className="w-full flex items-center gap-2.5 px-4 py-3 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 border-t border-border">
+              <Smartphone className="w-4 h-4 text-primary" /> Agregar a mi teléfono
+            </button>
+          )}
           <button onClick={() => { setOpen(false); logout(); nav("/"); }} data-testid="menu-logout"
             className="w-full flex items-center gap-2.5 px-4 py-3 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 border-t border-border">
             <LogOut className="w-4 h-4 text-primary" /> Cerrar sesión

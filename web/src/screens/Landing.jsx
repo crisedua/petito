@@ -2,10 +2,12 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "@/lib/router";
 import { motion, useReducedMotion } from "framer-motion";
-import { PawPrint, ArrowRight, Sparkles, Heart, BookHeart, Mic } from "lucide-react";
+import { PawPrint, ArrowRight, Sparkles, Heart, BookHeart, Mic, Smartphone } from "lucide-react";
 import { ProfileMenu } from "@/components/ProfileMenu";
 import { useAuth } from "@/lib/auth";
 import { getPets } from "@/lib/api";
+import { openInstallSheet } from "@/components/app/InstallPrompt";
+import { isStandalone } from "@/lib/install";
 
 const HERO_IMG = "https://images.unsplash.com/photo-1558788353-f76d92427f16?crop=entropy&cs=srgb&fm=jpg&q=85&w=900";
 
@@ -23,8 +25,12 @@ export default function Landing() {
 
   useEffect(() => {
     if (!user) { setHasPets(false); return; }
-    getPets().then((p) => setHasPets(p.length > 0)).catch(() => setHasPets(false));
-  }, [user]);
+    getPets().then((p) => {
+      setHasPets(p.length > 0);
+      // Opened from the home-screen icon: skip the landing and go straight to their pet.
+      if (p.length > 0 && (isStandalone() || new URLSearchParams(window.location.search).get("app") === "1")) nav("/universo", { replace: true });
+    }).catch(() => setHasPets(false));
+  }, [user]); // eslint-disable-line
 
   const startUniverse = () => {
     if (user) nav(hasPets ? "/universo" : "/bienvenida");
@@ -111,6 +117,18 @@ export default function Landing() {
             Lo imaginado por IA siempre va marcado. Tus recuerdos reales son solo tuyos. 🐾
           </p>
         </div>
+
+        {!isStandalone() && (
+          <button onClick={openInstallSheet} data-testid="landing-install"
+            className="mt-8 w-full flex items-center gap-3 p-4 rounded-2xl border text-left" style={{ background: "#fff", borderColor: "#EEE3D2" }}>
+            <img src="/apple-touch-icon.png" alt="" className="w-11 h-11 rounded-xl shrink-0" />
+            <div className="flex-1">
+              <div className="font-display font-bold text-sm" style={{ color: "#3A2A20" }}>Agrega Petito a tu teléfono</div>
+              <div className="text-xs mt-0.5" style={{ color: "#8A7868" }}>Un ícono en tu inicio, como una app. Sin descargar nada.</div>
+            </div>
+            <Smartphone className="w-5 h-5 shrink-0" style={{ color: "#B85C3C" }} />
+          </button>
+        )}
 
         <button onClick={() => nav("/admin")} className="w-full mt-10 text-xs" style={{ color: "#C3B4A3" }} data-testid="landing-admin-link">
           Panel de administración
