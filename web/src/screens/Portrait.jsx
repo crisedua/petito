@@ -13,8 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import {
   getConfig, createPortrait, uploadPortraitPhoto, generatePortrait, getPortrait,
-  portraitCheckout, mediaUrl,
-} from "@/lib/api";
+  portraitCheckout, mediaUrl, activePetName } from "@/lib/api";
 import { InviteButton } from "@/components/InviteButton";
 
 const STYLE_IMG = {
@@ -38,6 +37,8 @@ export default function Portrait() {
   const [cfg, setCfg] = useState(null);
   const [step, setStep] = useState("photo");
   const [petName, setPetName] = useState("");
+  // Already know the pet from its universe: fill its name in (still editable).
+  useEffect(() => { activePetName().then((n) => n && setPetName((cur) => cur || n)); }, []);
   const [file, setFile] = useState(null);
   const [style, setStyle] = useState("");
   const [gift, setGift] = useState({ enabled: false, to: "", from: "", message: "" });

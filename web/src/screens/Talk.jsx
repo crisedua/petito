@@ -9,8 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  getConfig, createTalk, uploadTalkPhoto, generateTalk, getTalk, voiceSample,
-} from "@/lib/api";
+  getConfig, createTalk, uploadTalkPhoto, generateTalk, getTalk, voiceSample, activePetName } from "@/lib/api";
 import { mediaUrl } from "@/lib/api";
 import { InviteButton } from "@/components/InviteButton";
 
@@ -26,6 +25,8 @@ export default function Talk() {
   const [cfg, setCfg] = useState(null);
   const [step, setStep] = useState("photo");
   const [petName, setPetName] = useState("");
+  // Already know the pet from its universe: fill its name in (still editable).
+  useEffect(() => { activePetName().then((n) => n && setPetName((cur) => cur || n)); }, []);
   const [file, setFile] = useState(null);
   const [voiceId, setVoiceId] = useState("");
   const [scenario, setScenario] = useState("chistoso");

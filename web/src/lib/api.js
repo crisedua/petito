@@ -151,3 +151,14 @@ export const toggleHeart = (id) => api.post(`/shares/${id}/heart`).then((r) => r
 export const getComments = (id) => api.get(`/shares/${id}/comments`).then((r) => r.data);
 export const addComment = (id, body) => api.post(`/shares/${id}/comments`, { body }).then((r) => r.data);
 export const deleteComment = (id, cid) => api.delete(`/shares/${id}/comments/${cid}`).then((r) => r.data);
+
+/** Name of the pet chosen in its universe (or the account's first pet), or "" if none. */
+export async function activePetName() {
+  try {
+    const id = getActivePetId();
+    const p = id ? await getPet(id) : (await getPets())[0];
+    return p?.name || "";
+  } catch {
+    return "";
+  }
+}
