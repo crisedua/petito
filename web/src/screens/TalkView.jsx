@@ -41,7 +41,7 @@ export default function TalkView() {
   useEffect(() => {
     if (!t?.id || t.paid || t.mode !== "full" || autoTried.current) return;
     autoTried.current = true;
-    talkCheckout(t.id).then((r) => { if (r?.already_paid || r?.mode === "plus") window.location.reload(); }).catch(() => {});
+    talkCheckout(t.id, true).then((r) => { if (r?.already_paid || r?.mode === "plus") window.location.reload(); }).catch(() => {});
   }, [t?.id, t?.paid, t?.mode]);
 
   if (err) return (
@@ -87,7 +87,7 @@ export default function TalkView() {
     try {
       const res = await talkCheckout(t.id);
       if (res.already_paid || res.mode === "plus") window.location.reload();
-      else nav("/plus");
+      else nav("/plus?from=video");
     } catch (e) { toast.error(e?.response?.data?.detail || "No se pudo desbloquear"); }
     finally { setBusy(false); }
   };

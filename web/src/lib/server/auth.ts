@@ -2,6 +2,7 @@ import { createServiceClient, createSessionClient } from "./supabase";
 import { env } from "./env";
 import { fail } from "./http";
 import { isoNow, newUserId } from "./ids";
+import { trackLater } from "./events";
 
 export type AppUser = {
   user_id: string;
@@ -47,6 +48,7 @@ async function findOrCreateByEmail(email: string, name: string | null, picture: 
   const row: AppUser = { user_id: newUserId(), auth_user_id: authUserId, email: lower, name, picture, created_at: isoNow() };
   const { data, error } = await sb.from("app_users").insert(row).select("*").single();
   if (error) throw error;
+  trackLater("signup", { userId: row.user_id, props: { linked: Boolean(authUserId) } });
   return data as AppUser;
 }
 

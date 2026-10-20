@@ -2,6 +2,7 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
 import { getMe, logoutApi } from "@/lib/api";
+import { oncePerSession, track } from "@/lib/track";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 
 const AuthContext = createContext(null);
@@ -14,6 +15,7 @@ export function AuthProvider({ children }) {
     try {
       const u = await getMe();
       setUser(u);
+      if (u?.user_id && oncePerSession(`petito_login_${u.user_id}`)) track("login");
     } catch (e) {
       setUser(null);
       // 401 just means "not signed in"; anything else is a real problem worth showing.

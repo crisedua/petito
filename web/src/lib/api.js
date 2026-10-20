@@ -62,7 +62,7 @@ export const voiceSample = (voiceId) => api.get(`/voice-sample/${voiceId}`).then
 
 // ---- Petito Plus ----
 export const plusStatus = () => api.get("/plus/status").then((r) => r.data);
-export const plusSubscribe = (plan, email) => api.post("/plus/subscribe", { plan, email }).then((r) => r.data);
+export const plusSubscribe = (plan, email, from) => api.post("/plus/subscribe", { plan, email, from }).then((r) => r.data);
 export const plusSync = () => api.post("/plus/sync").then((r) => r.data);
 export const plusCancel = () => api.put("/plus/cancel").then((r) => r.data);
 export const plusDevActivate = (plan) => api.post("/plus/dev-activate", { plan }).then((r) => r.data);
@@ -88,16 +88,15 @@ export const uploadPhotos = (id, files) => uploadFiles(`/stories/${id}/photos`, 
 export const generateStory = (id) => api.post(`/stories/${id}/generate`).then((r) => r.data);
 export const getStory = (id) => api.get(`/stories/${id}`).then((r) => r.data);
 export const getStoryBySlug = (slug) => api.get(`/stories/slug/${slug}`).then((r) => r.data);
-export const checkout = (id) => api.post(`/stories/${id}/checkout`).then((r) => r.data);
+export const checkout = (id, auto = false) => api.post(`/stories/${id}/checkout`, { auto }).then((r) => r.data);
 export const saveEmail = (id, email) => api.post(`/stories/${id}/email`, { email }).then((r) => r.data);
-export const submitSurvey = (storyId, answer) => api.post("/survey", { story_id: storyId, answer }).then((r) => r.data);
 
 export const createPortrait = (payload) => api.post("/portraits", { pet_id: getActivePetId() || undefined, ...payload }).then((r) => r.data);
 export const uploadPortraitPhoto = (id, file) => uploadFiles(`/portraits/${id}/photo`, [file]);
 export const generatePortrait = (id) => api.post(`/portraits/${id}/generate`).then((r) => r.data);
 export const getPortrait = (id) => api.get(`/portraits/${id}`).then((r) => r.data);
 export const getPortraitBySlug = (slug) => api.get(`/portraits/slug/${slug}`).then((r) => r.data);
-export const portraitCheckout = (id) => api.post(`/portraits/${id}/checkout`).then((r) => r.data);
+export const portraitCheckout = (id, auto = false) => api.post(`/portraits/${id}/checkout`, { auto }).then((r) => r.data);
 
 export const adminLogin = (password) => api.post("/admin/login", { password }).then((r) => r.data);
 export const adminMetrics = () => api.get("/admin/metrics").then((r) => r.data);
@@ -112,6 +111,8 @@ export const adminDeletePet = (id) => api.delete(`/admin/pets/${id}`).then((r) =
 export const adminDeleteUser = (id) => api.delete(`/admin/users/${id}`).then((r) => r.data);
 export const adminDeleteCreation = (kind, id) => api.delete(`/admin/creations/${kind}/${id}`).then((r) => r.data);
 export const adminCreations = () => api.get("/admin/creations").then((r) => r.data);
+export const adminFunnel = (days = 30) => api.get("/admin/funnel", { params: { days } }).then((r) => r.data);
+export const adminEvents = (params = {}) => api.get("/admin/events", { params }).then((r) => r.data);
 
 // ---- auth (Supabase Auth, Google) ----
 export const getMe = () => api.get("/auth/me").then((r) => r.data);
@@ -131,7 +132,7 @@ export const uploadTalkPhoto = (id, file) => uploadFiles(`/talk/${id}/photo`, [f
 export const generateTalk = (id) => api.post(`/talk/${id}/generate`).then((r) => r.data);
 export const getTalk = (id) => api.get(`/talk/${id}`).then((r) => r.data);
 export const getTalkBySlug = (slug) => api.get(`/talk/slug/${slug}`).then((r) => r.data);
-export const talkCheckout = (id) => api.post(`/talk/${id}/checkout`).then((r) => r.data);
+export const talkCheckout = (id, auto = false) => api.post(`/talk/${id}/checkout`, { auto }).then((r) => r.data);
 
 // ---- Amigos de Petito ----
 export const getFriends = () => api.get("/amigos").then((r) => r.data);

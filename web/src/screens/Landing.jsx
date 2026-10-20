@@ -141,9 +141,11 @@ export default function Landing() {
           </p>
         </div>
 
-        <button onClick={() => nav("/admin")} className="w-full mt-10 text-xs" style={{ color: "#C3B4A3" }} data-testid="landing-admin-link">
-          Panel de administración
-        </button>
+        {user?.is_admin && (
+          <button onClick={() => nav("/admin")} className="w-full mt-10 text-xs" style={{ color: "#C3B4A3" }} data-testid="landing-admin-link">
+            Panel de administración
+          </button>
+        )}
       </div>
     </div>
   );

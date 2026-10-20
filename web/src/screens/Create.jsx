@@ -14,7 +14,6 @@ import {
 } from "@/lib/api";
 import { StoryCarousel } from "@/components/StoryCarousel";
 import { InviteButton } from "@/components/InviteButton";
-import { SurveyCard } from "@/components/SurveyCard";
 
 const SPECIES = [
   { key: "perro", label: "Perro", emoji: "🐶" },
@@ -346,7 +345,7 @@ function StepResult({ story, setStory, storyId, slug, cfg, price, nav }) {
   useEffect(() => {
     if (!storyId || paid || autoTried.current) return;
     autoTried.current = true;
-    checkout(storyId).then((r) => { if (r?.already_paid || r?.mode === "plus") refresh(); }).catch(() => {});
+    checkout(storyId, true).then((r) => { if (r?.already_paid || r?.mode === "plus") refresh(); }).catch(() => {});
   }, [storyId, paid]);
 
   // Stream the magic AI scenes + narration in as they finish (progressive preview)
@@ -371,7 +370,7 @@ function StepResult({ story, setStory, storyId, slug, cfg, price, nav }) {
         await refresh();
         toast.success("¡Historia desbloqueada! 🎉");
       } else {
-        nav("/plus");
+        nav("/plus?from=story");
       }
     } catch (e) {
       toast.error(e?.response?.data?.detail || "No se pudo desbloquear");
@@ -444,7 +443,6 @@ function StepResult({ story, setStory, storyId, slug, cfg, price, nav }) {
           </div>
         )}
 
-        <SurveyCard storyId={storyId} />
       </div>
 
       {!paid && (

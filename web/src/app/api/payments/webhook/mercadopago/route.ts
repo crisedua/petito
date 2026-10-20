@@ -1,6 +1,6 @@
 import { fail, handler, json } from "@/lib/server/http";
 import { getAuthorizedPayment, getPayment, getPreapproval, mpEnabled, validSignature } from "@/lib/server/mercadopago";
-import { activatePlus } from "@/lib/server/plus";
+import { activatePlus, recordRenewalIfAny } from "@/lib/server/plus";
 import { db } from "@/lib/server/db";
 import { isoNow } from "@/lib/server/ids";
 import { talkMarkPaidAndFinalize } from "@/lib/server/domain";
@@ -35,6 +35,7 @@ export const POST = handler(async (req: Request) => {
         const sub = await getPreapproval(preId);
         if (sub.status === "authorized" && ["approved", "authorized", "processed"].includes(inv.status)) {
           await activatePlus(preId, "authorized", sub.next_payment_date);
+          await recordRenewalIfAny(preId, { id: String(inv.id ?? resId), amount: Number(inv.transaction_amount ?? 0) });
         }
       }
     } catch (e) { console.error("webhook authorized_payment failed", e); }

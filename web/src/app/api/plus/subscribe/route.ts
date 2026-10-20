@@ -1,3 +1,4 @@
+import { lastCheckoutFeature, trackLater } from "@/lib/server/events";
 import { fail, handler, json, originFrom, readJson } from "@/lib/server/http";
 import { requireUser } from "@/lib/server/auth";
 import { PLUS_PLANS, isPlus, type PlanKey } from "@/lib/server/plus";
@@ -8,7 +9,7 @@ import { env } from "@/lib/server/env";
 
 export const POST = handler(async (req: Request) => {
   const user = await requireUser(req);
-  const body = await readJson<{ plan?: string; email?: string }>(req);
+  const body = await readJson<{ plan?: string; email?: string; from?: string }>(req);
   if (!body.plan || !(body.plan in PLUS_PLANS)) throw fail(400, "Plan inválido");
   const plan = body.plan as PlanKey;
   if (await isPlus(user.user_id)) throw fail(400, "Ya tienes Petito Plus activo");
@@ -37,5 +38,6 @@ export const POST = handler(async (req: Request) => {
     mp_id: mp.id, user_id: user.user_id, plan, external_reference: ref, payer_email: payerEmail,
     status: mp.status ?? "pending", membership_active: false, plus_until: null, created_at: isoNow(),
   });
+  trackLater("checkout_started", { req, userId: user.user_id, feature: body.from || (await lastCheckoutFeature(user.user_id)) || "plus", props: { plan, amount: p.amount } });
   return json({ init_point: mp.init_point, mp_id: mp.id });
 });

@@ -1,3 +1,4 @@
+import { track } from "@/lib/server/events";
 import { inngest, EV } from "../client";
 import { awaitFal, progress } from "../helpers";
 import { db, logGeneration } from "@/lib/server/db";
@@ -47,6 +48,7 @@ export const generatePortrait = inngest.createFunction(
       await db().from("portraits").update({
         status: "preview_ready", preview_file: "preview.jpg", clean_file: cleanName, progress_pct: 100, progress_step: "¡Listo!",
       }).eq("id", id);
+      await track("result_ready", { feature: p.category === "memorial" ? "memorial" : "portrait", deviceId: p.device_id, userId: p.user_id, props: { style: p.style } });
     });
     return { ok: true };
   },

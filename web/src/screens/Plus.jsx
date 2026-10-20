@@ -49,7 +49,7 @@ export default function Plus() {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) { toast.error("Ingresa un correo válido de tu cuenta de Mercado Pago"); return; }
     setBusy(true);
     try {
-      const r = await plusSubscribe(plan, e);
+      const r = await plusSubscribe(plan, e, params.get("from") || undefined);
       window.location.assign(r.init_point);
     } catch (err) {
       const detail = err?.response?.data?.detail || "No se pudo iniciar la suscripción";

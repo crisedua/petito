@@ -1,3 +1,4 @@
+import { trackLater } from "./events";
 import { fail, handler, json, readJson } from "./http";
 import { requireUser } from "./auth";
 import { saveOriginal } from "./images";
@@ -17,7 +18,7 @@ export const signRoute = (resolve: Resolver) =>
   });
 
 /** POST …/photo → process the single uploaded photo into orig_0.jpg and store it on the row. */
-export const photoRoute = (resolve: Resolver, save: (id: string, file: string) => Promise<void>) =>
+export const photoRoute = (resolve: Resolver, save: (id: string, file: string) => Promise<void>, feature: "pet" | "memory") =>
   handler(async (req: Request, ctx: Ctx<{ id: string }>) => {
     const user = await requireUser(req);
     const row = await resolve((await ctx.params).id, user.user_id);
@@ -31,5 +32,6 @@ export const photoRoute = (resolve: Resolver, save: (id: string, file: string) =
       throw fail(400, "No pudimos leer esta foto. Prueba con otra (JPG, PNG o foto de iPhone).");
     }
     await save(row.id, name);
+    trackLater("photo_uploaded", { req, feature, userId: user.user_id });
     return json({ ok: true, photo_url: mediaPath(row.id, name) });
   });
