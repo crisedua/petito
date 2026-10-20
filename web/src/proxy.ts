@@ -33,5 +33,6 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|sw.js|manifest.json|icon-.*\\.png|portrait-styles/).*)"],
+  // Skip Next's own files (incl. the dev live-reload socket, which breaks if this runs on it) and static assets.
+  matcher: ["/((?!_next/|favicon.ico|sw.js|manifest.json|icon-.*\\.png|apple-touch-icon\\.png|og-image\\.jpg|portrait-styles/).*)"],
 };

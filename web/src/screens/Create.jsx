@@ -51,6 +51,14 @@ export default function Create() {
   const [busy, setBusy] = useState(false);
   const [voiceId, setVoiceId] = useState("");
 
+  // "Crear otra historia": we're already on /crear, so navigating there wouldn't restart the flow.
+  // Start over from the first step, keeping the pet's name, species and traits.
+  const startAnother = () => {
+    setTheme(""); setFiles([]); setStoryId(null); setSlug(null); setStory(null); setBusy(false);
+    setStep("info");
+    window.scrollTo({ top: 0 });
+  };
+
   useEffect(() => {
     getConfig().then((c) => {
       setCfg(c);
@@ -96,7 +104,7 @@ export default function Create() {
           onFail={(s) => { setStory(s); toast.error(s?.error ? "Ups, algo falló. Intenta de nuevo." : "Error"); setStep("photos"); }} />
       )}
       {step === "result" && (
-        <StepResult key="result" story={story} setStory={setStory} storyId={storyId} slug={slug} cfg={cfg} price={price} nav={nav} />
+        <StepResult key="result" story={story} setStory={setStory} storyId={storyId} slug={slug} cfg={cfg} price={price} nav={nav} onAnother={startAnother} />
       )}
     </AnimatePresence>
   );
@@ -332,7 +340,7 @@ function StepProgress({ storyId, onReady, onFail }) {
 }
 
 /* ---------------- Step: result (preview + paywall + share) ---------------- */
-function StepResult({ story, setStory, storyId, slug, cfg, price, nav }) {
+function StepResult({ story, setStory, storyId, slug, cfg, price, nav, onAnother }) {
   const [busy, setBusy] = useState(false);
   const [email, setEmail] = useState("");
   const paid = story?.paid;
@@ -422,7 +430,7 @@ function StepResult({ story, setStory, storyId, slug, cfg, price, nav }) {
             <Button onClick={() => { navigator.clipboard.writeText(shareUrl); toast.success("Enlace copiado"); }} variant="secondary" className="h-14 rounded-2xl font-semibold bg-white border border-border" data-testid="copy-link-button">
               <Copy className="w-5 h-5 mr-2" /> Copiar enlace
             </Button>
-            <button onClick={() => nav("/crear")} className="col-span-2 mt-2 text-sm text-primary font-semibold flex items-center justify-center gap-1">
+            <button onClick={onAnother} data-testid="create-another-button" className="col-span-2 mt-2 text-sm text-primary font-semibold flex items-center justify-center gap-1">
               <Heart className="w-4 h-4" /> Crear otra historia
             </button>
           </div>
