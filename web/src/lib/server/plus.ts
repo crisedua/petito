@@ -10,9 +10,20 @@ export const PLUS_PLANS = {
 } as const;
 export type PlanKey = keyof typeof PLUS_PLANS;
 
-/** Port of server.py is_plus(): any active row whose plus_until is null or in the future. */
+/** Administrators (ADMIN_EMAILS or made admin in the panel) always have Plus, without a subscription. */
+export async function isAdminUser(userId: string): Promise<boolean> {
+  const { data } = await db().from("app_users").select("*").eq("user_id", userId).maybeSingle();
+  return Boolean(data && (env.adminEmails.has(String(data.email ?? "").toLowerCase()) || data.is_admin));
+}
+
+/** Port of server.py is_plus(): any active row whose plus_until is null or in the future — or an admin. */
 export async function isPlus(userId: string | null | undefined): Promise<boolean> {
   if (!userId) return false;
+  if (await subscriptionActive(userId)) return true;
+  return isAdminUser(userId);
+}
+
+async function subscriptionActive(userId: string): Promise<boolean> {
   const { data } = await db()
     .from("subscriptions")
     .select("mp_id, plus_until")

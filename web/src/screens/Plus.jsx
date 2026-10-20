@@ -106,23 +106,27 @@ export default function Plus() {
               <Crown className="w-10 h-10 text-amber-300" />
             </div>
             <h1 className="mt-5 font-display font-bold text-2xl text-amber-50">Eres Petito Plus 👑</h1>
-            <p className="mt-2 text-sm text-amber-100/70">
-              Plan {st.plan === "annual" ? "anual" : "mensual"}
-              {st.plus_until ? ` · activo hasta el ${st.plus_until.slice(0, 10)}` : ""}
-              {st.status === "canceled" ? " · no se renovará" : ""}
-            </p>
+            {st.via_admin ? (
+              <p className="mt-2 text-sm text-amber-100/70" data-testid="plus-via-admin">Incluido por ser administrador · sin cobro</p>
+            ) : (
+              <p className="mt-2 text-sm text-amber-100/70">
+                Plan {st.plan === "annual" ? "anual" : "mensual"}
+                {st.plus_until ? ` · activo hasta el ${st.plus_until.slice(0, 10)}` : ""}
+                {st.status === "canceled" ? " · no se renovará" : ""}
+              </p>
+            )}
             <div className="mt-8 text-left space-y-3">
               {BENEFITS.map((b, i) => (
                 <div key={i} className="flex items-center gap-3 text-amber-50/90"><b.icon className="w-5 h-5 text-amber-300 shrink-0" /><span className="text-sm">{b.text}</span></div>
               ))}
             </div>
-            {st.status !== "canceled" && (
+            {!st.via_admin && st.status !== "canceled" && (
               <button onClick={cancel} disabled={busy} data-testid="plus-cancel"
                 className="mt-10 w-full h-12 rounded-2xl font-display font-semibold text-sm text-amber-100/70" style={{ background: "rgba(255,255,255,0.08)" }}>
                 {busy ? <Loader2 className="w-4 h-4 animate-spin inline" /> : "Cancelar renovación"}
               </button>
             )}
-            {st.is_admin && (
+            {st.is_admin && !st.via_admin && (
               <button onClick={adminDeactivate} disabled={busy} data-testid="plus-admin-deactivate"
                 className="mt-3 w-full h-11 rounded-2xl text-xs font-display font-semibold text-amber-100/60" style={{ background: "rgba(255,255,255,0.06)", border: "1px dashed rgba(245,195,85,0.4)" }}>
                 🛠️ Desactivar Plus de prueba (solo admin)

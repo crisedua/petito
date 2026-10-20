@@ -68,7 +68,7 @@ export async function adminUserRows(users: any[]) {
   return users.map((d) => ({
     user_id: d.user_id, email: d.email, name: d.name, picture: d.picture,
     is_admin: isAdmin(d), owner_admin: isOwnerAdmin(d.email), suspended: Boolean(d.suspended_at),
-    is_plus: plus.has(d.user_id), plus_until: plus.get(d.user_id) ?? null, linked: Boolean(d.auth_user_id),
+    is_plus: plus.has(d.user_id) || isAdmin(d), plus_until: plus.get(d.user_id) ?? null, linked: Boolean(d.auth_user_id),
     pet_count: counts.get(d.user_id)?.pets ?? 0, creation_count: counts.get(d.user_id)?.creations ?? 0, created_at: iso(d.created_at),
   }));
 }

@@ -211,6 +211,8 @@ function UserDetail({ id, onBack, onChanged }) {
                 {cur.source === "mercadopago" ? ` · estado ${cur.status}` : ""}
               </div>
             </>
+          ) : d.is_plus && d.is_admin ? (
+            <div className="font-display font-bold text-amber-700">👑 Pro incluido por ser administrador</div>
           ) : <div className="font-display font-semibold text-neutral-600">Cuenta gratis</div>}
         </div>
         <div className="mt-3 text-[11px] font-semibold text-neutral-500">{cur ? "Cambiar duración (cortesía)" : "Dar Pro de cortesía"}</div>

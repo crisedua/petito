@@ -92,11 +92,12 @@ def test_plus_status_shape():
     assert d["monthly_clp"] == 3900 and d["annual_clp"] == 29900
 
 
-def test_dev_activate_then_admin_deactivate_own():
+def test_dev_activate_then_admin_deactivate_own_admin_keeps_plus():
     assert requests.post(f"{API}/plus/admin-activate", json={"plan": "annual"}, headers=ADMIN, timeout=20).json() == {"active": True, "plan": "annual"}
     assert requests.get(f"{API}/plus/status", headers=ADMIN, timeout=20).json()["active"] is True
     assert requests.post(f"{API}/plus/admin-deactivate", headers=ADMIN, timeout=20).json() == {"active": False}
-    assert requests.get(f"{API}/plus/status", headers=ADMIN, timeout=20).json()["active"] is False
+    st = requests.get(f"{API}/plus/status", headers=ADMIN, timeout=20).json()
+    assert st["active"] is True and st["via_admin"] is True  # admins always have Plus, no subscription needed
 
 
 # ---------------- privacy and ownership ----------------
@@ -201,3 +202,15 @@ def test_mp_webhook_is_noop_without_mercadopago():
 def test_subscribe_without_mercadopago_is_503(norm_free):
     r = requests.post(f"{API}/plus/subscribe", json={"plan": "monthly", "email": "a@b.cl"}, headers=NORM, timeout=20)
     assert r.status_code == 503 and r.json()["detail"] == "Pagos no disponibles"
+
+
+def test_admins_have_plus_regular_users_dont():
+    norm = me(NORM)
+    requests.post(f"{API}/admin/users/{norm['user_id']}/plus", json={"active": False}, headers=ADMIN, timeout=20)
+    try:
+        assert requests.get(f"{API}/plus/status", headers=NORM, timeout=20).json()["active"] is False
+        assert requests.get(f"{API}/plus/status", headers=ADMIN, timeout=20).json()["active"] is True
+        row = next(u for u in requests.get(f"{API}/admin/users", headers=ADMIN, timeout=60).json() if u["is_admin"])
+        assert row["is_plus"] is True
+    finally:
+        requests.post(f"{API}/admin/users/{norm['user_id']}/plus", json={"active": True}, headers=ADMIN, timeout=20)

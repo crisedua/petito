@@ -17,5 +17,7 @@ export const GET = handler(async (req: Request) => {
     annual_clp: env.plusAnnualClp,
     free_mode: env.freeMode,
     is_admin: isAdmin(user),
+    // Plus that comes from being an administrator, not from a subscription.
+    via_admin: isAdmin(user) && !(sub?.membership_active),
   });
 });
