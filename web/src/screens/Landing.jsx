@@ -17,6 +17,9 @@ const PREVIEW_LINES = [
   { key: "chistoso", label: "😄 Algo chistoso" },
 ];
 
+// The no-login "Escucha lo que te diría" card. Hidden for now; set to true to bring it back.
+const SHOW_VOICE_PREVIEW = false;
+
 const STEPS = [
   { icon: Sparkles, title: "Crea su universo", desc: "Cuéntanos quién es tu mascota y recibe una bienvenida hecha solo para ella." },
   { icon: Mic, title: "Dale vida", desc: "Imagina lo que te diría, vívelo en aventuras y retratos, todo con su esencia." },
@@ -88,9 +91,11 @@ export default function Landing() {
           data-testid="landing-headline">
           Su vida es parte de tu historia. <span style={{ color: "#B85C3C" }}>Hagamos que sea inolvidable.</span>
         </motion.h1>
-        <motion.div {...fade(0.28)}>
-          <VoicePreviewCard onDone={(slug) => nav(`/v/${slug}`)} />
-        </motion.div>
+        {SHOW_VOICE_PREVIEW && (
+          <motion.div {...fade(0.28)}>
+            <VoicePreviewCard onDone={(slug) => nav(`/v/${slug}`)} />
+          </motion.div>
+        )}
 
         <motion.p {...fade(0.3)} className="mt-5 text-[0.95rem] leading-snug" style={{ color: "#7A6A5E" }}>
           Convierte los momentos con tu mascota en historias, recuerdos, aventuras y pequeñas sorpresas llenas de cariño.
