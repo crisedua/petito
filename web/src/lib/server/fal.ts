@@ -116,3 +116,19 @@ export async function download(url: string): Promise<Buffer> {
   if (!res.ok) throw new Error(`download ${res.status}`);
   return Buffer.from(await res.arrayBuffer());
 }
+
+/**
+ * One image edit, waited for in the same request (admin sample generator; ~10–30 s). Polls fal's
+ * queue instead of waiting for the webhook. Returns JPEG bytes.
+ */
+export async function editImageNow(imageDataUri: string, prompt: string, aspectRatio: "9:16" | "3:4", maxMs = 55_000): Promise<Buffer> {
+  const requestId = await submitEdit(imageDataUri, prompt, aspectRatio);
+  const end = Date.now() + maxMs;
+  for (;;) {
+    const st = await status(env.falImageModel, requestId);
+    if (st === "COMPLETED") return download(await resultUrl(env.falImageModel, requestId));
+    if (st === "FAILED") throw new Error("fal.ai no pudo generar la imagen");
+    if (Date.now() > end) throw new Error("fal.ai tardó demasiado; inténtalo de nuevo");
+    await new Promise((r) => setTimeout(r, 2000));
+  }
+}

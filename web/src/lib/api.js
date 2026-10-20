@@ -162,3 +162,8 @@ export async function activePetName() {
     return "";
   }
 }
+
+export const portraitSamples = () => api.get("/portraits/samples").then((r) => r.data);
+export const adminStyleSamples = () => api.get("/admin/style-samples").then((r) => r.data);
+export const adminGenerateSample = (style, frame, petId) => api.post("/admin/style-samples", { style, frame, pet_id: petId || undefined }, { timeout: 70000 }).then((r) => r.data);
+export const adminChooseSample = (style, name) => api.put("/admin/style-samples", { style, name }).then((r) => r.data);

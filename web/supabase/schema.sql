@@ -407,3 +407,8 @@ do $$ begin
   if exists (select 1 from pg_roles where rolname = 'authenticated') then revoke execute on function funnel_stats(timestamptz) from authenticated; end if;
   if exists (select 1 from pg_roles where rolname = 'service_role') then grant execute on function funnel_stats(timestamptz) to service_role; end if;
 end $$;
+
+-- ===== 0008_portrait_frame.sql =====
+-- Frame chosen for a royal/Halloween portrait (dorado, madera, negro_gotico, plata, sin_marco).
+-- Empty means the style's default frame.
+alter table portraits add column if not exists frame text;

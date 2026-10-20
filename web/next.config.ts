@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/api/inngest": ["./assets/fonts/**"],
     "/api/**": ["./assets/fonts/**"],
+    "/api/admin/style-samples": ["./assets/sample-pets/**"],
   },
   images: { unoptimized: true },
   agentRules: false,

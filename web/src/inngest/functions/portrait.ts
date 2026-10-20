@@ -9,7 +9,7 @@ import { portraitPrompt } from "@/lib/server/prompts";
 import { portraitPreview } from "@/lib/render/watermarks";
 import { env } from "@/lib/server/env";
 import { hex16 } from "@/lib/server/ids";
-import { ALL_PORTRAIT_STYLES, BRAND_NAME, PORTRAIT_STYLES } from "@/lib/catalogs";
+import { ALL_PORTRAIT_STYLES, BRAND_NAME, PORTRAIT_STYLES, frameFor } from "@/lib/catalogs";
 
 /** Port of run_portrait_pipeline: photo → fal oil/watercolour portrait → clean HD + watermarked preview. */
 export const generatePortrait = inngest.createFunction(
@@ -34,7 +34,7 @@ export const generatePortrait = inngest.createFunction(
     await progress(step, "portraits", id, "45", { progress_step: "Pintando a tu mascota...", progress_pct: 45 });
     const t0 = Date.now();
     const requestId: string = await step.run("submit", async () =>
-      fal.submitEdit(await imageToDataUri(id, photo), portraitPrompt("mascota", style.prompt), "3:4"));
+      fal.submitEdit(await imageToDataUri(id, photo), portraitPrompt("mascota", p.category === "memorial" ? style.prompt : `${style.prompt}, ${frameFor(p.style, p.frame).prompt}`), "3:4"));
     const url = await awaitFal(step, "portrait", env.falImageModel, requestId, 20);
 
     await progress(step, "portraits", id, "80", { progress_step: "Poniéndole el marco dorado...", progress_pct: 80 });

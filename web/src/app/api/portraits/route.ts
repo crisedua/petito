@@ -4,7 +4,8 @@ import { db } from "@/lib/server/db";
 import { validatePetId } from "@/lib/server/domain";
 import { isoNow, newId, newSlug } from "@/lib/server/ids";
 import { env } from "@/lib/server/env";
-import { MEMORIAL_STYLES, PORTRAIT_STYLES } from "@/lib/catalogs";
+import { MEMORIAL_STYLES, PORTRAIT_FRAMES, PORTRAIT_STYLES } from "@/lib/catalogs";
+import { missingColumn } from "@/lib/server/admin";
 
 export const POST = handler(async (req: Request) => {
   const user = await requireUser(req);
@@ -20,9 +21,15 @@ export const POST = handler(async (req: Request) => {
     gift_enabled: Boolean(b.gift_enabled) && category === "royal",
     gift_to: clip(b.gift_to, 60), gift_from: clip(b.gift_from, 60), gift_message: clip(b.gift_message, 280),
     memorial_dates: clip(b.memorial_dates, 40), memorial_caption: clip(b.memorial_caption, 80),
+    frame: category === "royal" && typeof b.frame === "string" && b.frame in PORTRAIT_FRAMES ? b.frame : null,
     created_at: isoNow(),
   };
-  const { error } = await db().from("portraits").insert(p);
+  let { error } = await db().from("portraits").insert(p);
+  // Before the 0008 SQL runs there is no frame column: save without it (the style's default frame is used).
+  if (error && missingColumn(error)) {
+    const { frame: _f, ...rest } = p;
+    ({ error } = await db().from("portraits").insert(rest));
+  }
   if (error) throw error;
   return json({ id: p.id, slug: p.share_slug });
 });

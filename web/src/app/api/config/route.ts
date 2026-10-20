@@ -1,7 +1,7 @@
 import { defaultVoiceId, ensureVoices, voices } from "@/lib/server/elevenlabs";
 import { handler, json } from "@/lib/server/http";
 import { env } from "@/lib/server/env";
-import { BRAND_NAME, BRAND_URL, MEMORIAL_STYLES, PORTRAIT_STYLES, TALK_MESSAGE_MAX, TALK_SCENARIOS, THEMES, TRAITS } from "@/lib/catalogs";
+import { BRAND_NAME, BRAND_URL, MEMORIAL_STYLES, PORTRAIT_STYLES, TALK_MESSAGE_MAX, TALK_SCENARIOS, THEMES, TRAITS, PORTRAIT_FRAMES, STYLE_DEFAULT_FRAME } from "@/lib/catalogs";
 
 export const GET = handler(async () => {
   await ensureVoices();
@@ -21,7 +21,8 @@ export const GET = handler(async () => {
     themes: Object.entries(THEMES).map(([key, v]) => ({ key, label: v.label, emoji: v.emoji })),
     traits: TRAITS,
     portrait_price_clp: env.portraitPriceClp,
-    portrait_styles: Object.entries(PORTRAIT_STYLES).map(([key, v]) => ({ key, label: v.label, emoji: v.emoji, desc: v.desc })),
+    portrait_styles: Object.entries(PORTRAIT_STYLES).map(([key, v]) => ({ key, label: v.label, emoji: v.emoji, desc: v.desc, default_frame: STYLE_DEFAULT_FRAME[key] ?? "dorado" })),
+    portrait_frames: Object.entries(PORTRAIT_FRAMES).map(([key, v]) => ({ key, label: v.label, desc: v.desc })),
     memorial_styles: Object.entries(MEMORIAL_STYLES).map(([key, v]) => ({ key, label: v.label, emoji: v.emoji, desc: v.desc })),
     talk_price_clp: env.talkPriceClp,
     free_talk_per_day: env.freeTalkPerDay,

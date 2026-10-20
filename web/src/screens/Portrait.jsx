@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import {
   getConfig, createPortrait, uploadPortraitPhoto, generatePortrait, getPortrait,
-  portraitCheckout, mediaUrl, activePetName } from "@/lib/api";
+  portraitCheckout, mediaUrl, activePetName, portraitSamples } from "@/lib/api";
 import { InviteButton } from "@/components/InviteButton";
 
 const STYLE_IMG = {
@@ -25,6 +25,24 @@ const STYLE_IMG = {
   calabazas: "/portrait-styles/calabazas.jpg",
   casa_embrujada: "/portrait-styles/casa_embrujada.jpg",
 };
+// Little drawn previews of each frame (no image needed).
+const FRAME_SWATCH = {
+  dorado: { outer: "linear-gradient(135deg,#7a5418,#f3d27a 30%,#a9781f 55%,#f6dd8c 80%,#6e4a12)" },
+  madera: { outer: "linear-gradient(135deg,#3b2414,#6d4527 35%,#4a2d18 60%,#7a5132 85%,#331e10)", lip: "#c9a24a" },
+  negro_gotico: { outer: "linear-gradient(135deg,#0d0d10,#3a3a44 30%,#121216 55%,#5a5a66 80%,#0b0b0d)", lip: "#9aa0ab" },
+  plata: { outer: "linear-gradient(135deg,#6f7378,#eef1f4 30%,#9da3aa 55%,#f4f6f8 80%,#6a6e73)" },
+  sin_marco: { none: true },
+};
+function FrameSwatch({ k }) {
+  const f = FRAME_SWATCH[k] || FRAME_SWATCH.dorado;
+  if (f.none) return <div className="w-full h-full rounded-md border-2 border-dashed border-stone-300 bg-gradient-to-b from-stone-500 to-stone-800" />;
+  return (
+    <div className="w-full h-full rounded-md p-[5px]" style={{ background: f.outer }}>
+      <div className="w-full h-full rounded-sm bg-gradient-to-b from-stone-600 to-stone-900" style={f.lip ? { boxShadow: `inset 0 0 0 1.5px ${f.lip}` } : undefined} />
+    </div>
+  );
+}
+
 const QUOTES = [
   "Me estoy poniendo la mejor pose, aguanta...",
   "Un poquito de óleo por aquí, otro por allá.",
@@ -41,6 +59,16 @@ export default function Portrait() {
   useEffect(() => { activePetName().then((n) => n && setPetName((cur) => cur || n)); }, []);
   const [file, setFile] = useState(null);
   const [style, setStyle] = useState("");
+  const [frame, setFrame] = useState("");
+  const [frameTouched, setFrameTouched] = useState(false);
+  const [samples, setSamples] = useState({});
+  useEffect(() => { portraitSamples().then(setSamples).catch(() => {}); }, []);
+  // Picking a style picks its usual frame, unless the person already chose a frame.
+  const pickStyle = (k) => {
+    setStyle(k);
+    if (!frameTouched) setFrame(cfg?.portrait_styles?.find((x) => x.key === k)?.default_frame || "dorado");
+  };
+  const pickFrame = (k) => { setFrame(k); setFrameTouched(true); };
   const [gift, setGift] = useState({ enabled: false, to: "", from: "", message: "" });
   const [portraitId, setPortraitId] = useState(null);
   const [slug, setSlug] = useState(null);
@@ -61,7 +89,7 @@ export default function Portrait() {
     setBusy(true);
     try {
       const p = await createPortrait({
-        pet_name: petName, style,
+        pet_name: petName, style, frame: frame || undefined,
         gift_enabled: gift.enabled, gift_to: gift.to, gift_from: gift.from, gift_message: gift.message,
       });
       setPortraitId(p.id); setSlug(p.slug);
@@ -80,7 +108,8 @@ export default function Portrait() {
           onNext={() => (file ? setStep("style") : toast.error("Sube una foto de tu mascota 🐾"))} />
       )}
       {step === "style" && (
-        <StepStyle key="style" cfg={cfg} style={style} setStyle={setStyle} gift={gift} setGift={setGift}
+        <StepStyle key="style" cfg={cfg} style={style} setStyle={pickStyle} gift={gift} setGift={setGift}
+          frame={frame} setFrame={pickFrame} samples={samples}
           onBack={() => setStep("photo")} onNext={start} busy={busy} />
       )}
       {step === "progress" && (
@@ -175,7 +204,7 @@ function StepPhoto({ nav, cfg, petName, setPetName, file, setFile, onNext }) {
 }
 
 /* ---------------- Step: style + gift ---------------- */
-function StepStyle({ cfg, style, setStyle, gift, setGift, onBack, onNext, busy }) {
+function StepStyle({ cfg, style, setStyle, gift, setGift, onBack, onNext, busy, frame, setFrame, samples }) {
   return (
     <Screen>
       <Header stepText="Paso 2 de 2 · El estilo" onBack={onBack} />
@@ -186,7 +215,7 @@ function StepStyle({ cfg, style, setStyle, gift, setGift, onBack, onNext, busy }
             <button key={s.key} onClick={() => setStyle(s.key)} data-testid={`portrait-style-${s.key}`}
               className={`relative w-full flex items-center gap-4 p-3 rounded-2xl border-2 text-left transition-all ${style === s.key ? "border-primary bg-primary/10 ring-2 ring-primary/20" : "border-border bg-white"}`}>
               <div className="w-16 h-20 rounded-xl overflow-hidden bg-stone-200 shrink-0">
-                {STYLE_IMG[s.key] ? <img src={STYLE_IMG[s.key]} alt={s.label} className="w-full h-full object-cover" />
+                {samples?.[s.key] || STYLE_IMG[s.key] ? <img src={samples?.[s.key] || STYLE_IMG[s.key]} alt={s.label} className="w-full h-full object-cover" />
                   : <div className="w-full h-full grid place-items-center text-3xl bg-gradient-to-b from-stone-700 to-stone-900">{s.emoji}</div>}
               </div>
               <div className="flex-1">
@@ -197,6 +226,22 @@ function StepStyle({ cfg, style, setStyle, gift, setGift, onBack, onNext, busy }
             </button>
           ))}
         </div>
+
+        {style && (cfg.portrait_frames || []).length > 0 && (
+          <div className="mt-6" data-testid="portrait-frames">
+            <div className="font-display font-semibold text-neutral-900">Marco</div>
+            <div className="mt-2 grid grid-cols-5 gap-2">
+              {cfg.portrait_frames.map((f) => (
+                <button key={f.key} onClick={() => setFrame(f.key)} data-testid={`portrait-frame-${f.key}`} title={f.desc}
+                  className={`flex flex-col items-center gap-1 p-1.5 rounded-xl border-2 transition-all ${frame === f.key ? "border-primary bg-primary/10" : "border-border bg-white"}`}>
+                  <div className="w-full" style={{ aspectRatio: "3 / 4" }}><FrameSwatch k={f.key} /></div>
+                  <span className="text-[10px] leading-tight font-semibold text-neutral-700 text-center">{f.label}</span>
+                </button>
+              ))}
+            </div>
+            <p className="mt-1.5 text-[11px] text-muted-foreground">{cfg.portrait_frames.find((f) => f.key === frame)?.desc}</p>
+          </div>
+        )}
 
         <div className="mt-6 bg-white rounded-2xl border border-border p-4">
           <div className="flex items-center justify-between">

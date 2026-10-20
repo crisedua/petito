@@ -220,45 +220,62 @@ export const PORTRAIT_STYLES: Record<string, StyleDef> = {
     "label": "Renacentista",
     "emoji": "🎨",
     "desc": "Óleo clásico, telón oscuro y vestuario de época",
-    "prompt": "a masterful classical Renaissance oil painting portrait, the pet wearing regal Renaissance noble attire such as a velvet robe and a ruffled lace collar, dramatic chiaroscuro lighting, dark elegant painted background, visible oil brush strokes, museum masterpiece style, displayed inside an ornate hand-carved gilded golden baroque frame as if hanging in a palace"
+    "prompt": "a masterful classical Renaissance oil painting portrait, the pet wearing regal Renaissance noble attire such as a velvet robe and a ruffled lace collar, dramatic chiaroscuro lighting, dark elegant painted background, visible oil brush strokes, museum masterpiece style"
   },
   "victoriano": {
     "label": "Victoriano",
     "emoji": "🎩",
     "desc": "Atuendo aristócrata: capa, encaje y joyas",
-    "prompt": "a refined Victorian aristocratic oil painting portrait, the pet dressed as a noble aristocrat with a velvet cape, delicate lace, pearls and jewels, dignified regal pose, soft classic painted studio background, elegant and stately mood, displayed inside an ornate gilded golden frame with carved flourishes"
+    "prompt": "a refined Victorian aristocratic oil painting portrait, the pet dressed as a noble aristocrat with a velvet cape, delicate lace, pearls and jewels, dignified regal pose, soft classic painted studio background, elegant and stately mood"
   },
   "halloween": {
     "label": "Halloween",
     "emoji": "🎃",
     "desc": "Retrato clásico con toque gótico de Halloween",
-    "prompt": "a classical oil painting portrait with an elegant gothic Halloween theme, warm candlelight and flickering candles, subtle cobwebs, deep moody dark tones, the pet wearing a small aristocratic costume, spooky yet refined mansion background, displayed inside an ornate gilded golden frame with carved flourishes"
+    "prompt": "a classical oil painting portrait with an elegant gothic Halloween theme, warm candlelight and flickering candles, subtle cobwebs, deep moody dark tones, the pet wearing a small aristocratic costume, spooky yet refined mansion background"
   },
   "vampiro": {
     "label": "Conde vampiro",
     "emoji": "🦇",
     "desc": "Capa negra y roja, castillo y luna llena",
-    "prompt": "a dramatic gothic oil painting portrait of the pet as an elegant vampire count, wearing a high-collared black cape with a deep crimson silk lining and a ruby brooch, moonlit stone castle balcony at night, a huge full moon and small bats in the sky, cool blue moonlight with warm candle accents, charming rather than scary, displayed inside an ornate gilded golden frame with carved flourishes"
+    "prompt": "a dramatic gothic oil painting portrait of the pet as an elegant vampire count, wearing a high-collared black cape with a deep crimson silk lining and a ruby brooch, moonlit stone castle balcony at night, a huge full moon and small bats in the sky, cool blue moonlight with warm candle accents, charming rather than scary"
   },
   "bruja": {
     "label": "Bruja",
     "emoji": "🧙",
     "desc": "Sombrero puntudo, caldero y pociones",
-    "prompt": "a whimsical classical oil painting portrait of the pet as a charming witch, wearing a tall crooked pointed black witch hat with a purple ribbon and a small velvet cloak, cozy candlelit witch's study with a bubbling cauldron giving off soft green glow, potion bottles, old spell books and dried herbs, warm magical atmosphere, displayed inside an ornate gilded golden frame with carved flourishes"
+    "prompt": "a whimsical classical oil painting portrait of the pet as a charming witch, wearing a tall crooked pointed black witch hat with a purple ribbon and a small velvet cloak, cozy candlelit witch's study with a bubbling cauldron giving off soft green glow, potion bottles, old spell books and dried herbs, warm magical atmosphere"
   },
   "calabazas": {
     "label": "Noche de calabazas",
     "emoji": "🌕",
     "desc": "Huerto de calabazas iluminadas bajo la luna",
-    "prompt": "a warm storybook oil painting portrait of the pet sitting in an autumn pumpkin patch at dusk, surrounded by glowing carved jack-o'-lanterns with friendly smiling faces, fallen orange leaves, a cozy knitted orange and black scarf around its neck, a big golden harvest moon in a deep purple sky, warm orange glow, sweet and festive rather than spooky, displayed inside an ornate gilded golden frame with carved flourishes"
+    "prompt": "a warm storybook oil painting portrait of the pet sitting in an autumn pumpkin patch at dusk, surrounded by glowing carved jack-o'-lanterns with friendly smiling faces, fallen orange leaves, a cozy knitted orange and black scarf around its neck, a big golden harvest moon in a deep purple sky, warm orange glow, sweet and festive rather than spooky"
   },
   "casa_embrujada": {
     "label": "Casa embrujada",
     "emoji": "👻",
     "desc": "Mansión antigua con fantasmitas amistosos",
-    "prompt": "a playful classical oil painting portrait of the pet in a grand old haunted Victorian mansion hall, wearing a small explorer's tweed cap and holding a brass lantern, a few cute translucent friendly little ghosts floating in the background, dusty chandelier, cobwebs and moonlight through tall windows, misty bluish tones with warm lantern light, cute rather than scary, displayed inside an ornate gilded golden frame with carved flourishes"
+    "prompt": "a playful classical oil painting portrait of the pet in a grand old haunted Victorian mansion hall, wearing a small explorer's tweed cap and holding a brass lantern, a few cute translucent friendly little ghosts floating in the background, dusty chandelier, cobwebs and moonlight through tall windows, misty bluish tones with warm lantern light, cute rather than scary"
   }
 };
+
+/** Frame around a royal/Halloween portrait, chosen separately from the style. */
+export type FrameDef = { label: string; desc: string; prompt: string };
+export const PORTRAIT_FRAMES: Record<string, FrameDef> = {
+  dorado: { label: "Dorado clásico", desc: "Barroco tallado en oro", prompt: "displayed inside an ornate hand-carved gilded golden baroque frame with carved flourishes, as if hanging in a palace" },
+  madera: { label: "Madera tallada", desc: "Nogal oscuro con filo dorado", prompt: "displayed inside an elegant hand-carved dark walnut wooden frame with a thin antique gold inner lip" },
+  negro_gotico: { label: "Negro gótico", desc: "Laca negra, filigrana y detalles plateados", prompt: "displayed inside an ornate black lacquered gothic frame with carved filigree, delicate spiderweb and tiny bat details and subtle silver highlights" },
+  plata: { label: "Plata antigua", desc: "Plata grabada con pátina suave", prompt: "displayed inside an ornate antique silver frame with fine engraved floral details and a soft patina" },
+  sin_marco: { label: "Sin marco", desc: "La pintura ocupa todo el cuadro", prompt: "an edge-to-edge painting with no frame at all, the artwork fills the whole image" },
+};
+/** Frame each style starts with (people can change it). */
+export const STYLE_DEFAULT_FRAME: Record<string, string> = {
+  renacentista: "dorado", victoriano: "dorado", halloween: "negro_gotico",
+  vampiro: "negro_gotico", bruja: "negro_gotico", calabazas: "madera", casa_embrujada: "negro_gotico",
+};
+export const frameFor = (style: string, frame?: string | null) =>
+  PORTRAIT_FRAMES[frame ?? ""] ?? PORTRAIT_FRAMES[STYLE_DEFAULT_FRAME[style] ?? "dorado"];
 
 export const MEMORIAL_STYLES: Record<string, StyleDef> = {
   "acuarela": {
