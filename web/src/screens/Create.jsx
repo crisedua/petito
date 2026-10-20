@@ -10,8 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  getConfig, createStory, uploadPhotos, generateStory, getStory, checkout, saveEmail, mediaUrl,
-} from "@/lib/api";
+  getConfig, createStory, uploadPhotos, generateStory, getStory, checkout, saveEmail, mediaUrl, getPet, getPets, getActivePetId } from "@/lib/api";
 import { StoryCarousel } from "@/components/StoryCarousel";
 import { InviteButton } from "@/components/InviteButton";
 
@@ -20,6 +19,8 @@ const SPECIES = [
   { key: "gato", label: "Gato", emoji: "🐱" },
   { key: "otro", label: "Otro", emoji: "🐹" },
 ];
+// The pet's personality (from its universe) → this story's traits.
+const PERSONALITY_TO_TRAIT = { regalon: "regalón", dormilon: "flojo", aventurero: "aventurero", travieso: "mañoso", terremoto: "payaso" };
 const TRAIT_EMOJI = { regalón: "👑", glotón: "🦴", flojo: "💤", aventurero: "🌲", mañoso: "😼", guardián: "🛡️", payaso: "🤡" };
 const THEME_DESC = {
   mi_ano: "Resumen de siestas y travesuras del año",
@@ -50,12 +51,35 @@ export default function Create() {
   const [story, setStory] = useState(null);
   const [busy, setBusy] = useState(false);
   const [voiceId, setVoiceId] = useState("");
+  // The pet chosen in its universe: when we know it, skip asking for its name, species and traits.
+  const [pet, setPet] = useState(undefined); // undefined = loading, null = none
+  const stepLabel = (n, name) => (pet ? `Paso ${n - 1} de 3 · ${name}` : `Paso ${n} de 4 · ${name}`);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const id = getActivePetId();
+        const p = id ? await getPet(id) : (await getPets())[0];
+        if (!alive) return;
+        if (!p) { setPet(null); return; }
+        setPetName(p.name || "");
+        setSpecies(["perro", "gato", "otro"].includes(p.species) ? p.species : "otro");
+        setTraits([...new Set((p.personality || []).map((k) => PERSONALITY_TO_TRAIT[k]).filter(Boolean))].slice(0, 3));
+        setPet(p);
+        setStep((s) => (s === "info" ? "theme" : s));
+      } catch {
+        if (alive) setPet(null);
+      }
+    })();
+    return () => { alive = false; };
+  }, []);
 
   // "Crear otra historia": we're already on /crear, so navigating there wouldn't restart the flow.
   // Start over from the first step, keeping the pet's name, species and traits.
   const startAnother = () => {
     setTheme(""); setFiles([]); setStoryId(null); setSlug(null); setStory(null); setBusy(false);
-    setStep("info");
+    setStep(pet ? "theme" : "info");
     window.scrollTo({ top: 0 });
   };
 
@@ -69,7 +93,7 @@ export default function Create() {
   const toggleTrait = (t) =>
     setTraits((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : prev.length >= 3 ? (toast.info("Máximo 3 rasgos"), prev) : [...prev, t]));
 
-  if (!cfg) return <Screen><div className="flex-1 grid place-items-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div></Screen>;
+  if (!cfg || pet === undefined) return <Screen><div className="flex-1 grid place-items-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div></Screen>;
 
   const price = new Intl.NumberFormat("es-CL").format(cfg.price_clp);
 
@@ -77,14 +101,15 @@ export default function Create() {
     <AnimatePresence mode="wait">
       {step === "info" && (
         <StepInfo key="info" nav={nav} petName={petName} setPetName={setPetName} species={species} setSpecies={setSpecies}
-          traits={traits} toggleTrait={toggleTrait} onNext={() => (petName.trim() ? setStep("theme") : toast.error("Ponle nombre a tu mascota 🐾"))} />
+          traits={traits} toggleTrait={toggleTrait} stepLabel={stepLabel} onNext={() => (petName.trim() ? setStep("theme") : toast.error("Ponle nombre a tu mascota 🐾"))} />
       )}
       {step === "theme" && (
-        <StepTheme key="theme" cfg={cfg} theme={theme} setTheme={setTheme} voiceId={voiceId} setVoiceId={setVoiceId} onBack={() => setStep("info")}
+        <StepTheme key="theme" cfg={cfg} theme={theme} setTheme={setTheme} voiceId={voiceId} setVoiceId={setVoiceId} stepLabel={stepLabel}
+          petName={pet ? petName : null} onEditPet={() => setStep("info")} onBack={() => (pet ? nav("/universo") : setStep("info"))}
           onNext={() => (theme ? setStep("photos") : toast.error("Elige un tema"))} />
       )}
       {step === "photos" && (
-        <StepPhotos key="photos" files={files} setFiles={setFiles} onBack={() => setStep("theme")} busy={busy}
+        <StepPhotos key="photos" files={files} setFiles={setFiles} onBack={() => setStep("theme")} busy={busy} stepLabel={stepLabel}
           onGenerate={async () => {
             if (files.length < 1) return toast.error("Sube al menos 1 foto");
             setBusy(true);
@@ -104,7 +129,7 @@ export default function Create() {
           onFail={(s) => { setStory(s); toast.error(s?.error ? "Ups, algo falló. Intenta de nuevo." : "Error"); setStep("photos"); }} />
       )}
       {step === "result" && (
-        <StepResult key="result" story={story} setStory={setStory} storyId={storyId} slug={slug} cfg={cfg} price={price} nav={nav} onAnother={startAnother} />
+        <StepResult key="result" story={story} setStory={setStory} storyId={storyId} slug={slug} cfg={cfg} price={price} nav={nav} onAnother={startAnother} stepLabel={stepLabel} />
       )}
     </AnimatePresence>
   );
@@ -137,10 +162,10 @@ function BottomBar({ children }) {
 }
 
 /* ---------------- Step: pet info ---------------- */
-function StepInfo({ nav, petName, setPetName, species, setSpecies, traits, toggleTrait, onNext }) {
+function StepInfo({ nav, petName, setPetName, species, setSpecies, traits, toggleTrait, onNext, stepLabel }) {
   return (
     <Screen>
-      <Header stepText="Paso 1 de 4 · Tu mascota" onBack={() => nav("/")} />
+      <Header stepText={stepLabel(1, "Tu mascota")} onBack={() => nav("/")} />
       <div className="flex-1 px-5 pt-5 pb-40 overflow-y-auto no-scrollbar">
         <h2 className="font-display font-bold text-2xl text-neutral-900">¿Quién es la estrella? 🌟</h2>
         <label className="block mt-6 text-sm font-semibold text-neutral-700 mb-2">Nombre de tu mascota</label>
@@ -180,11 +205,17 @@ function StepInfo({ nav, petName, setPetName, species, setSpecies, traits, toggl
 }
 
 /* ---------------- Step: theme ---------------- */
-function StepTheme({ cfg, theme, setTheme, voiceId, setVoiceId, onBack, onNext }) {
+function StepTheme({ cfg, theme, setTheme, voiceId, setVoiceId, onBack, onNext, stepLabel, petName, onEditPet }) {
   return (
     <Screen>
-      <Header stepText="Paso 2 de 4 · El tema" onBack={onBack} />
+      <Header stepText={stepLabel(2, "El tema")} onBack={onBack} />
       <div className="flex-1 px-5 pt-5 pb-40 overflow-y-auto no-scrollbar">
+        {petName && (
+          <div className="mb-3 flex items-center gap-2 text-sm" data-testid="story-pet-chip">
+            <span className="text-muted-foreground">Historia de</span> <b className="text-neutral-900">{petName}</b>
+            <button onClick={onEditPet} className="text-primary font-semibold text-xs" data-testid="story-pet-edit">· Cambiar</button>
+          </div>
+        )}
         <h2 className="font-display font-bold text-2xl text-neutral-900">¿De qué va la historia? 🎬</h2>
         <div className="mt-5 space-y-3">
           {cfg.themes.map((t) => (
@@ -227,7 +258,7 @@ function StepTheme({ cfg, theme, setTheme, voiceId, setVoiceId, onBack, onNext }
 }
 
 /* ---------------- Step: photos ---------------- */
-function StepPhotos({ files, setFiles, onBack, onGenerate, busy }) {
+function StepPhotos({ files, setFiles, onBack, onGenerate, busy, stepLabel }) {
   const inputRef = useRef();
   const addFiles = (list) => {
     const incoming = Array.from(list).filter((f) => f.type.startsWith("image/"));
@@ -245,7 +276,7 @@ function StepPhotos({ files, setFiles, onBack, onGenerate, busy }) {
 
   return (
     <Screen>
-      <Header stepText="Paso 3 de 4 · Las fotos" onBack={onBack} />
+      <Header stepText={stepLabel(3, "Las fotos")} onBack={onBack} />
       <div className="flex-1 px-5 pt-5 pb-40 overflow-y-auto no-scrollbar">
         <h2 className="font-display font-bold text-2xl text-neutral-900">Sube las mejores fotos 📸</h2>
         <p className="text-sm text-muted-foreground mt-1">Elige entre 3 y 20 fotos para un mejor resultado.</p>
@@ -340,7 +371,7 @@ function StepProgress({ storyId, onReady, onFail }) {
 }
 
 /* ---------------- Step: result (preview + paywall + share) ---------------- */
-function StepResult({ story, setStory, storyId, slug, cfg, price, nav, onAnother }) {
+function StepResult({ story, setStory, storyId, slug, cfg, price, nav, onAnother, stepLabel }) {
   const [busy, setBusy] = useState(false);
   const [email, setEmail] = useState("");
   const paid = story?.paid;
@@ -412,7 +443,7 @@ function StepResult({ story, setStory, storyId, slug, cfg, price, nav, onAnother
 
   return (
     <Screen>
-      <Header stepText={paid ? "¡Tu historia está lista!" : "Paso 4 de 4 · Tu historia"} onBack={() => nav("/")} />
+      <Header stepText={paid ? "¡Tu historia está lista!" : stepLabel(4, "Tu historia")} onBack={() => nav("/")} />
       <div className="flex-1 px-5 pt-4 pb-44 overflow-y-auto no-scrollbar">
         <h2 className="font-display font-bold text-xl text-neutral-900 text-center mb-1" data-testid="result-title">{story?.title}</h2>
         <p className="text-center text-sm text-muted-foreground mb-4">{story?.theme_label} · {story?.pet_name}</p>
