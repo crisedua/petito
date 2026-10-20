@@ -1,14 +1,17 @@
 "use client";
 // Shim so the ported screens keep their react-router imports unchanged.
+import { useCallback } from "react";
 import NextLink from "next/link";
 import { useParams as useNextParams, usePathname, useRouter, useSearchParams as useNextSearchParams } from "next/navigation";
 
+// Stable across renders, like react-router's: screens list `nav` in effect dependencies, and a new
+// function every render made those effects re-run constantly (e.g. reloading a form while typing).
 export function useNavigate() {
   const router = useRouter();
-  return (to, opts) => {
+  return useCallback((to, opts) => {
     if (typeof to === "number") return to < 0 ? router.back() : router.forward();
     return opts?.replace ? router.replace(to) : router.push(to);
-  };
+  }, [router]);
 }
 
 export function useLocation() {
