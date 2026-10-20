@@ -205,6 +205,14 @@ function StepPhoto({ nav, cfg, petName, setPetName, file, setFile, onNext }) {
 
 /* ---------------- Step: style + gift ---------------- */
 function StepStyle({ cfg, style, setStyle, gift, setGift, onBack, onNext, busy, frame, setFrame, samples }) {
+  const styleDef = (k) => (cfg.portrait_styles || []).find((s) => s.key === k);
+  // Real sample for this style in this frame, if an admin generated one.
+  const exactSample = (k, f) => samples?.[k]?.frames?.[f] || null;
+  // Best picture for the style: its default-frame sample, its chosen sample, or the built-in one.
+  const styleSample = (k) => exactSample(k, styleDef(k)?.default_frame) || samples?.[k]?.default || STYLE_IMG[k] || null;
+  const preview = style ? exactSample(style, frame) || styleSample(style) : null;
+  const previewIsExact = Boolean(style && exactSample(style, frame));
+  const frameLabel = (cfg.portrait_frames || []).find((f) => f.key === frame)?.label;
   return (
     <Screen>
       <Header stepText="Paso 2 de 2 · El estilo" onBack={onBack} />
@@ -215,7 +223,7 @@ function StepStyle({ cfg, style, setStyle, gift, setGift, onBack, onNext, busy, 
             <button key={s.key} onClick={() => setStyle(s.key)} data-testid={`portrait-style-${s.key}`}
               className={`relative w-full flex items-center gap-4 p-3 rounded-2xl border-2 text-left transition-all ${style === s.key ? "border-primary bg-primary/10 ring-2 ring-primary/20" : "border-border bg-white"}`}>
               <div className="w-16 h-20 rounded-xl overflow-hidden bg-stone-200 shrink-0">
-                {samples?.[s.key] || STYLE_IMG[s.key] ? <img src={samples?.[s.key] || STYLE_IMG[s.key]} alt={s.label} className="w-full h-full object-cover" />
+                {styleSample(s.key) ? <img src={styleSample(s.key)} alt={s.label} className="w-full h-full object-cover" />
                   : <div className="w-full h-full grid place-items-center text-3xl bg-gradient-to-b from-stone-700 to-stone-900">{s.emoji}</div>}
               </div>
               <div className="flex-1">
@@ -229,12 +237,24 @@ function StepStyle({ cfg, style, setStyle, gift, setGift, onBack, onNext, busy, 
 
         {style && (cfg.portrait_frames || []).length > 0 && (
           <div className="mt-6" data-testid="portrait-frames">
-            <div className="font-display font-semibold text-neutral-900">Marco</div>
+            <div className="font-display font-semibold text-neutral-900">Así se verá</div>
+            <div className="mt-2 mx-auto w-full max-w-[260px] rounded-2xl overflow-hidden bg-stone-200 shadow-md" style={{ aspectRatio: "3 / 4" }} data-testid="portrait-preview">
+              {preview ? <img key={preview} src={preview} alt={`${styleDef(style)?.label} · ${frameLabel}`} className="w-full h-full object-cover" />
+                : <div className="w-full h-full grid place-items-center text-5xl">{styleDef(style)?.emoji}</div>}
+            </div>
+            <p className="mt-2 text-center text-xs text-muted-foreground" data-testid="portrait-preview-caption">
+              {styleDef(style)?.label} · {frameLabel}
+              {!previewIsExact && " · ejemplo referencial: tu retrato saldrá con el marco elegido"}
+            </p>
+
+            <div className="mt-4 font-display font-semibold text-neutral-900">Marco</div>
             <div className="mt-2 grid grid-cols-5 gap-2">
               {cfg.portrait_frames.map((f) => (
                 <button key={f.key} onClick={() => setFrame(f.key)} data-testid={`portrait-frame-${f.key}`} title={f.desc}
                   className={`flex flex-col items-center gap-1 p-1.5 rounded-xl border-2 transition-all ${frame === f.key ? "border-primary bg-primary/10" : "border-border bg-white"}`}>
-                  <div className="w-full" style={{ aspectRatio: "3 / 4" }}><FrameSwatch k={f.key} /></div>
+                  <div className="w-full rounded-md overflow-hidden" style={{ aspectRatio: "3 / 4" }}>
+                    {exactSample(style, f.key) ? <img src={exactSample(style, f.key)} alt={f.label} className="w-full h-full object-cover" /> : <FrameSwatch k={f.key} />}
+                  </div>
                   <span className="text-[10px] leading-tight font-semibold text-neutral-700 text-center">{f.label}</span>
                 </button>
               ))}

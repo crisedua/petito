@@ -16,7 +16,11 @@ const OWNER = "stylesamples";
 const FILE = "catalog.json";
 const MAX_CANDIDATES = 6;
 
-export type SampleEntry = { current: string | null; candidates: { name: string; frame: string; ref: string; created_at: string }[] };
+export type SampleEntry = {
+  current: string | null; // shown for the style in general
+  byFrame?: Record<string, string>; // the sample shown for this style in each frame
+  candidates: { name: string; frame: string; ref: string; created_at: string }[];
+};
 export type SampleCatalog = Record<string, SampleEntry>;
 
 export async function readCatalog(): Promise<SampleCatalog> {
@@ -31,10 +35,15 @@ const writeCatalog = (c: SampleCatalog) => storage.put(OWNER, FILE, Buffer.from(
 
 export const sampleUrl = (name: string) => storage.mediaPath(OWNER, name);
 
-/** style → URL of the chosen sample (only styles that have one). */
-export async function chosenSamples(): Promise<Record<string, string>> {
+/** style → { default sample, sample per frame } (only what exists; the app falls back to built-ins). */
+export async function chosenSamples(): Promise<Record<string, { default: string | null; frames: Record<string, string> }>> {
   const c = await readCatalog();
-  return Object.fromEntries(Object.entries(c).filter(([, e]) => e.current).map(([k, e]) => [k, sampleUrl(e.current!)]));
+  const out: Record<string, { default: string | null; frames: Record<string, string> }> = {};
+  for (const [k, e] of Object.entries(c)) {
+    const frames = Object.fromEntries(Object.entries(e.byFrame ?? {}).map(([f, n]) => [f, sampleUrl(n)]));
+    if (e.current || Object.keys(frames).length) out[k] = { default: e.current ? sampleUrl(e.current) : null, frames };
+  }
+  return out;
 }
 
 /** Data URI of the reference photo: the built-in example dog, or a photo the caller already loaded. */
@@ -56,19 +65,28 @@ export async function generateCandidate(style: string, frame: string | null, ref
   const c = await readCatalog();
   const e: SampleEntry = c[style] ?? { current: null, candidates: [] };
   e.candidates.unshift({ name, frame: frameKey, ref: ref.label, created_at: new Date().toISOString() });
-  const dropped = e.candidates.splice(MAX_CANDIDATES).map((x) => x.name).filter((n) => n !== e.current);
+  // First sample for this frame: show it right away for that frame.
+  e.byFrame = e.byFrame ?? {};
+  if (!e.byFrame[frameKey]) e.byFrame[frameKey] = name;
+  const keep = new Set([e.current, ...Object.values(e.byFrame)].filter(Boolean));
+  const extra = e.candidates.filter((x) => !keep.has(x.name));
+  const dropNames = new Set(extra.slice(Math.max(0, MAX_CANDIDATES - keep.size)).map((x) => x.name));
+  e.candidates = e.candidates.filter((x) => !dropNames.has(x.name));
+  const dropped = [...dropNames];
   c[style] = e;
   await writeCatalog(c);
   if (dropped.length) await storage.remove(OWNER, dropped).catch(() => {});
   return { name, url: sampleUrl(name), frame: frameKey };
 }
 
-/** Show this candidate on the style picker (null = back to the built-in sample). */
+/** Show this candidate for its frame and as the style's main sample (null = back to the built-in sample). */
 export async function chooseSample(style: string, name: string | null) {
   const c = await readCatalog();
   const e = c[style];
   if (!e) throw new Error("Sin alternativas para este estilo");
-  if (name && !e.candidates.some((x) => x.name === name)) throw new Error("Esa alternativa no existe");
+  const cand = name ? e.candidates.find((x) => x.name === name) : null;
+  if (name && !cand) throw new Error("Esa alternativa no existe");
   e.current = name;
+  if (cand) e.byFrame = { ...(e.byFrame ?? {}), [cand.frame]: cand.name };
   await writeCatalog(c);
 }

@@ -66,8 +66,17 @@ def test_admin_samples_generate_choose_and_reset():
     assert any(c["name"] == cand["name"] for c in row["candidates"])
 
     assert requests.put(f"{API}/admin/style-samples", json={"style": "bruja", "name": cand["name"]}, headers=ADMIN, timeout=20).status_code == 200
-    assert requests.get(f"{API}/portraits/samples", timeout=20).json()["bruja"] == cand["url"]
+    samples = requests.get(f"{API}/portraits/samples", timeout=20).json()["bruja"]
+    assert samples["default"] == cand["url"] and samples["frames"]["negro_gotico"] == cand["url"]
     assert requests.put(f"{API}/admin/style-samples", json={"style": "bruja", "name": "nope.jpg"}, headers=ADMIN, timeout=20).status_code == 400
     assert requests.put(f"{API}/admin/style-samples", json={"style": "bruja", "name": None}, headers=ADMIN, timeout=20).status_code == 200
-    assert "bruja" not in requests.get(f"{API}/portraits/samples", timeout=20).json()
+    after = requests.get(f"{API}/portraits/samples", timeout=20).json()["bruja"]
+    assert after["default"] is None and after["frames"]["negro_gotico"] == cand["url"]  # per-frame sample stays
     assert requests.post(f"{API}/admin/style-samples", json={"style": "nope"}, headers=ADMIN, timeout=20).status_code == 400
+
+
+def test_first_sample_for_a_frame_is_shown_right_away():
+    r = requests.post(f"{API}/admin/style-samples", json={"style": "calabazas", "frame": "plata"}, headers=ADMIN, timeout=90).json()
+    row = next(s for s in requests.get(f"{API}/admin/style-samples", headers=ADMIN, timeout=20).json()["styles"] if s["key"] == "calabazas")
+    assert row["by_frame"].get("plata")  # some sample is now shown for calabazas + plata
+    assert "plata" in requests.get(f"{API}/portraits/samples", timeout=20).json()["calabazas"]["frames"]

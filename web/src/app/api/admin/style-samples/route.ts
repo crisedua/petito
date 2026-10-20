@@ -20,6 +20,7 @@ export const GET = handler(async (req: Request) => {
       key, label: s.label, emoji: s.emoji, default_frame: STYLE_DEFAULT_FRAME[key] ?? "dorado",
       builtin: `/portrait-styles/${key}.jpg`,
       current: c[key]?.current ? sampleUrl(c[key].current!) : null, current_name: c[key]?.current ?? null,
+      by_frame: c[key]?.byFrame ?? {},
       candidates: (c[key]?.candidates ?? []).map((x) => ({ ...x, url: sampleUrl(x.name) })),
     })),
   });
