@@ -11,6 +11,7 @@ import { fail } from "./http";
 import { isoNow, newId } from "./ids";
 import { mediaPath } from "./storage";
 import { emotionLabels } from "./serializers";
+import { plusByOwner, portraitThumb, videoThumb } from "./thumbs";
 import { ALL_PORTRAIT_STYLES, THEMES } from "@/lib/catalogs";
 import type { AppUser } from "./auth";
 
@@ -177,22 +178,23 @@ export async function itemCards(refs: { kind: string; item_id: string }[], owner
   };
   const [stories, portraits, videos, memories] = await Promise.all([
     q("stories", ids("story"), "id, share_slug, title, theme, status, pet_id, pet_name, created_at"),
-    q("portraits", ids("portrait"), "id, share_slug, style, category, status, pet_id, pet_name, created_at"),
-    q("videos", ids("video"), "id, share_slug, line, status, mode, pet_id, pet_name, created_at"),
+    q("portraits", ids("portrait"), "id, user_id, share_slug, style, category, status, clean_file, pet_id, pet_name, created_at"),
+    q("videos", ids("video"), "id, user_id, share_slug, line, status, mode, clean_file, pet_id, pet_name, created_at"),
     q("memories", ids("memory"), "id, pet_id, title, happened_on, date_unknown, feeling_text, emotions, photo_file, ai_reflection, created_at"),
   ]);
   const out = new Map<string, ItemCard>();
+  const plus = await plusByOwner([...(portraits.data ?? []), ...(videos.data ?? [])].map((d: any) => d.user_id));
   for (const d of (stories.data ?? []) as any[]) {
     if (!["preview_ready", "paid"].includes(d.status)) continue;
     out.set(key("story", d.id), { kind: "story", id: d.id, pet_id: d.pet_id, title: d.title || `La historia de ${d.pet_name || "mi mascota"}`, subtitle: THEMES[d.theme]?.label ?? null, thumb_url: mediaPath(d.id, "slide_0.jpg"), view_path: `/h/${d.share_slug}`, created_at: iso(d.created_at) });
   }
   for (const d of (portraits.data ?? []) as any[]) {
     if (!["preview_ready", "paid"].includes(d.status)) continue;
-    out.set(key("portrait", d.id), { kind: "portrait", id: d.id, pet_id: d.pet_id, title: d.pet_name ? `${d.pet_name}, ${(ALL_PORTRAIT_STYLES[d.style]?.label ?? "retrato").toLowerCase()}` : ALL_PORTRAIT_STYLES[d.style]?.label ?? "Retrato", subtitle: d.category === "memorial" ? "Homenaje" : "Retrato", thumb_url: mediaPath(d.id, "preview.jpg"), view_path: `/r/${d.share_slug}`, created_at: iso(d.created_at) });
+    out.set(key("portrait", d.id), { kind: "portrait", id: d.id, pet_id: d.pet_id, title: d.pet_name ? `${d.pet_name}, ${(ALL_PORTRAIT_STYLES[d.style]?.label ?? "retrato").toLowerCase()}` : ALL_PORTRAIT_STYLES[d.style]?.label ?? "Retrato", subtitle: d.category === "memorial" ? "Homenaje" : "Retrato", thumb_url: portraitThumb(d, plus.get(d.user_id) ?? false), view_path: `/r/${d.share_slug}`, created_at: iso(d.created_at) });
   }
   for (const d of (videos.data ?? []) as any[]) {
     if (!["preview_ready", "paid"].includes(d.status) || d.mode !== "full") continue;
-    out.set(key("video", d.id), { kind: "video", id: d.id, pet_id: d.pet_id, title: d.pet_name ? `${d.pet_name} habla` : "Video que habla", subtitle: d.line ?? null, thumb_url: mediaPath(d.id, "source.jpg"), view_path: `/v/${d.share_slug}`, created_at: iso(d.created_at) });
+    out.set(key("video", d.id), { kind: "video", id: d.id, pet_id: d.pet_id, title: d.pet_name ? `${d.pet_name} habla` : "Video que habla", subtitle: d.line ?? null, thumb_url: videoThumb(d, plus.get(d.user_id) ?? false), view_path: `/v/${d.share_slug}`, created_at: iso(d.created_at) });
   }
   for (const m of (memories.data ?? []) as any[]) {
     out.set(key("memory", m.id), {

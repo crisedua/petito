@@ -80,3 +80,36 @@ def test_first_sample_for_a_frame_is_shown_right_away():
     row = next(s for s in requests.get(f"{API}/admin/style-samples", headers=ADMIN, timeout=20).json()["styles"] if s["key"] == "calabazas")
     assert row["by_frame"].get("plata")  # some sample is now shown for calabazas + plata
     assert "plata" in requests.get(f"{API}/portraits/samples", timeout=20).json()["calabazas"]["frames"]
+
+
+def _portrait_for(h):
+    p = requests.post(f"{API}/portraits", json={"style": "renacentista", "pet_id": ROCCO}, headers=h, timeout=20).json()
+    requests.post(f"{API}/portraits/{p['id']}/photo", files={"files": ("p.jpg", jpeg(), "image/jpeg")}, headers=h, timeout=60)
+    requests.post(f"{API}/portraits/{p['id']}/generate", headers=h, timeout=20)
+    for _ in range(60):
+        if requests.get(f"{API}/portraits/{p['id']}", headers=h, timeout=20).json()["status"] in ("preview_ready", "paid"):
+            break
+        time.sleep(1.5)
+    return p["id"]
+
+
+ROCCO = "a8f1f1bb-e5ef-4854-b07e-dc438112bd4a"
+
+
+def test_plus_owner_sees_clean_thumbnails_free_owner_sees_watermark():
+    me = requests.get(f"{API}/auth/me", headers=NORM, timeout=20).json()
+    pid = _portrait_for(NORM)  # norm user has Plus (courtesy) in the test setup
+
+    def thumbs():
+        col = {c["id"]: c["thumb_url"] for c in requests.get(f"{API}/pets/{ROCCO}/creations", headers=NORM, timeout=20).json()}
+        mine = {c["id"]: c for c in requests.get(f"{API}/me/portraits", headers=NORM, timeout=20).json()}
+        return col[pid], mine[pid]
+
+    col, mine = thumbs()
+    assert "/clean_" in col and "/clean_" in mine["thumb_url"] and mine["paid"] is True
+    requests.post(f"{API}/admin/users/{me['user_id']}/plus", json={"active": False}, headers=ADMIN, timeout=20)
+    try:
+        col, mine = thumbs()
+        assert col.endswith("/preview.jpg") and mine["thumb_url"].endswith("/preview.jpg") and mine["paid"] is False
+    finally:
+        requests.post(f"{API}/admin/users/{me['user_id']}/plus", json={"active": True}, headers=ADMIN, timeout=20)

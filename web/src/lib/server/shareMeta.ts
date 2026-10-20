@@ -6,6 +6,8 @@
 import type { Metadata } from "next";
 import { db } from "./db";
 import { mediaPath } from "./storage";
+import { isPlus } from "./plus";
+import { portraitThumb, videoThumb } from "./thumbs";
 import { ALL_PORTRAIT_STYLES } from "@/lib/catalogs";
 import { OG_IMAGE, SITE_DESCRIPTION, SITE_TITLE } from "@/lib/site";
 
@@ -26,25 +28,26 @@ const quote = (s?: string | null, n = 120) => (s ? `“${s.length > n ? s.slice(
 export async function videoMeta(slug: string): Promise<Metadata> {
   const path = `/v/${slug}`;
   try {
-    const { data: v } = await db().from("videos").select("id, pet_name, line, status").eq("share_slug", slug).maybeSingle();
+    const { data: v } = await db().from("videos").select("id, user_id, pet_name, line, status, clean_file").eq("share_slug", slug).maybeSingle();
     if (!v || !READY.includes(v.status)) return fallback(path);
     const name = v.pet_name || "Esta mascota";
     return meta(path, `${name} tiene algo que decirte 🐾`,
       `${quote(v.line)} Mira el video y haz que tu mascota hable en Petito.`.trim(),
-      { url: mediaPath(v.id, "source.jpg"), width: 720, height: 1280 });
+      { url: videoThumb(v, await isPlus(v.user_id)) });
   } catch { return fallback(path); }
 }
 
 export async function portraitMeta(slug: string): Promise<Metadata> {
   const path = `/r/${slug}`;
   try {
-    const { data: p } = await db().from("portraits").select("id, pet_name, style, category, status, preview_file").eq("share_slug", slug).maybeSingle();
+    const { data: p } = await db().from("portraits").select("id, user_id, pet_name, style, category, status, preview_file, clean_file").eq("share_slug", slug).maybeSingle();
     if (!p || !READY.includes(p.status) || !p.preview_file) return fallback(path);
     const name = p.pet_name || "Mi mascota";
     const style = ALL_PORTRAIT_STYLES[p.style]?.label ?? "retrato";
+    const img = { url: portraitThumb(p, await isPlus(p.user_id)) };
     return p.category === "memorial"
-      ? meta(path, `Un homenaje a ${name} 🕊️`, "Un recuerdo lleno de cariño, hecho en Petito.", { url: mediaPath(p.id, p.preview_file) })
-      : meta(path, `${name}, en versión ${style.toLowerCase()} 👑`, "Mira su retrato y crea el de tu mascota en Petito.", { url: mediaPath(p.id, p.preview_file) });
+      ? meta(path, `Un homenaje a ${name} 🕊️`, "Un recuerdo lleno de cariño, hecho en Petito.", img)
+      : meta(path, `${name}, en versión ${style.toLowerCase()} 👑`, "Mira su retrato y crea el de tu mascota en Petito.", img);
   } catch { return fallback(path); }
 }
 
