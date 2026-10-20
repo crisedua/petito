@@ -50,7 +50,10 @@ export function AuthProvider({ children }) {
   // Google sign-in through Supabase Auth; the callback route links the account and returns here.
   const login = useCallback(async (returnPath) => {
     const path = returnPath || window.location.pathname;
-    const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(path)}`;
+    // The return path rides in a cookie, not the redirect URL: Supabase only honors redirect URLs that match
+    // its allow-list exactly, and a "?next=" query makes an exact "/auth/callback" entry miss.
+    document.cookie = `petito_next=${encodeURIComponent(path)}; path=/; max-age=900; samesite=lax`;
+    const redirectTo = `${window.location.origin}/auth/callback`;
     await supabaseBrowser().auth.signInWithOAuth({ provider: "google", options: { redirectTo } });
   }, []);
 
