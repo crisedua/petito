@@ -11,7 +11,6 @@ import { createTalkPreview, getPets } from "@/lib/api";
 import { openInstallSheet, useInstallOffer } from "@/components/app/InstallPrompt";
 import { isMobile, isStandalone } from "@/lib/install";
 import TryPortrait from "@/components/TryPortrait";
-import Showcase from "@/components/Showcase";
 
 
 const PREVIEW_LINES = [
@@ -81,10 +80,6 @@ export default function Landing() {
         <motion.p {...fade(0.08)} className="mt-2 text-[0.95rem] leading-snug" style={{ color: "#7A6A5E" }} data-testid="landing-subhead">
           Con una sola foto: un retrato de realeza, un video donde te habla con su voz y su propia canción.
         </motion.p>
-
-        <motion.div {...fade(0.14)} className="mt-5">
-          <Showcase />
-        </motion.div>
 
         <motion.div {...fade(0.2)} className="mt-5">
           <TryPortrait title="Pruébalo con su foto, ahora" subtitle="Su foto real como retrato de estudio: fondo de color, luz de fotógrafo y su placa con nombre. Gratis, sin cuenta, en un minuto." sample={null} testid="landing-try" />
