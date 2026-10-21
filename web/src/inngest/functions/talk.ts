@@ -10,7 +10,7 @@ import { danceSourceUrl } from "@/lib/server/dances";
 import * as eleven from "@/lib/server/elevenvideo";
 import * as storage from "@/lib/server/storage";
 import { imageToB64, loadImage } from "@/lib/server/images";
-import { writePetLine, writePetSong } from "@/lib/server/prompts";
+import { describePet, writePetLine, writePetSong } from "@/lib/server/prompts";
 import { composeSong, SONG_COST_USD, SONG_MODEL } from "@/lib/server/elevenmusic";
 import { llmCost, llmModel } from "@/lib/server/llm";
 import { ensureVoices, generateNarration, validVoice } from "@/lib/server/elevenlabs";
@@ -24,6 +24,19 @@ const firstPhoto = async (id: string) =>
   (await db().from("talk_photos").select("file").eq("video_id", id).order("created_at", { ascending: false }).limit(1).maybeSingle()).data?.file as string | undefined;
 
 const WAIT_TEXT = "Moviéndole la boquita... casi listo";
+
+/** Up to 3 more photos of this pet (profile photo, memory photos) so video models hold its identity. */
+async function petReferencePhotos(petId: string | null | undefined): Promise<Buffer[]> {
+  if (!petId) return [];
+  const out: Buffer[] = [];
+  try {
+    const { data: pet } = await db().from("pets").select("id, photo_file").eq("id", petId).maybeSingle();
+    if (pet?.photo_file) out.push(await loadImage(pet.id, pet.photo_file));
+    const { data: mems } = await db().from("memories").select("id, photo_file").eq("pet_id", petId).not("photo_file", "is", null).order("created_at", { ascending: false }).limit(2);
+    for (const m of mems ?? []) if (out.length < 3) out.push(await loadImage(m.id, m.photo_file));
+  } catch { /* references are a bonus */ }
+  return out;
+}
 
 /** Who the message is for, the pet's personality and one real memory, so the line is unmistakably this pet's. */
 async function lineContext(v: any) {
@@ -125,10 +138,14 @@ export const generateTalk = inngest.createFunction(
         const errors: string[] = [];
         if (hf.higgsfieldEnabled()) {
           try {
+            // The uploaded photo first, then other photos of the same pet; plus a one-line description of
+            // what makes it recognizable, so the model keeps its identity through the moves.
+            const [refs, identity] = await Promise.all([petReferencePhotos(v.pet_id), describePet(await imageToB64(id, photo, 512))]);
+            const images = [photoBuf, ...refs];
             // Dances: real choreography (our source video) transferred onto the pet.
             const choreo = scene.choreo ? await danceSourceUrl(v.scenario) : null;
-            if (choreo) return { provider: "higgsfield" as const, dance: true, id: await hf.submitMotionTransfer(choreo, photoBuf, scene.prompt) };
-            return { provider: "higgsfield" as const, id: await hf.submitMotion(photoBuf, scene.prompt, MOTION_SECONDS) };
+            if (choreo) return { provider: "higgsfield" as const, dance: true, id: await hf.submitMotionTransfer(choreo, images, scene.prompt, identity) };
+            return { provider: "higgsfield" as const, id: await hf.submitMotion(images, scene.prompt, MOTION_SECONDS, identity) };
           } catch (e) {
             if (!(e instanceof hf.PermanentHiggsfieldError)) throw e;
             errors.push(e.message);

@@ -199,3 +199,18 @@ export async function writePetSong(photoB64: string, petName: string | null, fee
     : [`${ctx.toName ? ctx.toName + ", " : ""}soy ${name}, tu regalón`, "y esta canción es para ti", `${name}, ${name}, con el corazón`, "te quiero hasta el fin"].join("\n");
   return { lyrics, species: data.species || "otro", usage };
 }
+
+
+/** One short English line of what makes this pet recognizable (breed, coat, markings), for video prompts. */
+export async function describePet(photoB64: string): Promise<string> {
+  try {
+    const { text } = await runClaude(
+      "You describe pets for an image model. Respond ONLY with JSON.",
+      'Describe this pet\'s identifying features in ONE English sentence under 30 words: species, likely breed, coat colors and pattern, distinctive markings (face, chest, paws), eye color, fur length. Respond JSON: {"identity": "<sentence>"}',
+      [photoB64], true);
+    const d = extractJson<{ identity?: string }>(text);
+    return String(d.identity ?? "").trim().slice(0, 240);
+  } catch {
+    return "";
+  }
+}

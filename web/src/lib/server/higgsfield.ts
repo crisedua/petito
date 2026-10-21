@@ -73,14 +73,15 @@ export async function uploadImage(jpeg: Buffer): Promise<string> {
 }
 
 /** The real pet (from its photo) in a short vertical scene, with generated sound. Returns request_id. */
-export async function submitMotion(imageJpeg: Buffer, scenePrompt: string, seconds: number): Promise<string> {
+export async function submitMotion(images: Buffer[], scenePrompt: string, seconds: number, identity = ""): Promise<string> {
   if (env.mockAi) return `mock-hf-${randomUUID()}`;
-  const imageUrl = await uploadImage(imageJpeg);
+  const imageUrls = await Promise.all(images.slice(0, 6).map(uploadImage));
   const prompt =
-    `The pet in the reference image, keeping exactly the same animal, breed, fur colors, markings and face, ` +
-    `${scenePrompt}. Realistic video, natural movement, the pet is always the clear subject, steady camera, no text.`;
+    `The pet shown in the reference images (${identity || "the same animal in every reference"}): keep exactly the same animal, ` +
+    `breed, fur colors, markings, eyes and face in every frame, ${scenePrompt}. Realistic video, natural movement, ` +
+    `the pet is always the clear subject, steady camera, no text.`;
   const r = await call<{ request_id: string }>("POST", `/${HF_MOTION_MODEL}`, {
-    prompt, image_urls: [imageUrl], duration: Math.max(4, Math.min(30, seconds)), resolution: "720p",
+    prompt, image_urls: imageUrls, duration: Math.max(4, Math.min(30, seconds)), resolution: "720p",
     aspect_ratio: "9:16", generate_audio: true,
   }, true);
   if (!r.request_id) throw new Error("Higgsfield did not return a request_id");
@@ -133,12 +134,12 @@ export async function submitTextToVideo(prompt: string, seconds: number, aspectR
 }
 
 /** Genjutsu motion transfer: the pet (reference image) performs the moves of `videoUrl`. Returns request_id. */
-export async function submitMotionTransfer(videoUrl: string, imageJpeg: Buffer, prompt: string): Promise<string> {
+export async function submitMotionTransfer(videoUrl: string, images: Buffer[], prompt: string, identity = ""): Promise<string> {
   if (env.mockAi) return `mock-hf-${randomUUID()}`;
-  const imageUrl = await uploadImage(imageJpeg);
+  const imageUrls = await Promise.all(images.slice(0, 8).map(uploadImage));
   const r = await call<{ request_id: string }>("POST", `/${HF_GENJUTSU_MODEL}`, {
-    video_url: videoUrl, image_urls: [imageUrl], resolution: "720p",
-    prompt: `Replace the dancer with the pet from the reference image: keep exactly the same animal, breed, fur colors, markings and face, ${prompt}. Keep the dancer's motion, timing and camera; realistic, no text.`,
+    video_url: videoUrl, image_urls: imageUrls, resolution: "720p",
+    prompt: `Replace the dancer with the pet from the reference images (${identity || "the same animal in every reference"}): keep exactly the same animal, breed, fur colors, markings, eyes and face, ${prompt}. Keep the dancer's motion, timing and camera; realistic, no text.`,
   }, true);
   if (!r.request_id) throw new Error("Higgsfield did not return a request_id");
   return r.request_id;
