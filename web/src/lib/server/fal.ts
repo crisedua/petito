@@ -61,6 +61,9 @@ async function submit(endpoint: string, input: Record<string, unknown>): Promise
   }
 }
 
+/** Submit any fal queue endpoint with a prepared input (image engines). */
+export const submitRaw = (endpoint: string, input: Record<string, unknown>) => submit(endpoint, input);
+
 /** nano-banana/edit: image (data URI) + prompt → one JPEG. */
 export const submitEdit = (imageDataUri: string, prompt: string, aspectRatio: "9:16" | "3:4") =>
   submit(env.falImageModel, { image_urls: [imageDataUri], prompt, num_images: 1, output_format: "jpeg", aspect_ratio: aspectRatio });

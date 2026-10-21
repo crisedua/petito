@@ -88,18 +88,29 @@ export async function submitMotion(images: Buffer[], scenePrompt: string, second
   return r.request_id;
 }
 
+/** Submit any Higgsfield model with a prepared input. Returns request_id. */
+export async function submitRaw(model: string, input: Record<string, unknown>): Promise<string> {
+  const r = await call<{ request_id: string }>("POST", `/${model}`, input, true);
+  if (!r.request_id) throw new Error("Higgsfield did not return a request_id");
+  return r.request_id;
+}
+
 export type HfState = { state: "PENDING" | "COMPLETED" | "FAILED"; url?: string; error?: string };
 
 export async function status(requestId: string): Promise<HfState> {
-  if (requestId.startsWith("mock-hf-")) return { state: "COMPLETED", url: "mock:higgsfield" };
-  const s = await call<{ status: string; video?: { url?: string }; error?: unknown }>("GET", `/requests/${requestId}/status`);
-  if (s.status === "completed") return s.video?.url ? { state: "COMPLETED", url: s.video.url } : { state: "FAILED", error: "sin video en la respuesta" };
+  if (requestId.startsWith("mock-hf-")) return { state: "COMPLETED", url: requestId.startsWith("mock-hf-img-") ? "mock:higgsfield-image" : "mock:higgsfield" };
+  const s = await call<{ status: string; video?: { url?: string }; images?: { url?: string }[]; error?: unknown }>("GET", `/requests/${requestId}/status`);
+  if (s.status === "completed") {
+    const url = s.video?.url ?? s.images?.[0]?.url;
+    return url ? { state: "COMPLETED", url } : { state: "FAILED", error: "sin resultado en la respuesta" };
+  }
   if (["failed", "nsfw", "canceled"].includes(s.status)) return { state: "FAILED", error: `${s.status}${s.error ? `: ${JSON.stringify(s.error).slice(0, 200)}` : ""}` };
   return { state: "PENDING" };
 }
 
 export async function download(url: string): Promise<Buffer> {
   if (url === "mock:higgsfield") return readFile(path.join(process.cwd(), "assets", "mock", "talk.mp4"));
+  if (url === "mock:higgsfield-image") return readFile(path.join(process.cwd(), "assets", "sample-pets", "dog.jpg"));
   const res = await fetch(url, { signal: AbortSignal.timeout(180_000) });
   if (!res.ok) throw new Error(`Higgsfield download ${res.status}`);
   return Buffer.from(await res.arrayBuffer());

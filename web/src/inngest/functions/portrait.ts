@@ -9,6 +9,8 @@ import { imageToDataUri } from "@/lib/server/images";
 import { photoEditPrompt, portraitPrompt } from "@/lib/server/prompts";
 import { renderPhotoStyle } from "@/lib/render/photoStyles";
 import { loadImage } from "@/lib/server/images";
+import * as hf from "@/lib/server/higgsfield";
+import { defaultEngine, engineAvailable, submitEditWith, IMAGE_ENGINES } from "@/lib/server/imageEngines";
 import { portraitPreview } from "@/lib/render/watermarks";
 import { env } from "@/lib/server/env";
 import { hex16 } from "@/lib/server/ids";
@@ -37,6 +39,7 @@ export const generatePortrait = inngest.createFunction(
 
     // "render" styles (polaroid, revista, antigua) are drawn by us from the real photo: no AI call.
     let url: string | null = null;
+    let usedModel = env.falImageModel, usedProvider: "fal" | "higgsfield" = "fal";
     if (mode === "render") {
       await progress(step, "portraits", id, "40", { progress_step: "Revelando tu foto...", progress_pct: 40 });
     } else {
@@ -45,20 +48,40 @@ export const generatePortrait = inngest.createFunction(
       const prompt = mode === "edit"
         ? photoEditPrompt("mascota", style.prompt)
         : portraitPrompt("mascota", p.category === "memorial" ? style.prompt : `${style.prompt}, ${frameFor(p.style, p.frame).prompt}`);
-      const requestId: string = await step.run("submit", async () => fal.submitEdit(await imageToDataUri(id, photo), prompt, "3:4"));
-      url = await awaitFal(step, "portrait", env.falImageModel, requestId, 20);
+      const sub: { provider: "fal" | "higgsfield"; id: string; model: string } = await step.run("submit", async () => {
+        let engine = await defaultEngine();
+        if (!engineAvailable(engine)) engine = IMAGE_ENGINES.nano_banana;
+        // Extra photos of the same pet help engines that take several references.
+        const refs: Buffer[] = [await loadImage(id, photo)];
+        if (p.pet_id) {
+          const { data: pet } = await db().from("pets").select("id, photo_file").eq("id", p.pet_id).maybeSingle();
+          if (pet?.photo_file) refs.push(await loadImage(pet.id, pet.photo_file));
+        }
+        return submitEditWith(engine, refs, prompt);
+      });
+      if (sub.provider === "fal") url = await awaitFal(step, "portrait", sub.model, sub.id, 20);
+      else {
+        for (let i = 0; i < 40 && !url; i++) {
+          const st: hf.HfState = await step.run(`portrait-hf-status-${i}`, () => hf.status(sub.id));
+          if (st.state === "COMPLETED") url = st.url!;
+          else if (st.state === "FAILED") throw new Error(`Higgsfield: ${st.error ?? "falló"}`);
+          else await step.sleep(`portrait-hf-wait-${i}`, "4s");
+        }
+        if (!url) throw new Error("Higgsfield tardó demasiado");
+      }
+      usedModel = sub.model; usedProvider = sub.provider;
     }
 
     await progress(step, "portraits", id, "80", { progress_step: mode === "paint" ? "Poniéndole el marco..." : "Últimos detalles...", progress_pct: 80 });
     await step.run("save", async () => {
       const sharp = (await import("sharp")).default;
       const clean = url
-        ? await sharp(await fal.download(url)).jpeg({ quality: 94 }).toBuffer()
+        ? await sharp(usedProvider === "higgsfield" ? await hf.download(url) : await fal.download(url)).jpeg({ quality: 94 }).toBuffer()
         : await renderPhotoStyle(p.style, await loadImage(id, photo), p.pet_name);
       const cleanName = `clean_${hex16()}.jpg`;
       await storage.put(id, cleanName, clean, "image/jpeg");
       await storage.put(id, "preview.jpg", await portraitPreview(clean, BRAND_NAME), "image/jpeg");
-      await logGeneration({ ownerId: id, step: "portrait", model: url ? env.falImageModel : "petito-renderer", images: 1, costUsd: url ? fal.FAL_IMG_COST : 0, durationMs: Date.now() - t0 });
+      await logGeneration({ ownerId: id, step: "portrait", model: url ? usedModel : "petito-renderer", images: 1, costUsd: url ? (Object.values(IMAGE_ENGINES).find((e) => e.model === usedModel)?.costUsd ?? fal.FAL_IMG_COST) : 0, durationMs: Date.now() - t0 });
       // Plus members get it unlocked right away (no watermarked preview shown to them).
       const plus = p.user_id ? await isPlus(p.user_id) : false;
       await db().from("portraits").update({

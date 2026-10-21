@@ -8,7 +8,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
 import * as storage from "./storage";
-import * as fal from "./fal";
+import { IMAGE_ENGINES, defaultEngine, editImageNow, engineAvailable, type EngineKey } from "./imageEngines";
 import { photoEditPrompt, portraitPrompt } from "./prompts";
 import { renderPhotoStyle } from "@/lib/render/photoStyles";
 import { PORTRAIT_FRAMES, PORTRAIT_STYLES, STYLE_DEFAULT_FRAME, frameFor, styleMode } from "@/lib/catalogs";
@@ -20,7 +20,7 @@ const MAX_CANDIDATES = 6;
 export type SampleEntry = {
   current: string | null; // shown for the style in general
   byFrame?: Record<string, string>; // the sample shown for this style in each frame
-  candidates: { name: string; frame: string; ref: string; created_at: string }[];
+  candidates: { name: string; frame: string; ref: string; created_at: string; engine?: string }[];
 };
 export type SampleCatalog = Record<string, SampleEntry>;
 
@@ -48,28 +48,30 @@ export async function chosenSamples(): Promise<Record<string, { default: string 
 }
 
 /** Data URI of the reference photo: the built-in example dog, or a photo the caller already loaded. */
-async function referenceDataUri(photo?: Buffer): Promise<string> {
+async function _referenceDataUri(photo?: Buffer): Promise<string> {
   const buf = photo ?? (await readFile(path.join(process.cwd(), "assets", "sample-pets", "dog.jpg")));
   const jpg = await sharp(buf).rotate().resize(1024, 1024, { fit: "inside" }).jpeg({ quality: 88 }).toBuffer();
   return `data:image/jpeg;base64,${jpg.toString("base64")}`;
 }
 
-export async function generateCandidate(style: string, frame: string | null, ref: { label: string; photo?: Buffer }) {
+export async function generateCandidate(style: string, frame: string | null, ref: { label: string; photo?: Buffer; extra?: Buffer[] }, engineKey?: EngineKey | null) {
   const def = PORTRAIT_STYLES[style];
   if (!def) throw new Error("Estilo inválido");
   const mode = styleMode(style);
   const frameKey = mode !== "paint" ? "sin_marco" : frame && PORTRAIT_FRAMES[frame] ? frame : STYLE_DEFAULT_FRAME[style] ?? "dorado";
   const fr = frameFor(style, frameKey);
   const photo = ref.photo ?? (await readFile(path.join(process.cwd(), "assets", "sample-pets", "dog.jpg")));
+  const engine = engineKey && IMAGE_ENGINES[engineKey] ? IMAGE_ENGINES[engineKey] : await defaultEngine();
+  if (mode !== "render" && !engineAvailable(engine)) throw new Error(`${engine.label} no está configurado`);
   const out = mode === "render"
     ? await renderPhotoStyle(style, photo, ref.label === "Perro de ejemplo" ? "Rocco" : ref.label)
-    : await fal.editImageNow(await referenceDataUri(photo), mode === "edit" ? photoEditPrompt("mascota", def.prompt) : portraitPrompt("mascota", `${def.prompt}, ${fr.prompt}`), "3:4");
+    : await editImageNow(engine, [photo, ...(ref.extra ?? [])], mode === "edit" ? photoEditPrompt("mascota", def.prompt) : portraitPrompt("mascota", `${def.prompt}, ${fr.prompt}`));
   const small = await sharp(out).resize(600, 800, { fit: "cover" }).jpeg({ quality: 86 }).toBuffer();
   const name = `${style}_${Date.now()}.jpg`;
   await storage.put(OWNER, name, small, "image/jpeg");
   const c = await readCatalog();
   const e: SampleEntry = c[style] ?? { current: null, candidates: [] };
-  e.candidates.unshift({ name, frame: frameKey, ref: ref.label, created_at: new Date().toISOString() });
+  e.candidates.unshift({ name, frame: frameKey, ref: ref.label, created_at: new Date().toISOString(), engine: mode === "render" ? "petito" : engine.key });
   // First sample for this frame: show it right away for that frame.
   e.byFrame = e.byFrame ?? {};
   if (!e.byFrame[frameKey]) e.byFrame[frameKey] = name;
@@ -81,7 +83,7 @@ export async function generateCandidate(style: string, frame: string | null, ref
   c[style] = e;
   await writeCatalog(c);
   if (dropped.length) await storage.remove(OWNER, dropped).catch(() => {});
-  return { name, url: sampleUrl(name), frame: frameKey };
+  return { name, url: sampleUrl(name), frame: frameKey, engine: mode === "render" ? "petito" : engine.key };
 }
 
 /** Show this candidate for its frame and as the style's main sample (null = back to the built-in sample). */

@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Loader2, Sparkles, Check } from "lucide-react";
-import { adminChooseSample, adminGenerateSample, adminStyleSamples } from "@/lib/api";
+import { adminChooseSample, adminGenerateSample, adminSetImageEngine, adminStyleSamples } from "@/lib/api";
 
 /**
  * Admin → Muestras: the pictures on the portrait style picker. Generate alternatives with the real
@@ -11,6 +11,7 @@ import { adminChooseSample, adminGenerateSample, adminStyleSamples } from "@/lib
 export default function AdminSamples() {
   const [d, setD] = useState(null);
   const [ref, setRef] = useState(""); // "" = example dog, else one of your pets
+  const [engine, setEngine] = useState(""); // "" = the current default
   const [batch, setBatch] = useState(null); // { done, total } while generating everything that's missing
   const load = () => adminStyleSamples().then(setD).catch((e) => toast.error(e?.response?.data?.detail || "No se pudieron cargar las muestras"));
   useEffect(() => { load(); }, []);
@@ -22,7 +23,7 @@ export default function AdminSamples() {
     setBatch({ done: 0, total: list.length, failed: 0 });
     let failed = 0;
     for (let i = 0; i < list.length; i++) {
-      try { await adminGenerateSample(list[i].style, list[i].frame, ref); } catch { failed++; }
+      try { await adminGenerateSample(list[i].style, list[i].frame, ref, engine); } catch { failed++; }
       setBatch({ done: i + 1, total: list.length, failed });
       if ((i + 1) % 5 === 0) load();
     }
@@ -42,6 +43,18 @@ export default function AdminSamples() {
         <option value="">Perro de ejemplo (golden retriever)</option>
         {d.pets.map((p) => <option key={p.id} value={p.id}>{p.name} (tu mascota)</option>)}
       </select>
+      <label className="mt-3 block text-[11px] font-semibold text-neutral-500">Motor de imagen (para comparar)</label>
+      <select value={engine} onChange={(e) => setEngine(e.target.value)} data-testid="samples-engine"
+        className="mt-1 w-full h-10 rounded-xl border border-border px-3 text-sm bg-white">
+        <option value="">Por defecto: {d.engines.find((e) => e.key === d.default_engine)?.label}</option>
+        {d.engines.map((e) => <option key={e.key} value={e.key} disabled={!e.available}>{e.label} · {e.note} · ~US${e.cost_usd.toFixed(2)}{e.available ? "" : " (sin configurar)"}</option>)}
+      </select>
+      {engine && engine !== d.default_engine && (
+        <button onClick={async () => { try { await adminSetImageEngine(engine); toast.success("Ahora todos los retratos usan ese motor"); await load(); } catch (e) { toast.error(e?.response?.data?.detail || "No se pudo cambiar"); } }}
+          data-testid="samples-set-default-engine" className="mt-2 w-full h-10 rounded-xl border border-primary text-primary text-sm font-bold">
+          Usar {d.engines.find((e) => e.key === engine)?.label} para todos los retratos
+        </button>
+      )}
       <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 p-3" data-testid="samples-batch">
         <div className="text-xs text-amber-900">
           {missing.length
@@ -56,20 +69,21 @@ export default function AdminSamples() {
         )}
       </div>
       <div className="mt-4 space-y-4">
-        {d.styles.map((s) => <StyleRow key={s.key} s={s} frames={d.frames} petId={ref} reload={load} busyAll={!!batch}
+        {d.styles.map((s) => <StyleRow key={s.key} s={s} frames={d.frames} petId={ref} engine={engine} engines={d.engines} reload={load} busyAll={!!batch}
           onMissing={(list) => generateMissing(list)} />)}
       </div>
     </div>
   );
 }
 
-function StyleRow({ s, frames, petId, reload, busyAll, onMissing }) {
+function StyleRow({ s, frames, petId, engine, engines, reload, busyAll, onMissing }) {
+  const engineLabel = (k) => (k === "petito" ? "Petito" : engines.find((e) => e.key === k)?.label ?? k ?? "");
   const missingHere = frames.filter((f) => !s.by_frame?.[f.key]).map((f) => ({ style: s.key, frame: f.key }));
   const [frame, setFrame] = useState(s.default_frame);
   const [busy, setBusy] = useState(false);
   const generate = async () => {
     setBusy(true);
-    try { await adminGenerateSample(s.key, frame, petId); toast.success("Alternativa lista"); await reload(); }
+    try { await adminGenerateSample(s.key, frame, petId, engine); toast.success("Alternativa lista"); await reload(); }
     catch (e) { toast.error(e?.response?.data?.detail || "No se pudo generar"); }
     finally { setBusy(false); }
   };
@@ -107,7 +121,7 @@ function StyleRow({ s, frames, petId, reload, busyAll, onMissing }) {
       <div className="mt-1 flex gap-2 overflow-x-auto no-scrollbar pb-1">
         {s.builtin && <Thumb url={s.builtin} label="Original" active={!s.current_name} onUse={() => choose(null)} />}
         {s.candidates.map((c) => (
-          <Thumb key={c.name} url={c.url} label={frameLabel(c.frame)} sub={c.ref} active={s.current_name === c.name} onUse={() => choose(c.name)} />
+          <Thumb key={c.name} url={c.url} label={c.engine ? engineLabel(c.engine) : frameLabel(c.frame)} sub={c.engine ? `${frameLabel(c.frame)} · ${c.ref}` : c.ref} active={s.current_name === c.name} onUse={() => choose(c.name)} />
         ))}
         {busy && <div className="w-[72px] shrink-0 rounded-lg bg-stone-100 grid place-items-center" style={{ aspectRatio: "3 / 4" }}><Loader2 className="w-5 h-5 animate-spin text-primary" /></div>}
       </div>
