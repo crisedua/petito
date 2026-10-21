@@ -27,7 +27,7 @@ export const POST = handler(async (req: Request) => {
     pet_id: await validatePetId(b.pet_id, user.user_id),
     // For songs, `scenario` holds the music style; the occasion rides in `message` is not used (lyrics are written by the AI).
     scenario: song ? (b.song_style && b.song_style in SONG_STYLES ? b.song_style : "pop")
-      : motion ? (b.scene && b.scene in MOTION_SCENES ? b.scene : "baile")
+      : motion ? (b.scene && b.scene in MOTION_SCENES ? b.scene : "viral")
       : b.scenario && b.scenario in TALK_SCENARIOS ? b.scenario : null,
     message: (b.message ?? "").trim().slice(0, TALK_MESSAGE_MAX) || null,
     voice_id: validVoice(b.voice_id), media_base: originFrom(req), created_at: isoNow(),

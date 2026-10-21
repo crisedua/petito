@@ -34,7 +34,7 @@ export default function Talk() {
   const [toName, setToName] = useState("");
   const [kind, setKind] = useState("talk"); // "talk" | "song"
   const [songStyle, setSongStyle] = useState("cumbia");
-  const [scene, setScene] = useState("baile");
+  const [scene, setScene] = useState("viral");
   const [talkId, setTalkId] = useState(null);
   const [slug, setSlug] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -174,15 +174,20 @@ function StepMessage({ cfg, scenario, setScenario, message, setMessage, toName, 
           <>
             <h2 className="mt-5 font-display font-bold text-2xl text-neutral-900">Tu mascota en acción 🎬</h2>
             <p className="text-sm text-muted-foreground mt-1">Un video corto de tu mascota real, con su misma cara y pelaje, haciendo algo que nunca hizo. Solo Petito Plus.</p>
-            <label className="block mt-5 text-sm font-semibold text-neutral-700 mb-2">La escena</label>
-            <div className="flex flex-wrap gap-2" data-testid="talk-scenes">
-              {(cfg.motion_scenes || []).map((s) => (
-                <button key={s.key} onClick={() => setScene(s.key)} data-testid={`talk-scene-${s.key}`}
-                  className={`px-4 py-2.5 rounded-full border-2 font-display font-semibold text-sm transition-all ${scene === s.key ? "border-primary bg-primary/10 text-primary" : "border-border bg-white text-neutral-700"}`}>
-                  {s.emoji} {s.label}
-                </button>
-              ))}
-            </div>
+            {[["Bailes", "Una coreografía real, bailada por tu mascota", true], ["Escenas", "Tu mascota en un lugar o situación", false]].map(([title, sub, dance]) => (
+              <div key={title}>
+                <label className="block mt-5 text-sm font-semibold text-neutral-700">{title}</label>
+                <p className="text-xs text-muted-foreground mb-2">{sub}</p>
+                <div className="flex flex-wrap gap-2" data-testid={dance ? "talk-dances" : "talk-scenes"}>
+                  {(cfg.motion_scenes || []).filter((s) => Boolean(s.dance) === dance).map((s) => (
+                    <button key={s.key} onClick={() => setScene(s.key)} data-testid={`talk-scene-${s.key}`}
+                      className={`px-4 py-2.5 rounded-full border-2 font-display font-semibold text-sm transition-all ${scene === s.key ? "border-primary bg-primary/10 text-primary" : "border-border bg-white text-neutral-700"}`}>
+                      {s.emoji} {s.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
           </>
         ) : song ? (
           <>

@@ -6,6 +6,7 @@ import { awaitElevenVideo, awaitFal, creepingProgress, progress } from "../helpe
 import { db, logGeneration } from "@/lib/server/db";
 import * as fal from "@/lib/server/fal";
 import * as hf from "@/lib/server/higgsfield";
+import { danceSourceUrl } from "@/lib/server/dances";
 import * as eleven from "@/lib/server/elevenvideo";
 import * as storage from "@/lib/server/storage";
 import { imageToB64, loadImage } from "@/lib/server/images";
@@ -16,7 +17,7 @@ import { ensureVoices, generateNarration, validVoice } from "@/lib/server/eleven
 import { talkSource } from "@/lib/render/watermarks";
 import { env } from "@/lib/server/env";
 import { hex16 } from "@/lib/server/ids";
-import { BRAND_NAME, MOTION_SCENES, MOTION_SECONDS, PERSONALITY_LABELS, SONG_SECONDS, SONG_STYLES, TALK_MESSAGE_MAX, TALK_SCENARIOS } from "@/lib/catalogs";
+import { BRAND_NAME, DANCE_SECONDS, MOTION_SCENES, MOTION_SECONDS, PERSONALITY_LABELS, SONG_SECONDS, SONG_STYLES, TALK_MESSAGE_MAX, TALK_SCENARIOS } from "@/lib/catalogs";
 
 const loadVideo = async (id: string) => (await db().from("videos").select("*").eq("id", id).single()).data!;
 const firstPhoto = async (id: string) =>
@@ -115,7 +116,7 @@ export const generateTalk = inngest.createFunction(
       const t0 = Date.now();
       const WAIT = "Grabando la escena (1 a 3 minutos)...";
       // Higgsfield (Seedance 2.5) when configured, otherwise / if it refuses: fal (Kling O1).
-      const sub: { provider: "higgsfield" | "fal"; id: string; note?: string } = await step.run("motion-submit", async () => {
+      const sub: { provider: "higgsfield" | "fal"; id: string; note?: string; dance?: boolean } = await step.run("motion-submit", async () => {
         const photoBuf = await loadImage(id, photo);
         // Thumbnails and the HD frame use the real photo (no watermark: Plus-only).
         await storage.put(id, "source.jpg", photoBuf, "image/jpeg");
@@ -124,6 +125,9 @@ export const generateTalk = inngest.createFunction(
         const errors: string[] = [];
         if (hf.higgsfieldEnabled()) {
           try {
+            // Dances: real choreography (our source video) transferred onto the pet.
+            const choreo = scene.choreo ? await danceSourceUrl(v.scenario) : null;
+            if (choreo) return { provider: "higgsfield" as const, dance: true, id: await hf.submitMotionTransfer(choreo, photoBuf, scene.prompt) };
             return { provider: "higgsfield" as const, id: await hf.submitMotion(photoBuf, scene.prompt, MOTION_SECONDS) };
           } catch (e) {
             if (!(e instanceof hf.PermanentHiggsfieldError)) throw e;
@@ -155,10 +159,9 @@ export const generateTalk = inngest.createFunction(
       await step.run("motion-save", async () => {
         const bytes = sub.provider === "higgsfield" ? await hf.download(url) : await fal.download(url);
         await storage.put(id, "preview.mp4", bytes, "video/mp4");
-        await logGeneration({
-          ownerId: id, step: "motion_video", model: sub.provider === "higgsfield" ? `higgsfield/${hf.HF_MOTION_MODEL}` : fal.FAL_MOTION_MODEL,
-          costUsd: (sub.provider === "higgsfield" ? hf.HF_MOTION_COST_PER_SEC : fal.FAL_MOTION_COST_PER_SEC) * MOTION_SECONDS, durationMs: Date.now() - t0,
-        });
+        const model = sub.dance ? `higgsfield/${hf.HF_GENJUTSU_MODEL}` : sub.provider === "higgsfield" ? `higgsfield/${hf.HF_MOTION_MODEL}` : fal.FAL_MOTION_MODEL;
+        const cost = sub.dance ? hf.HF_GENJUTSU_COST_PER_SEC * DANCE_SECONDS : (sub.provider === "higgsfield" ? hf.HF_MOTION_COST_PER_SEC : fal.FAL_MOTION_COST_PER_SEC) * MOTION_SECONDS;
+        await logGeneration({ ownerId: id, step: "motion_video", model, costUsd: cost, durationMs: Date.now() - t0 });
         await db().from("videos").update({ status: "paid", paid_at: new Date().toISOString(), preview_file: "preview.mp4", clean_file: "preview.mp4", line: scene.label, progress_pct: 100, progress_step: "¡Listo!" }).eq("id", id);
         await track("result_ready", { feature: "video", deviceId: v.device_id, userId: v.user_id, props: { mode: "motion", scene: v.scenario } });
       });

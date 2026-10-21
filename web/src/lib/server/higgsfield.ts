@@ -12,6 +12,10 @@ const BASE = "https://api.higgsfield.ai";
 export const HF_MOTION_MODEL = process.env.HIGGSFIELD_MOTION_MODEL ?? "bytedance/seedance-2.5/reference-to-video";
 /** From open.higgsfield.ai list price ("from 0.144 / s"); used only for the admin cost panel. */
 export const HF_MOTION_COST_PER_SEC = Number(process.env.HIGGSFIELD_MOTION_COST_PER_SEC ?? "0.144");
+export const HF_T2V_MODEL = process.env.HIGGSFIELD_T2V_MODEL ?? "bytedance/seedance-2.5/text-to-video";
+export const HF_GENJUTSU_MODEL = process.env.HIGGSFIELD_GENJUTSU_MODEL ?? "higgsfield/genjutsu/motion-transfer/v1.0";
+/** Genjutsu's price isn't on its API page; "from 0.025/s" is the Light list price. Admin-panel estimate only. */
+export const HF_GENJUTSU_COST_PER_SEC = Number(process.env.HIGGSFIELD_GENJUTSU_COST_PER_SEC ?? "0.05");
 
 /** A problem retrying won't fix: missing/refused key, no balance, rejected input. */
 export class PermanentHiggsfieldError extends Error {}
@@ -116,4 +120,26 @@ export async function keyCheck(): Promise<{ ok: boolean; reason?: string }> {
   } catch (e: any) {
     return { ok: false, reason: String(e?.message ?? e).slice(0, 300) };
   }
+}
+
+/** A short clip from text (used once per dance to make the choreography source video). Returns request_id. */
+export async function submitTextToVideo(prompt: string, seconds: number, aspectRatio = "9:16"): Promise<string> {
+  if (env.mockAi) return `mock-hf-${randomUUID()}`;
+  const r = await call<{ request_id: string }>("POST", `/${HF_T2V_MODEL}`, {
+    prompt, duration: Math.max(4, Math.min(30, seconds)), resolution: "720p", aspect_ratio: aspectRatio, generate_audio: true,
+  }, true);
+  if (!r.request_id) throw new Error("Higgsfield did not return a request_id");
+  return r.request_id;
+}
+
+/** Genjutsu motion transfer: the pet (reference image) performs the moves of `videoUrl`. Returns request_id. */
+export async function submitMotionTransfer(videoUrl: string, imageJpeg: Buffer, prompt: string): Promise<string> {
+  if (env.mockAi) return `mock-hf-${randomUUID()}`;
+  const imageUrl = await uploadImage(imageJpeg);
+  const r = await call<{ request_id: string }>("POST", `/${HF_GENJUTSU_MODEL}`, {
+    video_url: videoUrl, image_urls: [imageUrl], resolution: "720p",
+    prompt: `Replace the dancer with the pet from the reference image: keep exactly the same animal, breed, fur colors, markings and face, ${prompt}. Keep the dancer's motion, timing and camera; realistic, no text.`,
+  }, true);
+  if (!r.request_id) throw new Error("Higgsfield did not return a request_id");
+  return r.request_id;
 }

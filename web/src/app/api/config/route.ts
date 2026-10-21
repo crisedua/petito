@@ -30,7 +30,7 @@ export const GET = handler(async () => {
     talk_message_max: TALK_MESSAGE_MAX,
     song_styles: Object.entries(SONG_STYLES).map(([key, v]) => ({ key, label: v.label, emoji: v.emoji })),
     song_seconds: SONG_SECONDS,
-    motion_scenes: Object.entries(MOTION_SCENES).map(([key, v]) => ({ key, label: v.label, emoji: v.emoji })),
+    motion_scenes: Object.entries(MOTION_SCENES).map(([key, v]) => ({ key, label: v.label, emoji: v.emoji, dance: Boolean(v.choreo) })),
     plus_monthly_clp: env.plusMonthlyClp,
     plus_annual_clp: env.plusAnnualClp,
   });

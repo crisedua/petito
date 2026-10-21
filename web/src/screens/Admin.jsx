@@ -10,6 +10,7 @@ import Login from "@/screens/Login";
 import AdminUsers, { AdminCreations } from "@/screens/AdminUsers";
 import AdminFunnel from "@/screens/AdminFunnel";
 import AdminSamples from "@/screens/AdminSamples";
+import AdminDances from "@/screens/AdminDances";
 
 const clp = (n) => new Intl.NumberFormat("es-CL").format(n || 0);
 
@@ -70,13 +71,14 @@ export default function Admin() {
 
       <div className="flex-1 px-5 pt-4 pb-10 overflow-y-auto no-scrollbar">
         <div className="flex gap-2 mb-4 overflow-x-auto no-scrollbar" data-testid="admin-tabs">
-          {[["panel", "Resumen"], ["embudo", "Embudo"], ["usuarios", "Usuarios"], ["creaciones", "Creaciones"], ["muestras", "Muestras"]].map(([k, l]) => (
+          {[["panel", "Resumen"], ["embudo", "Embudo"], ["usuarios", "Usuarios"], ["creaciones", "Creaciones"], ["muestras", "Muestras"], ["bailes", "Bailes"]].map(([k, l]) => (
             <button key={k} onClick={() => setTab(k)} data-testid={`admin-tab-${k}`}
               className={`px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap shrink-0 ${tab === k ? "bg-primary text-white" : "bg-white border border-border text-neutral-600"}`}>{l}</button>
           ))}
         </div>
         {tab === "embudo" && <AdminFunnel />}
         {tab === "muestras" && <AdminSamples />}
+        {tab === "bailes" && <AdminDances />}
         {tab === "usuarios" && <AdminUsers />}
         {tab === "creaciones" && <AdminCreations />}
         {tab === "panel" && (<>

@@ -387,10 +387,19 @@ export const SONG_STYLES: Record<string, SongStyle> = {
   reggaeton: { label: "Reggaetón suave", emoji: "🔥", styles: ["soft reggaeton", "dembow beat", "playful", "summer"], feel: "juguetona y con flow, sin groserías" },
   cueca: { label: "Cueca", emoji: "🇨🇱", styles: ["cueca chilena", "guitar and tambourine", "lively folk", "handclaps"], feel: "dieciochera y picarona, con picardía de cueca" },
 };
-/** "Tu mascota en movimiento": the real pet (as a reference element) in a short scene. */
-export type MotionScene = { label: string; emoji: string; prompt: string };
+/**
+ * "Tu mascota en movimiento". Dances (`choreo` set) use motion transfer: we generate one source
+ * choreography video per dance (a dancer performing it), then Genjutsu puts the pet into it, so
+ * the moves are real choreography. Scenes without `choreo` use reference-to-video from the photo.
+ */
+export type MotionScene = { label: string; emoji: string; prompt: string; choreo?: string };
+export const DANCE_SECONDS = 8;
 export const MOTION_SCENES: Record<string, MotionScene> = {
-  baile: { label: "Bailando", emoji: "💃", prompt: "dancing happily to upbeat music in a living room, bouncing and wiggling to the beat, tail wagging, warm party lights, playful and funny" },
+  viral: { label: "Baile viral", emoji: "💃", prompt: "dancing the exact same moves as the dancer, upbeat and funny, tail wagging, party lights", choreo: "a single energetic dancer performing a catchy viral TikTok dance routine with big clear arm and hip moves, full body always in frame, facing the camera, bright studio with colorful lights, upbeat pop music" },
+  cumbia: { label: "Cumbia", emoji: "🪗", prompt: "dancing cumbia with the same steps as the dancer, joyful Chilean party, festive lights", choreo: "a single dancer performing a lively cumbia dance, clear side-to-side steps and swaying hips, full body always in frame, facing the camera, warm festive party lights, cumbia music with accordion" },
+  reggaeton: { label: "Reggaetón", emoji: "🔥", prompt: "dancing reggaetón with the same moves as the dancer, playful and confident, neon lights", choreo: "a single dancer performing a playful reggaeton dance with bouncing dembow steps and shoulder moves, full body always in frame, facing the camera, neon pink and blue lights, reggaeton beat" },
+  kpop: { label: "K-pop", emoji: "✨", prompt: "dancing a sharp K-pop choreography exactly like the dancer, cute and precise, pastel stage", choreo: "a single dancer performing a sharp, cute K-pop choreography with precise arm points and head tilts, full body always in frame, facing the camera, pastel stage lights, upbeat K-pop track" },
+  salsa: { label: "Salsa", emoji: "💃🏽", prompt: "dancing salsa with the same quick footwork as the dancer, elegant and fun, warm club lights", choreo: "a single dancer performing a quick salsa solo with fast footwork, spins and hand styling, full body always in frame, facing the camera, warm club lights, salsa music" },
   playa: { label: "En la playa", emoji: "🏖️", prompt: "running joyfully along a sunny Chilean beach at golden hour, splashing through small waves, sand flying, slow-motion feel" },
   regalo: { label: "Abriendo un regalo", emoji: "🎁", prompt: "excitedly tearing the wrapping paper off a big birthday gift with its paws, confetti falling, happy surprised reaction" },
   nieve: { label: "En la nieve", emoji: "❄️", prompt: "playing in gently falling snow in a pine forest, catching snowflakes, leaving paw prints, cozy winter light" },

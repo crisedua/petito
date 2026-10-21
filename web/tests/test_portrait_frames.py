@@ -203,7 +203,9 @@ def test_motion_videos_are_plus_only_and_generate_clean():
         assert requests.post(f"{API}/talk", json={"pet_name": "Rocco", "kind": "motion", "scene": "playa"}, headers=NORM, timeout=20).status_code == 402
     finally:
         requests.post(f"{API}/admin/users/{me['user_id']}/plus", json={"active": True}, headers=ADMIN, timeout=20)
-    assert [s["key"] for s in requests.get(f"{API}/config", timeout=20).json()["motion_scenes"]] == ["baile", "playa", "regalo", "nieve", "superheroe"]
+    scenes = requests.get(f"{API}/config", timeout=20).json()["motion_scenes"]
+    assert [s["key"] for s in scenes] == ["viral", "cumbia", "reggaeton", "kpop", "salsa", "playa", "regalo", "nieve", "superheroe"]
+    assert [s["dance"] for s in scenes][:5] == [True] * 5 and [s["dance"] for s in scenes][5:] == [False] * 4
     v = requests.post(f"{API}/talk", json={"pet_name": "Rocco", "kind": "motion", "scene": "playa", "pet_id": ROCCO}, headers=NORM, timeout=20).json()
     requests.post(f"{API}/talk/{v['id']}/photo", files={"files": ("p.jpg", jpeg(), "image/jpeg")}, headers=NORM, timeout=60)
     requests.post(f"{API}/talk/{v['id']}/generate", headers=NORM, timeout=20)
@@ -217,3 +219,31 @@ def test_motion_videos_are_plus_only_and_generate_clean():
     assert requests.get(f"{BASE}{d['clean_url']}", timeout=20).headers["content-type"].startswith("video/")
     html = requests.get(f"{BASE}/v/{v['slug']}", timeout=60).text
     assert 'content="Rocco en acción' in html
+
+
+def test_admin_dance_library_generates_and_dance_uses_it():
+    assert requests.get(f"{API}/admin/dances", headers=NORM, timeout=20).status_code == 403
+    r = requests.post(f"{API}/admin/dances", json={"key": "cumbia"}, headers=ADMIN, timeout=60)
+    assert r.status_code == 200, r.text
+    for _ in range(20):
+        d = requests.get(f"{API}/admin/dances", headers=ADMIN, timeout=60).json()
+        row = next(x for x in d["dances"] if x["key"] == "cumbia")
+        if row["ready"]:
+            break
+        time.sleep(1.5)
+    assert row["ready"] and row["url"], row
+    assert requests.get(f"{BASE}{row['url']}", timeout=20).headers["content-type"].startswith("video/")
+    assert requests.post(f"{API}/admin/dances", json={"key": "playa"}, headers=ADMIN, timeout=20).status_code == 400  # not a dance
+
+    v = requests.post(f"{API}/talk", json={"pet_name": "Rocco", "kind": "motion", "scene": "cumbia", "pet_id": ROCCO}, headers=NORM, timeout=20).json()
+    requests.post(f"{API}/talk/{v['id']}/photo", files={"files": ("p.jpg", jpeg(), "image/jpeg")}, headers=NORM, timeout=60)
+    requests.post(f"{API}/talk/{v['id']}/generate", headers=NORM, timeout=20)
+    for _ in range(80):
+        t = requests.get(f"{API}/talk/{v['id']}", headers=NORM, timeout=20).json()
+        if t["status"] in ("paid", "failed"):
+            break
+        time.sleep(1.5)
+    assert t["status"] == "paid", t.get("error")
+    vids = requests.get(f"{API}/health/videos", timeout=20).json()["videos"]
+    mine = next(x for x in vids if x["ref"] == v["id"][:6])
+    assert any("genjutsu" in s for s in mine["steps"]), mine["steps"]  # went through motion transfer

@@ -167,3 +167,5 @@ export const portraitSamples = () => api.get("/portraits/samples").then((r) => r
 export const adminStyleSamples = () => api.get("/admin/style-samples").then((r) => r.data);
 export const adminGenerateSample = (style, frame, petId) => api.post("/admin/style-samples", { style, frame, pet_id: petId || undefined }, { timeout: 70000 }).then((r) => r.data);
 export const adminChooseSample = (style, name) => api.put("/admin/style-samples", { style, name }).then((r) => r.data);
+export const adminDances = () => api.get("/admin/dances").then((r) => r.data);
+export const adminGenerateDance = (key) => api.post("/admin/dances", { key }).then((r) => r.data);
