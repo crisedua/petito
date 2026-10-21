@@ -31,5 +31,8 @@ export const GET = handler(async () => {
     } catch (e: any) { mpState = { error: String(e.message).slice(0, 200) }; }
     return { plan: s.plan, status: s.status, payer_email: mask(s.payer_email), created_at: s.created_at, mp: mpState };
   }));
+  const { data: hooks } = await db().from("events").select("props, created_at").eq("name", "mp_webhook")
+    .order("created_at", { ascending: false }).limit(5);
+  out.recent_webhooks = (hooks ?? []).map((h: any) => ({ at: h.created_at, topic: h.props?.topic ?? null, signature_ok: h.props?.signature_ok ?? null }));
   return json(out);
 });

@@ -1,11 +1,12 @@
 import { handler, json } from "@/lib/server/http";
 import { isAdmin, requireUser } from "@/lib/server/auth";
-import { isPlus, latestSubscription } from "@/lib/server/plus";
+import { isPlus, latestSubscription, refreshFromMercadoPago } from "@/lib/server/plus";
 import { iso } from "@/lib/server/db";
 import { env } from "@/lib/server/env";
 
 export const GET = handler(async (req: Request) => {
   const user = await requireUser(req);
+  await refreshFromMercadoPago(user.user_id);
   const sub = await latestSubscription(user.user_id);
   return json({
     active: await isPlus(user.user_id),

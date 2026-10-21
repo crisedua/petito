@@ -4,6 +4,7 @@ import { activatePlus, recordRenewalIfAny } from "@/lib/server/plus";
 import { db } from "@/lib/server/db";
 import { isoNow } from "@/lib/server/ids";
 import { talkMarkPaidAndFinalize } from "@/lib/server/domain";
+import { track } from "@/lib/server/events";
 
 const approvedFor = (p: any, price: number) =>
   p.status === "approved" && p.currency_id === "CLP" && Number(p.transaction_amount ?? 0) === Number(price);
@@ -13,7 +14,10 @@ export const POST = handler(async (req: Request) => {
   const q = new URL(req.url).searchParams;
   const dataId = q.get("data.id") || q.get("data_id");
   const eventType = q.get("type");
-  if (!validSignature(req.headers.get("x-signature"), req.headers.get("x-request-id"), dataId)) throw fail(401, "Firma inválida");
+  const signed = validSignature(req.headers.get("x-signature"), req.headers.get("x-request-id"), dataId);
+  // Keep a trace of every notification so /api/health/payments can show whether Mercado Pago reaches us.
+  await track("mp_webhook", { props: { topic: eventType || null, id: dataId ? String(dataId).slice(0, 40) : null, signature_ok: signed } });
+  if (!signed) throw fail(401, "Firma inválida");
   let body: any = {};
   try { body = await req.json(); } catch { /* MP sometimes sends an empty body */ }
   const resId = String(dataId || body?.data?.id || "");

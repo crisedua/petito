@@ -9,7 +9,7 @@ import { deviceId } from "./http";
 
 export type EventName =
   | "visit" | "view_feature" | "share_open" | "install" | "login" | "signup"
-  | "photo_uploaded" | "result_ready" | "paywall" | "checkout_started" | "paid";
+  | "photo_uploaded" | "result_ready" | "paywall" | "checkout_started" | "paid" | "mp_webhook";
 export type Feature = "video" | "portrait" | "memorial" | "story" | "memory" | "friends" | "pet" | "plus";
 
 export const CLIENT_EVENTS = new Set<EventName>(["visit", "view_feature", "share_open", "install", "login"]);

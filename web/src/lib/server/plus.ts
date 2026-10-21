@@ -1,7 +1,7 @@
 import { db } from "./db";
 import { isoNow, newId } from "./ids";
 import { env } from "./env";
-import { cancelPreapproval, mpEnabled } from "./mercadopago";
+import { cancelPreapproval, getPreapproval, mpEnabled } from "./mercadopago";
 import { lastCheckoutFeature, track } from "./events";
 
 export const PLUS_PLANS = {
@@ -28,15 +28,47 @@ async function subscriptionActive(userId: string): Promise<boolean> {
     .from("subscriptions")
     .select("mp_id, plus_until")
     .eq("user_id", userId)
-    .eq("membership_active", true)
-    .limit(1)
-    .maybeSingle();
-  if (!data) return false;
-  if (data.plus_until && new Date(data.plus_until).toISOString() < isoNow()) {
-    await db().from("subscriptions").update({ membership_active: false }).eq("user_id", userId);
-    return false;
+    .eq("membership_active", true);
+  const now = isoNow();
+  let active = false;
+  for (const s of data ?? []) {
+    if (!s.plus_until || new Date(s.plus_until).toISOString() >= now) { active = true; continue; }
+    // Expired on our side. A Mercado Pago subscription may still be live there (a renewal webhook we
+    // missed), so ask before taking Plus away; Petito grants simply end.
+    if (!SYNTHETIC.test(s.mp_id) && mpEnabled()) {
+      try {
+        const fresh: any = await getPreapproval(s.mp_id);
+        if (fresh.status === "authorized") { await activatePlus(s.mp_id, "authorized", fresh.next_payment_date); active = true; continue; }
+      } catch (e) {
+        console.error("subscriptionActive: Mercado Pago check failed, keeping Plus for now", s.mp_id, e);
+        active = true;
+        continue;
+      }
+    }
+    await db().from("subscriptions").update({ membership_active: false }).eq("mp_id", s.mp_id);
   }
-  return true;
+  return active;
+}
+
+/**
+ * Ask Mercado Pago about this person's recent subscriptions that we still have as not active.
+ * Covers a lost webhook and a buyer who never came back through the checkout return page.
+ */
+export async function refreshFromMercadoPago(userId: string): Promise<void> {
+  if (!mpEnabled()) return;
+  const since = new Date(Date.now() - 45 * 86400_000).toISOString();
+  const { data } = await db().from("subscriptions").select("mp_id, status")
+    .eq("user_id", userId).eq("membership_active", false).gte("created_at", since)
+    .order("created_at", { ascending: false }).limit(3);
+  for (const s of data ?? []) {
+    if (SYNTHETIC.test(s.mp_id) || ["canceled", "cancelled"].includes(String(s.status))) continue;
+    try {
+      const fresh: any = await getPreapproval(s.mp_id);
+      if (fresh.status && fresh.status !== s.status) await activatePlus(s.mp_id, fresh.status, fresh.next_payment_date);
+    } catch (e) {
+      console.error("refreshFromMercadoPago failed", s.mp_id, e);
+    }
+  }
 }
 
 /**
