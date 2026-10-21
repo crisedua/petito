@@ -26,6 +26,10 @@ export const env = {
   usdToClp: int("USD_TO_CLP", 950),
   freePerDay: int("FREE_PREVIEWS_PER_DAY", 3),
   freeTalkPerDay: int("FREE_TALK_PER_DAY", 2),
+  // "Pruébalo gratis": the no-account portrait on the landing. Per device per day, plus a global daily cap.
+  freeTryPerDay: int("FREE_TRY_PER_DAY", 2),
+  tryDailyCap: int("TRY_DAILY_CAP", 300),
+  tryStyle: process.env.TRY_STYLE ?? "renacentista",
   retentionDays: int("PHOTO_RETENTION_DAYS", 7),
   freeMode: bool("FREE_MODE", true),
   bonusEnabled: bool("BONUS_SCENES_ENABLED", true),

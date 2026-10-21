@@ -70,7 +70,14 @@ export default function Portrait() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    getConfig().then(setCfg).catch(() => toast.error("No se pudo cargar la configuración"));
+    getConfig().then((c) => {
+      setCfg(c);
+      // One tap less: the style comes preselected (from the link, or the house style).
+      const wanted = new URLSearchParams(window.location.search).get("style");
+      const keys = (c.portrait_styles || []).map((x) => x.key);
+      const pick = keys.includes(wanted) ? wanted : keys.includes("renacentista") ? "renacentista" : keys[0];
+      if (pick) { setStyle(pick); setFrame(c.portrait_styles.find((x) => x.key === pick)?.default_frame || "dorado"); }
+    }).catch(() => toast.error("No se pudo cargar la configuración"));
   }, []);
 
   if (!cfg) return <Screen><div className="flex-1 grid place-items-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div></Screen>;
@@ -348,6 +355,23 @@ function StepProgress({ portraitId, onReady, onFail }) {
   );
 }
 
+/** After a result, one concrete next thing to make (keeps the momentum going). */
+function NextStep({ nav, name }) {
+  const who = name || "tu mascota";
+  return (
+    <button onClick={() => nav("/hablar")} data-testid="portrait-next-step"
+      className="mt-6 w-full flex items-center gap-3.5 p-4 rounded-2xl border text-left" style={{ background: "#FBEEE4", borderColor: "rgba(0,0,0,0.04)" }}>
+      <div className="w-12 h-12 rounded-xl grid place-items-center shrink-0 bg-white/70 text-primary"><Sparkles className="w-6 h-6" /></div>
+      <div className="flex-1">
+        <div className="text-[10px] font-bold uppercase tracking-wide text-primary">Siguiente</div>
+        <div className="font-display font-bold text-neutral-900">Ahora haz que {who} te hable</div>
+        <div className="text-xs text-muted-foreground mt-0.5">Un videomensaje con su voz, en un minuto</div>
+      </div>
+      <ArrowRight className="w-5 h-5 text-primary" />
+    </button>
+  );
+}
+
 /* ---------------- Step: result (preview + paywall + gift) ---------------- */
 function StepResult({ portrait, setPortrait, portraitId, slug, cfg, price, nav }) {
   const [busy, setBusy] = useState(false);
@@ -468,6 +492,7 @@ function StepResult({ portrait, setPortrait, portraitId, slug, cfg, price, nav }
             </button>
           </>
         )}
+        <NextStep nav={nav} name={portrait?.pet_name} />
       </div>
 
       {!paid && (

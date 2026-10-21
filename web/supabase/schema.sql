@@ -416,3 +416,6 @@ alter table portraits add column if not exists frame text;
 -- ===== 0009_talk_to_name.sql =====
 -- Talking video dedicated to someone: the pet addresses this person by name.
 alter table videos add column if not exists to_name text;
+
+-- 0010_try_index.sql
+create index if not exists portraits_device_day on portraits (device_id, created_at desc) where user_id is null;

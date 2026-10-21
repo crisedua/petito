@@ -1,7 +1,7 @@
 "use client";
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
-import { getMe, logoutApi } from "@/lib/api";
+import { getMe, logoutApi, claimPending } from "@/lib/api";
 import { oncePerSession, track } from "@/lib/track";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 
@@ -16,6 +16,8 @@ export function AuthProvider({ children }) {
       const u = await getMe();
       setUser(u);
       if (u?.user_id && oncePerSession(`petito_login_${u.user_id}`)) track("login");
+      // The free portrait they made before signing in is now theirs.
+      if (u?.user_id) claimPending().then((p) => { if (p) toast.success("Tu retrato quedó guardado en tu cuenta 👑"); });
     } catch (e) {
       setUser(null);
       // 401 just means "not signed in"; anything else is a real problem worth showing.

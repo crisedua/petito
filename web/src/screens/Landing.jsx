@@ -4,14 +4,14 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@/lib/router";
 import { motion, useReducedMotion } from "framer-motion";
 import { toast } from "sonner";
-import { PawPrint, ArrowRight, Sparkles, Heart, BookHeart, Mic, Camera, Loader2 } from "lucide-react";
+import { PawPrint, ArrowRight, Sparkles, BookHeart, Mic, Camera, Loader2 } from "lucide-react";
 import { ProfileMenu } from "@/components/ProfileMenu";
 import { useAuth } from "@/lib/auth";
 import { createTalkPreview, getPets } from "@/lib/api";
 import { openInstallSheet, useInstallOffer } from "@/components/app/InstallPrompt";
 import { isMobile, isStandalone } from "@/lib/install";
+import TryPortrait from "@/components/TryPortrait";
 
-const HERO_IMG = "https://images.unsplash.com/photo-1558788353-f76d92427f16?crop=entropy&cs=srgb&fm=jpg&q=85&w=900";
 
 const PREVIEW_LINES = [
   { key: "te_amo", label: "❤️ Te amo" },
@@ -77,29 +77,22 @@ export default function Landing() {
           </button>
         )}
 
-        <motion.div {...fade(0)}
-          className="relative rounded-[2rem] overflow-hidden shadow-xl border-4 border-white"
-          style={{ aspectRatio: "4 / 5", maxHeight: 200, margin: "0 auto" }}>
-          <img src={HERO_IMG} alt="Mascota querida" className="absolute inset-0 w-full h-full object-cover" />
-          <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(58,32,20,0.55), transparent 55%)" }} />
-          <div className="absolute bottom-4 left-4 flex items-center gap-1.5 text-white text-xs font-semibold">
-            <Heart className="w-4 h-4" fill="currentColor" /> Su universo, para siempre
-          </div>
-        </motion.div>
-
-        <motion.h1 {...fade(0.12)}
-          className="mt-5 font-display font-bold text-[1.75rem] leading-[1.1] tracking-tight" style={{ color: "#3A2A20" }}
+        <motion.h1 {...fade(0)}
+          className="font-display font-bold text-[1.75rem] leading-[1.1] tracking-tight" style={{ color: "#3A2A20" }}
           data-testid="landing-headline">
-          Su vida es parte de tu historia. <span style={{ color: "#B85C3C" }}>Hagamos que sea inolvidable.</span>
+          Mira a tu mascota <span style={{ color: "#B85C3C" }}>como nunca la viste.</span>
         </motion.h1>
+        <motion.div {...fade(0.12)} className="mt-4">
+          <TryPortrait title="Pruébalo con su foto, ahora" subtitle="Un retrato pintado de tu mascota. Gratis, sin cuenta, en menos de un minuto." testid="landing-try" />
+        </motion.div>
         {SHOW_VOICE_PREVIEW && (
           <motion.div {...fade(0.28)}>
             <VoicePreviewCard onDone={(slug) => nav(`/v/${slug}`)} />
           </motion.div>
         )}
 
-        <motion.p {...fade(0.3)} className="mt-5 text-[0.95rem] leading-snug" style={{ color: "#7A6A5E" }}>
-          Convierte los momentos con tu mascota en historias, recuerdos, aventuras y pequeñas sorpresas llenas de cariño.
+        <motion.p {...fade(0.3)} className="mt-6 text-[0.95rem] leading-snug" style={{ color: "#7A6A5E" }}>
+          Y eso es solo el comienzo: videos donde te habla, su propia canción, historias ilustradas y un álbum de recuerdos reales.
         </motion.p>
 
         <motion.button {...fade(0.32)} whileTap={reduce ? undefined : { scale: 0.97 }}

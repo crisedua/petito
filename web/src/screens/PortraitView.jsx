@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Gift, Loader2, PawPrint, Crown, ArrowRight, Download, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getPortraitBySlug, mediaUrl } from "@/lib/api";
+import TryPortrait from "@/components/TryPortrait";
 
 export default function PortraitView() {
   const { slug } = useParams();
@@ -128,14 +129,9 @@ export default function PortraitView() {
                     </Button>
                   </>
                 ) : (
-                  <>
-                    <Crown className="w-8 h-8 text-primary mx-auto" />
-                    <p className="mt-2 font-display font-semibold text-neutral-900">¿Y tu mascota?</p>
-                    <p className="text-sm text-muted-foreground">Crea su retrato de realeza en Petito.</p>
-                    <Button onClick={() => nav("/retrato")} className="mt-4 rounded-2xl font-semibold" data-testid="portrait-view-cta">
-                      Crear mi retrato <ArrowRight className="w-4 h-4 ml-1" />
-                    </Button>
-                  </>
+                  <div className="text-left -m-5" data-testid="portrait-view-cta">
+                    <TryPortrait title="¿Y tu mascota? Hazlo con su foto" subtitle="Gratis, sin cuenta, en menos de un minuto." testid="share-try" />
+                  </div>
                 )}
               </div>
             </div>

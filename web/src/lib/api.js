@@ -97,6 +97,30 @@ export const generatePortrait = (id) => api.post(`/portraits/${id}/generate`).th
 export const getPortrait = (id) => api.get(`/portraits/${id}`).then((r) => r.data);
 export const getPortraitBySlug = (slug) => api.get(`/portraits/slug/${slug}`).then((r) => r.data);
 export const portraitCheckout = (id, auto = false) => api.post(`/portraits/${id}/checkout`, { auto }).then((r) => r.data);
+/** "Pruébalo gratis": one photo → a portrait in the house style, no account needed. Returns { id, slug }. */
+export const tryPortrait = async (file, petName) => {
+  const start = await api.post("/portraits/try", { pet_name: petName || undefined, pet_id: getActivePetId() || undefined }).then((r) => r.data);
+  await uploadFiles(`/portraits/${start.id}/photo`, [file]);
+  await api.post(`/portraits/${start.id}/generate`);
+  return start;
+};
+export const claimPortrait = (id) => api.post(`/portraits/${id}/claim`, { pet_id: getActivePetId() || undefined }).then((r) => r.data);
+const CLAIM_KEY = "petito_claim_portrait";
+export const rememberClaim = (id) => { try { localStorage.setItem(CLAIM_KEY, id); } catch { /* ignore */ } };
+/** Claims the free try made before signing in, once. Returns the portrait or null. */
+export async function claimPending() {
+  let id = null;
+  try { id = localStorage.getItem(CLAIM_KEY); } catch { return null; }
+  if (!id) return null;
+  try {
+    const p = await claimPortrait(id);
+    localStorage.removeItem(CLAIM_KEY);
+    return p;
+  } catch (e) {
+    if (e?.response?.status === 404) localStorage.removeItem(CLAIM_KEY);
+    return null;
+  }
+}
 
 export const adminLogin = (password) => api.post("/admin/login", { password }).then((r) => r.data);
 export const adminMetrics = () => api.get("/admin/metrics").then((r) => r.data);

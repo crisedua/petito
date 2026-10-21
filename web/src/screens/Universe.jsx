@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "@/lib/router";
 import { motion, useReducedMotion } from "framer-motion";
-import { Loader2, Mic, Film, Crown, Plus as PlusIcon, ChevronDown, Heart, CalendarHeart, Images, ArrowRight, BookHeart, Settings, Cake, Users } from "lucide-react";
+import { Loader2, Mic, Film, Crown, Plus as PlusIcon, ChevronDown, Heart, CalendarHeart, Images, ArrowRight, BookHeart, Settings, Cake, Users, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { ProfileMenu } from "@/components/ProfileMenu";
 import { mediaUrl, getPets, petCreations, getActivePetId, setActivePetId, plusStatus, friendsSummary } from "@/lib/api";
@@ -38,6 +38,24 @@ function buildSpecialDates(pet, name) {
   return out.sort((a, b) => a.days - b.days);
 }
 
+/** One concrete thing to make this week: seasonal when there is a season, otherwise rotating. */
+function weeklySuggestion(name, hasPhoto) {
+  const now = new Date();
+  const m = now.getMonth() + 1;
+  if (m === 10) return { title: `${name} en Halloween 🎃`, desc: "Disfraz de brujito o vampiro, en un retrato pintado", to: "/retrato?style=halloween", icon: Crown, tag: "Esta semana" };
+  if (m === 12) return { title: `${name} en Navidad 🎄`, desc: "Una historia ilustrada con gorrito y regalos", to: "/crear?theme=navidad", icon: Film, tag: "Esta semana" };
+  const week = Math.floor(now.getTime() / (7 * 86400000));
+  const picks = [
+    { title: `${name} te canta 🎵`, desc: "Su propia canción, con su nombre y tu dedicatoria", to: "/hablar?kind=song", icon: Mic },
+    { title: `${name} baila 💃`, desc: "Un video corto bailando cumbia, reggaetón o K-pop", to: "/hablar?kind=motion", icon: Mic },
+    { title: `${name} en foto de estudio 💡`, desc: "Su foto real, con luz y fondo de fotógrafo", to: "/retrato?style=estudio", icon: Crown },
+    { title: `${name} como obra de arte 🎨`, desc: "Un retrato renacentista con marco dorado", to: "/retrato?style=renacentista", icon: Crown },
+  ];
+  return { ...picks[week % picks.length], tag: "Idea de la semana" };
+}
+
+const SEEN_KEY = (petId) => `petito_seen_${petId}`;
+
 const KIND_BADGE = {
   historia: { label: "Historia", color: "#B85C3C" },
   retrato: { label: "Retrato", color: "#C79A3B" },
@@ -56,7 +74,12 @@ export default function Universe() {
   const [friendRequests, setFriendRequests] = useState(0);
 
   const loadCreations = useCallback((petId) => {
-    petCreations(petId).then(setCreations).catch(() => setCreations([]));
+    let seen = "";
+    try { seen = localStorage.getItem(SEEN_KEY(petId)) || ""; } catch { /* ignore */ }
+    petCreations(petId).then((list) => {
+      setCreations(list.map((c) => ({ ...c, isNew: Boolean(seen) && String(c.created_at) > seen })));
+      try { localStorage.setItem(SEEN_KEY(petId), new Date().toISOString()); } catch { /* ignore */ }
+    }).catch(() => setCreations([]));
   }, []);
 
   useEffect(() => {
@@ -103,6 +126,7 @@ export default function Universe() {
   const fade = (d = 0) => reduce ? {} : { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.5, delay: d } };
 
   const specialDates = buildSpecialDates(active, name);
+  const suggestion = weeklySuggestion(name, Boolean(active.photo_url));
 
   return (
     <div className="mobile-frame" style={{ background: "#FBF6EE" }} data-testid="universe-screen">
@@ -196,13 +220,30 @@ export default function Universe() {
         </motion.button>
 
         <h2 className="mt-8 font-display font-bold text-lg" style={{ color: "#3A2A20" }}>¿Qué quieres vivir hoy?</h2>
+        <motion.button {...fade(0.05)} whileTap={reduce ? undefined : { scale: 0.98 }} onClick={() => nav(suggestion.to)} data-testid="universe-suggestion"
+          className="mt-3 w-full relative overflow-hidden rounded-2xl text-left p-4 flex items-center gap-3.5 border-2 border-white shadow-lg"
+          style={{ background: "linear-gradient(135deg, #C2683F, #8E3F22)" }}>
+          {active.photo_url && <img src={mediaUrl(active.photo_url)} alt="" aria-hidden className="absolute inset-0 w-full h-full object-cover opacity-25" style={{ filter: "blur(6px)" }} />}
+          <div className="relative w-14 h-14 rounded-xl overflow-hidden border-2 border-white/80 shadow grid place-items-center shrink-0" style={{ background: "#E2A878" }}>
+            {active.photo_url ? <img src={mediaUrl(active.photo_url)} alt="" className="w-full h-full object-cover" /> : <suggestion.icon className="w-6 h-6 text-white" />}
+          </div>
+          <div className="relative flex-1 min-w-0">
+            <div className="text-[10px] font-bold uppercase tracking-wide text-white/80 flex items-center gap-1"><Sparkles className="w-3 h-3" /> {suggestion.tag}</div>
+            <div className="font-display font-bold text-white leading-tight mt-0.5">{suggestion.title}</div>
+            <div className="text-xs text-white/85 mt-0.5">{suggestion.desc}</div>
+          </div>
+          <ArrowRight className="relative w-5 h-5 text-white shrink-0" />
+        </motion.button>
         <div className="mt-3 space-y-3">
           {invitations.map((inv, i) => (
             <motion.button key={inv.key} {...fade(0.05 * i)} whileTap={reduce ? undefined : { scale: 0.98 }}
               onClick={() => nav(inv.to)} data-testid={`universe-invite-${inv.key}`}
               className="w-full flex items-center gap-3.5 p-4 rounded-2xl border text-left" style={{ background: inv.bg, borderColor: "rgba(0,0,0,0.04)" }}>
-              <div className="w-12 h-12 rounded-xl grid place-items-center shrink-0 bg-white/70" style={{ color: inv.fg }}>
-                <inv.icon className="w-6 h-6" />
+              <div className="relative w-12 h-12 shrink-0">
+                {active.photo_url
+                  ? <img src={mediaUrl(active.photo_url)} alt="" className="w-12 h-12 rounded-xl object-cover border-2 border-white shadow-sm" onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                  : <div className="w-12 h-12 rounded-xl grid place-items-center bg-white/70" style={{ color: inv.fg }}><inv.icon className="w-6 h-6" /></div>}
+                {active.photo_url && <span className="absolute -bottom-1.5 -right-1.5 w-6 h-6 rounded-full bg-white grid place-items-center shadow" style={{ color: inv.fg }}><inv.icon className="w-3.5 h-3.5" /></span>}
               </div>
               <div className="flex-1">
                 <div className="font-display font-bold" style={{ color: "#3A2A20" }}>{inv.title}</div>
@@ -217,11 +258,12 @@ export default function Universe() {
         <div className="mt-8 flex items-center gap-2">
           <Images className="w-4 h-4" style={{ color: "#B85C3C" }} />
           <h2 className="font-display font-bold text-lg" style={{ color: "#3A2A20" }}>La colección de {name}</h2>
+          {creations.length > 0 && <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: "#FBEEE4", color: "#B85C3C" }} data-testid="universe-creations-count">{creations.length}</span>}
         </div>
         {creations.length === 0 ? (
-          <div className="mt-3 p-5 rounded-2xl bg-white border text-center" style={{ borderColor: "#EEE3D2" }} data-testid="universe-creations-empty">
-            <p className="text-sm" style={{ color: "#8A7868" }}>Aún no hay creaciones. Elige una experiencia de arriba para empezar su álbum. 🐾</p>
-          </div>
+          <button onClick={() => nav(suggestion.to)} className="mt-3 w-full p-5 rounded-2xl bg-white border text-center" style={{ borderColor: "#EEE3D2" }} data-testid="universe-creations-empty">
+            <p className="text-sm" style={{ color: "#8A7868" }}>La colección de {name} está vacía. Empieza con <b style={{ color: "#B85C3C" }}>{suggestion.title}</b> 🐾</p>
+          </button>
         ) : (
           <div className="mt-3 grid grid-cols-2 gap-3" data-testid="universe-creations">
             {creations.map((c) => {
@@ -232,10 +274,19 @@ export default function Universe() {
                   <img src={mediaUrl(c.thumb_url)} alt={c.title} className="absolute inset-0 w-full h-full object-cover" onError={(e) => { e.target.style.opacity = 0.15; }} />
                   <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.6), transparent 55%)" }} />
                   <span className="absolute top-2 left-2 text-[10px] font-bold text-white px-2 py-0.5 rounded-full" style={{ background: badge.color }}>{badge.label}</span>
+                  {c.isNew && <span className="absolute top-2 right-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-white" style={{ color: "#B85C3C" }} data-testid="universe-creation-new">Nuevo</span>}
                   <span className="absolute bottom-2 left-2 right-2 text-white text-xs font-display font-semibold truncate">{c.title}</span>
                 </button>
               );
             })}
+            <button onClick={() => nav(suggestion.to)} data-testid="universe-creation-next"
+              className="rounded-2xl border-2 border-dashed grid place-items-center text-center p-3" style={{ aspectRatio: "3 / 4", borderColor: "#E7C9B5", background: "#FBF6EE" }}>
+              <div>
+                <div className="w-10 h-10 mx-auto rounded-full grid place-items-center" style={{ background: "#FBEEE4", color: "#B85C3C" }}><PlusIcon className="w-5 h-5" /></div>
+                <div className="mt-2 text-xs font-display font-bold" style={{ color: "#B85C3C" }}>Tu próxima creación</div>
+                <div className="mt-0.5 text-[11px] leading-tight" style={{ color: "#8A7868" }}>{suggestion.title}</div>
+              </div>
+            </button>
           </div>
         )}
 

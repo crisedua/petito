@@ -32,7 +32,9 @@ export default function Talk() {
   const [scenario, setScenario] = useState("chistoso");
   const [message, setMessage] = useState("");
   const [toName, setToName] = useState("");
-  const [kind, setKind] = useState("talk"); // "talk" | "song"
+  const [kind, setKind] = useState(() => {
+    try { const k = new URLSearchParams(window.location.search).get("kind"); return ["talk", "song", "motion"].includes(k) ? k : "talk"; } catch { return "talk"; }
+  }); // "talk" | "song" | "motion"
   const [songStyle, setSongStyle] = useState("cumbia");
   const [scene, setScene] = useState("viral");
   const [talkId, setTalkId] = useState(null);

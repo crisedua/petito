@@ -44,7 +44,9 @@ export default function Create() {
   const [petName, setPetName] = useState("");
   const [species, setSpecies] = useState("perro");
   const [traits, setTraits] = useState([]);
-  const [theme, setTheme] = useState("");
+  const [theme, setTheme] = useState(() => {
+    try { return new URLSearchParams(window.location.search).get("theme") || ""; } catch { return ""; }
+  });
   const [files, setFiles] = useState([]);
   const [storyId, setStoryId] = useState(null);
   const [slug, setSlug] = useState(null);

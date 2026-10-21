@@ -32,5 +32,11 @@ export const POST = handler(async (req: Request) => {
   };
   const { error } = await db().from("pets").insert(pet);
   if (error) throw error;
+  // Their first pet adopts anything they made before having one (the free try on the landing).
+  if (!count) {
+    for (const t of ["portraits", "videos", "stories"]) {
+      await db().from(t).update({ pet_id: pet.id }).eq("user_id", user.user_id).is("pet_id", null);
+    }
+  }
   return json(petPublic(pet));
 });
