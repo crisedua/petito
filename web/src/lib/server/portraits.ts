@@ -30,5 +30,7 @@ export const portraitPublic = (p: PortraitRow) => {
     photo_url: mediaPath(p.id, "orig_0.jpg"), // the uploaded photo (saveJobPhoto stores it as orig_0.jpg)
     preview_url: p.preview_file ? mediaPath(p.id, p.preview_file) : null,
     clean_url: paid && p.clean_file ? mediaPath(p.id, p.clean_file) : null,
+    // Before-and-after in one shareable image (the HD one only once unlocked). Older portraits have none.
+    compare_url: p.preview_file ? (paid && p.clean_file ? mediaPath(p.id, `compare_${p.clean_file}`) : mediaPath(p.id, "compare.jpg")) : null,
   };
 };

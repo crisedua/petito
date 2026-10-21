@@ -5,8 +5,9 @@ import { awaitFal, progress } from "../helpers";
 import { db, logGeneration } from "@/lib/server/db";
 import * as fal from "@/lib/server/fal";
 import * as storage from "@/lib/server/storage";
-import { imageToDataUri } from "@/lib/server/images";
-import { photoEditPrompt, portraitPrompt } from "@/lib/server/prompts";
+import { imageToB64, imageToDataUri } from "@/lib/server/images";
+import { photoEditPrompt, portraitPrompt, writePetTitle } from "@/lib/server/prompts";
+import { compareImage, namePlate } from "@/lib/render/plate";
 import { renderPhotoStyle } from "@/lib/render/photoStyles";
 import { loadImage } from "@/lib/server/images";
 import * as hf from "@/lib/server/higgsfield";
@@ -73,14 +74,26 @@ export const generatePortrait = inngest.createFunction(
     }
 
     await progress(step, "portraits", id, "80", { progress_step: mode === "paint" ? "Poniéndole el marco..." : "Últimos detalles...", progress_pct: 80 });
+    // Photo-based styles get a brass name plate with a funny Chilean title ("Michi, Duquesa de Viña").
+    const title: string = mode === "edit" && p.category !== "memorial"
+      ? await step.run("title", async () => writePetTitle(await imageToB64(id, photo), p.pet_name))
+      : "";
     await step.run("save", async () => {
       const sharp = (await import("sharp")).default;
-      const clean = url
+      let clean = url
         ? await sharp(usedProvider === "higgsfield" ? await hf.download(url) : await fal.download(url)).jpeg({ quality: 94 }).toBuffer()
         : await renderPhotoStyle(p.style, await loadImage(id, photo), p.pet_name);
+      if (title) clean = await namePlate(clean, title);
       const cleanName = `clean_${hex16()}.jpg`;
+      const preview = await portraitPreview(clean, BRAND_NAME);
       await storage.put(id, cleanName, clean, "image/jpeg");
-      await storage.put(id, "preview.jpg", await portraitPreview(clean, BRAND_NAME), "image/jpeg");
+      await storage.put(id, "preview.jpg", preview, "image/jpeg");
+      // Before-and-after in one image: the watermarked one for everyone, the clean one once unlocked.
+      if (p.category !== "memorial") {
+        const original = await loadImage(id, photo);
+        await storage.put(id, "compare.jpg", await compareImage(original, preview), "image/jpeg");
+        await storage.put(id, `compare_${cleanName}`, await compareImage(original, clean), "image/jpeg");
+      }
       await logGeneration({ ownerId: id, step: "portrait", model: url ? usedModel : "petito-renderer", images: 1, costUsd: url ? (Object.values(IMAGE_ENGINES).find((e) => e.model === usedModel)?.costUsd ?? fal.FAL_IMG_COST) : 0, durationMs: Date.now() - t0 });
       // Plus members get it unlocked right away (no watermarked preview shown to them).
       const plus = p.user_id ? await isPlus(p.user_id) : false;

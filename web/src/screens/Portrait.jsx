@@ -355,6 +355,22 @@ function StepProgress({ portraitId, onReady, onFail }) {
   );
 }
 
+/** Shares the before-and-after image itself where the browser allows it (WhatsApp, Instagram); otherwise the link. */
+export async function shareBeforeAfter(imgUrl, petName, link) {
+  const text = `Mira el antes y después de ${petName || "mi mascota"} en Petito 👑🐾`;
+  try {
+    if (imgUrl && navigator.canShare) {
+      const blob = await (await fetch(imgUrl)).blob();
+      if (blob.size > 1000) {
+        const file = new File([blob], `petito-${petName || "mascota"}-antes-despues.jpg`, { type: "image/jpeg" });
+        if (navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: "Petito", text: `${text} ${link}` }); return; }
+      }
+    }
+    if (navigator.share) { await navigator.share({ title: "Petito", text, url: link }); return; }
+  } catch { return; /* cancelled */ }
+  window.open(imgUrl || `https://wa.me/?text=${encodeURIComponent(`${text} ${link}`)}`, "_blank");
+}
+
 /** After a result, one concrete next thing to make (keeps the momentum going). */
 function NextStep({ nav, name }) {
   const who = name || "tu mascota";
@@ -417,6 +433,7 @@ function StepResult({ portrait, setPortrait, portraitId, slug, cfg, price, nav }
     } catch { toast.error("No se pudo descargar"); }
   };
 
+  const shareCompare = () => shareBeforeAfter(mediaUrl(portrait?.compare_url), portrait?.pet_name, giftUrl);
   const share = async () => {
     const text = portrait?.gift_enabled
       ? `Te tengo un regalo de Petito 🎁🐾`
@@ -457,6 +474,11 @@ function StepResult({ portrait, setPortrait, portraitId, slug, cfg, price, nav }
             <Button onClick={() => downloadImage(true)} className="h-14 rounded-2xl font-semibold" data-testid="portrait-download-hd">
               <Download className="w-5 h-5 mr-2" /> Descargar en HD
             </Button>
+            {portrait?.compare_url && (
+              <Button onClick={shareCompare} variant="secondary" className="h-12 rounded-2xl font-semibold bg-white border border-border" data-testid="portrait-share-compare-hd">
+                <Share2 className="w-4 h-4 mr-2" /> Compartir el antes y después
+              </Button>
+            )}
             <div className="grid grid-cols-2 gap-3">
               <Button onClick={share} className="h-14 rounded-2xl font-semibold bg-[#25D366] hover:bg-[#1da851]" data-testid="portrait-share-button">
                 <Share2 className="w-5 h-5 mr-2" /> Compartir
@@ -487,8 +509,13 @@ function StepResult({ portrait, setPortrait, portraitId, slug, cfg, price, nav }
                 ))}
               </ul>
             </div>
-            <button onClick={share} className="mt-4 w-full text-sm text-primary font-semibold flex items-center justify-center gap-1.5" data-testid="portrait-share-free">
-              <Share2 className="w-4 h-4" /> Compartir con marca de agua (gratis)
+            {portrait?.compare_url && (
+              <Button onClick={shareCompare} className="mt-4 w-full h-12 rounded-2xl font-semibold bg-[#25D366] hover:bg-[#1da851]" data-testid="portrait-share-compare">
+                <Share2 className="w-4 h-4 mr-2" /> Compartir el antes y después
+              </Button>
+            )}
+            <button onClick={share} className="mt-3 w-full text-sm text-primary font-semibold flex items-center justify-center gap-1.5" data-testid="portrait-share-free">
+              <Share2 className="w-4 h-4" /> Compartir el enlace (gratis)
             </button>
           </>
         )}

@@ -83,7 +83,7 @@ export default function Landing() {
           Mira a tu mascota <span style={{ color: "#B85C3C" }}>como nunca la viste.</span>
         </motion.h1>
         <motion.div {...fade(0.12)} className="mt-4">
-          <TryPortrait title="Pruébalo con su foto, ahora" subtitle="Un retrato pintado de tu mascota. Gratis, sin cuenta, en menos de un minuto." testid="landing-try" />
+          <TryPortrait title="Pruébalo con su foto, ahora" subtitle="Tu mascota como realeza, con corona, trono y su título. Gratis, sin cuenta, en menos de un minuto." testid="landing-try" />
         </motion.div>
         {SHOW_VOICE_PREVIEW && (
           <motion.div {...fade(0.28)}>

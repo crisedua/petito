@@ -6,6 +6,7 @@
 import type { Metadata } from "next";
 import { db } from "./db";
 import { mediaPath } from "./storage";
+import * as storage from "./storage";
 import { isPlus } from "./plus";
 import { portraitThumb, videoThumb } from "./thumbs";
 import { ALL_PORTRAIT_STYLES } from "@/lib/catalogs";
@@ -46,7 +47,12 @@ export async function portraitMeta(slug: string): Promise<Metadata> {
     if (!p || !READY.includes(p.status) || !p.preview_file) return fallback(path);
     const name = p.pet_name || "Mi mascota";
     const style = ALL_PORTRAIT_STYLES[p.style]?.label ?? "retrato";
-    const img = { url: portraitThumb(p, await isPlus(p.user_id)) };
+    // The before-and-after reads best as a link preview; older portraits only have the result.
+    const plus = await isPlus(p.user_id);
+    const compareName = plus || p.status === "paid" ? `compare_${p.clean_file}` : "compare.jpg";
+    const img = p.category !== "memorial" && p.clean_file && (await storage.exists(p.id, compareName))
+      ? { url: mediaPath(p.id, compareName), width: 1200, height: 860 }
+      : { url: portraitThumb(p, plus) };
     return p.category === "memorial"
       ? meta(path, `Un homenaje a ${name} 🕊️`, "Un recuerdo lleno de cariño, hecho en Petito.", img)
       : meta(path, `${name}, en versión ${style.toLowerCase()} 👑`, "Mira su retrato y crea el de tu mascota en Petito.", img);

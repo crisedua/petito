@@ -267,7 +267,21 @@ export const PORTRAIT_STYLES: Record<string, StyleDef> = {
     "label": "Foto de estudio",
     "emoji": "💡",
     "desc": "Tu foto real con fondo de estudio y luz profesional",
-    "prompt": "a professional pet photography studio: replace only the background with a smooth, softly lit neutral studio backdrop (warm beige to charcoal gradient) and add gentle professional studio lighting and a subtle catchlight in the eyes",
+    "prompt": "a professional pet photography studio: replace only the background with a smooth, evenly lit seamless studio backdrop in ONE bold saturated color chosen to contrast with the coat (deep teal for brown, golden or orange coats; warm mustard for black or dark coats; rich burgundy for white, cream or grey coats), add gentle professional studio lighting",
+    "mode": "edit", "group": "foto"
+  },
+  "royal": {
+    "label": "Royal",
+    "emoji": "👑",
+    "desc": "Tu foto real como retrato de la realeza: trono, terciopelo y corona",
+    "prompt": "a royal portrait: the pet wears a real, well-fitted velvet royal robe with ermine trim and a small golden crown, seated on an ornate gilded throne in front of a deep jewel-toned velvet drape in one bold color that contrasts with the coat (teal for brown or orange coats, mustard for black coats, burgundy for white or grey coats), warm candle-like studio light, like a photograph of a real royal portrait sitting",
+    "mode": "edit", "group": "foto"
+  },
+  "humano": {
+    "label": "Como humano",
+    "emoji": "☕",
+    "desc": "Tu foto real en un momento humano: en su oficina, leyendo o tomando café",
+    "prompt": "a human moment: the pet sits like a person in a real scene, for example at a wooden desk in a cozy office with a coffee mug and reading glasses on the table, or in an armchair reading a newspaper in a library; the pet keeps its real body and face and does not become a human, props are real objects sized for it, natural window light",
     "mode": "edit", "group": "foto"
   },
   "coronita": {

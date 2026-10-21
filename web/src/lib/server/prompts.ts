@@ -118,10 +118,35 @@ export const portraitPrompt = (species: string, stylePrompt: string) =>
 
 /** Photo-edit styles: the photograph stays a photograph; the model only adds what the style says. */
 export const photoEditPrompt = (species: string, stylePrompt: string) =>
-  `This is a real photograph of a ${species}. Keep the photo exactly as it is: the same animal, pose, ` +
-  `expression, fur, colors, markings, lighting and camera angle, fully photorealistic, not a painting ` +
-  `or illustration. Make only this change: ${stylePrompt}. The result must look like a real photo ` +
-  `taken of this same pet. ${PRO_PHOTO} Vertical 3:4 composition, no frame.`;
+  `This is a real photograph of a ${species}. Keep the same animal exactly: its face, expression, fur, ` +
+  `colors, markings and proportions, fully photorealistic, not a painting or illustration. ` +
+  `Make this change: ${stylePrompt}. ` +
+  // Framing that reads at phone size: a tight portrait with the eyes where people look first.
+  `Reframe as a tight portrait: the pet's face fills 50-60% of the frame, eyes on the upper third, ` +
+  `looking straight at the camera. Add one natural catchlight in each eye that matches the direction of ` +
+  `the light; keep dark eyes dark, never brighten them artificially. ` +
+  `The result must look like a real photo taken of this same pet. ${PRO_PHOTO} Vertical 3:4 composition, no frame, no text.`;
+
+const TITLE_FALLBACKS = ["Duquesa de Viña", "Conde de Ñuñoa", "Marqués del Patio", "Reina de la Siesta", "Príncipe de Puerto Varas", "Emperatriz del Sofá", "Barón de Valparaíso", "Señora de Las Condes"];
+/** A short, funny Chilean noble title for the name plate ("Michi, Duquesa de Viña"). Never throws. */
+export async function writePetTitle(photoB64: string, petName: string | null): Promise<string> {
+  const name = (petName ?? "").trim();
+  const fallback = () => `${name ? `${name}, ` : ""}${TITLE_FALLBACKS[Math.floor(Math.random() * TITLE_FALLBACKS.length)]}`;
+  try {
+    const { text } = await runClaude(
+      "Eres un comediante chileno. Respondes SOLO JSON válido.",
+      `Mira la foto de esta mascota${name ? ` (se llama ${name})` : ""}. Inventa UN título nobiliario chistoso y cariñoso, ` +
+      `en español de Chile, de 2 a 5 palabras, con un lugar o costumbre chilena (Viña, Ñuñoa, el sofá, la siesta, el pancito, ` +
+      `la once, Puerto Varas, el patio). Sin el nombre de la mascota. Concuerda el género con cómo se ve (duque/duquesa, conde/condesa, rey/reina). ` +
+      `Ejemplos: "Duquesa de Viña", "Conde del Pancito", "Reina de la Once". Responde JSON: {"title": "<título>"}`,
+      [photoB64], true);
+    const t = String(extractJson<{ title?: string }>(text).title ?? "").trim().replace(/^["“”]|["“”]$/g, "").slice(0, 36);
+    if (!t) return fallback();
+    return name ? `${name}, ${t}` : t;
+  } catch {
+    return fallback();
+  }
+}
 
 export const petIntroFallback = (name: string) =>
   `${name} llegó para llenar de cariño cada día. Este es el comienzo de su universo, donde cada recuerdo tendrá su lugar. 🐾`;

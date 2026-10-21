@@ -3,10 +3,11 @@ import { HomeLink } from "@/components/HomeLink";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "@/lib/router";
 import { motion, AnimatePresence } from "framer-motion";
-import { Gift, Loader2, PawPrint, Crown, ArrowRight, Download, Heart } from "lucide-react";
+import { Gift, Loader2, PawPrint, Crown, ArrowRight, Download, Heart, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getPortraitBySlug, mediaUrl } from "@/lib/api";
 import TryPortrait from "@/components/TryPortrait";
+import { shareBeforeAfter } from "@/screens/Portrait";
 
 export default function PortraitView() {
   const { slug } = useParams();
@@ -116,6 +117,14 @@ export default function PortraitView() {
                 <Button onClick={downloadImage} className="mt-6 w-full h-14 rounded-2xl font-semibold" data-testid="portrait-view-download">
                   <Download className="w-5 h-5 mr-2" /> Descargar imagen
                 </Button>
+              )}
+              {p.compare_url && p.category !== "memorial" && (
+                <div className="mt-5" data-testid="portrait-view-compare">
+                  <img src={mediaUrl(p.compare_url)} alt="Antes y después" className="w-full rounded-2xl border-4 border-white shadow-md" onError={(e) => { e.currentTarget.parentElement.style.display = "none"; }} />
+                  <Button onClick={() => shareBeforeAfter(mediaUrl(p.compare_url), p.pet_name, window.location.href)} className="mt-3 w-full h-12 rounded-2xl font-semibold bg-[#25D366] hover:bg-[#1da851]" data-testid="portrait-view-share-compare">
+                    <Share2 className="w-4 h-4 mr-2" /> Compartir el antes y después
+                  </Button>
+                </div>
               )}
 
               <div className="mt-8 bg-white rounded-3xl border border-border p-5 text-center shadow-sm">
