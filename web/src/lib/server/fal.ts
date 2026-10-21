@@ -28,6 +28,15 @@ const webhookUrl = () => {
   return base ? `${base.replace(/\/$/, "")}/api/webhooks/fal` : undefined;
 };
 
+/** fal's own explanation (e.g. "User is locked. Reason: Exhausted balance"), so the failure says what to fix. */
+function falReason(status: number, e: any): string {
+  const body = e?.body ?? e?.response?.body;
+  const detail = typeof body === "string" ? body : body?.detail ?? body?.message ?? e?.message ?? "";
+  const text = String(typeof detail === "string" ? detail : JSON.stringify(detail)).slice(0, 200);
+  if (status === 402 || /balance|locked|credit|billing/i.test(text)) return `fal.ai: la cuenta no tiene saldo o está bloqueada (${status}). Recarga en fal.ai/dashboard/billing. ${text}`.trim();
+  return `fal.ai rechazó la FAL_KEY (${status}). ${text}`.trim();
+}
+
 /** A configuration/input problem that retrying won't fix (missing/invalid key, no credit, bad input). */
 export class PermanentFalError extends Error {}
 
@@ -46,6 +55,7 @@ async function submit(endpoint: string, input: Record<string, unknown>): Promise
     return res.request_id;
   } catch (e: any) {
     const st = Number(e?.status ?? 0);
+    if (st === 401 || st === 402 || st === 403) throw new PermanentFalError(falReason(st, e));
     if (st >= 400 && st < 500 && st !== 408 && st !== 429) throw new PermanentFalError(`fal.ai ${st}: ${String(e?.message ?? e).slice(0, 300)}`);
     throw e;
   }
@@ -72,8 +82,7 @@ export async function submitLipsync(imageJpeg: Buffer, audioMp3: Buffer, hd: boo
     ]);
   } catch (e: any) {
     const st = Number(e?.status ?? 0);
-    if (st === 401 || st === 403) throw new PermanentFalError(`fal.ai rechazó la FAL_KEY (${st})`);
-    if (st === 402) throw new PermanentFalError("fal.ai: sin saldo en la cuenta (402)");
+    if (st === 401 || st === 403 || st === 402) throw new PermanentFalError(falReason(st, e));
     throw e;
   }
   const input: Record<string, unknown> = { image_url: imageUrl, audio_url: audioUrl };
@@ -152,8 +161,7 @@ export async function submitMotion(imageJpeg: Buffer, scenePrompt: string, secon
     imageUrl = await fal().storage.upload(new Blob([new Uint8Array(imageJpeg)], { type: "image/jpeg" }));
   } catch (e: any) {
     const st = Number(e?.status ?? 0);
-    if (st === 401 || st === 403) throw new PermanentFalError(`fal.ai rechazó la FAL_KEY (${st})`);
-    if (st === 402) throw new PermanentFalError("fal.ai: sin saldo en la cuenta (402)");
+    if (st === 401 || st === 403 || st === 402) throw new PermanentFalError(falReason(st, e));
     throw e;
   }
   return submit(FAL_MOTION_MODEL, { prompt, elements: [{ frontal_image_url: imageUrl }], duration: String(seconds), aspect_ratio: "9:16" });
