@@ -399,7 +399,7 @@ export const MOTION_SCENES: Record<string, MotionScene> = {
 export const MOTION_SECONDS = 5;
 
 /** Seconds of song (and of lip-synced video): keep it short, the video costs by the second. */
-export const SONG_SECONDS = 18;
+export const SONG_SECONDS = 14;
 
 export const VOICES: Voice[] = [
   {

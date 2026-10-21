@@ -76,7 +76,7 @@ export default function Talk() {
           onBack={() => setStep("mensaje")} onNext={start} busy={busy} />
       )}
       {step === "progress" && (
-        <StepProgress key="progress" talkId={talkId}
+        <StepProgress key="progress" talkId={talkId} kind={kind} nav={nav}
           onReady={() => nav(`/v/${slug}`)}
           onFail={() => { toast.error("No pudimos crear el video. Intenta con otra foto."); setStep(kind === "talk" ? "voice" : "mensaje"); }} />
       )}
@@ -295,7 +295,7 @@ function StepVoice({ cfg, voiceId, setVoiceId, onBack, onNext, busy }) {
   );
 }
 
-function StepProgress({ talkId, onReady, onFail }) {
+function StepProgress({ talkId, onReady, onFail, kind, nav }) {
   const [step, setStep] = useState("Preparando...");
   const [pct, setPct] = useState(5);
   const [quote, setQuote] = useState(0);
@@ -333,7 +333,15 @@ function StepProgress({ talkId, onReady, onFail }) {
         <motion.p key={quote} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="font-script text-2xl text-white/90 mt-10">
           “{QUOTES[quote]}”
         </motion.p>
-        <p className="text-white/70 text-xs mt-8">Crear un video toma un poco más que una foto. ¡Vale la pena!</p>
+        {kind === "song" || kind === "motion" ? (
+          <div className="mt-8 text-center" data-testid="talk-progress-leave">
+            <p className="text-white/80 text-sm">{kind === "song" ? "Una canción toma alrededor de 1 minuto." : "Un video en movimiento toma de 1 a 3 minutos."}</p>
+            <p className="text-white/70 text-xs mt-1">Puedes salir: seguimos trabajando y aparecerá en la colección de tu mascota cuando esté listo.</p>
+            <button onClick={() => nav("/universo")} className="mt-4 px-5 h-11 rounded-2xl bg-white/15 text-white text-sm font-display font-semibold" data-testid="talk-progress-leave-button">Ir al universo mientras tanto</button>
+          </div>
+        ) : (
+          <p className="text-white/70 text-xs mt-8">Crear un video toma un poco más que una foto. ¡Vale la pena!</p>
+        )}
       </div>
     </motion.div>
   );

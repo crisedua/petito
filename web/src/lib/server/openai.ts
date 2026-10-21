@@ -23,13 +23,17 @@ export function openaiCost(usage: Usage | null | undefined, model = env.openaiMo
 }
 
 /** Same contract as runClaude: system + one user message (text and optional JPEG images) → text + usage. */
-export async function runOpenAI(system: string, text: string, imagesB64: string[] = [], model = env.openaiModel) {
+export async function runOpenAI(system: string, text: string, imagesB64: string[] = [], model = env.openaiModel, fast = false) {
   const content: OpenAI.Chat.ChatCompletionContentPart[] = [
     ...imagesB64.map((data) => ({ type: "image_url" as const, image_url: { url: `data:image/jpeg;base64,${data}`, detail: "low" as const } })),
     { type: "text" as const, text },
   ];
+  // gpt-5 / o-series "reason" before answering; at the default (medium) a 6-line lyric took ~14 s.
+  // Short creative text doesn't need it: minimal for the fast calls, low otherwise.
+  const reasoning = /^(gpt-5|o\d)/.test(model) ? { reasoning_effort: (fast ? "minimal" : "low") as "minimal" | "low" } : {};
   const res = await openai().chat.completions.create({
     model,
+    ...reasoning,
     max_completion_tokens: 4096,
     messages: [{ role: "system", content: system }, { role: "user", content }],
   });

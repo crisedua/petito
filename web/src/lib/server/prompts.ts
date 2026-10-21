@@ -183,7 +183,7 @@ export async function writePetSong(photoB64: string, petName: string | null, fee
     (ctx.occasion ? `Ocasión: ${ctx.occasion}. ` : "") +
     (ctx.personality?.length ? `Personalidad de ${name}: ${ctx.personality.join(", ")}; que se note. ` : "") +
     (ctx.memory ? `Menciona este recuerdo real: "${ctx.memory}". ` : "") +
-    `Largo: se canta en unos 18 segundos, así que máximo 6 líneas cortas (4 a 7 palabras cada una), con rima fácil ` +
+    `Largo: se canta en unos 14 segundos, así que máximo 5 líneas cortas (4 a 7 palabras cada una), con rima fácil ` +
     `y un coro de 2 líneas que repita el nombre ${name}. Sin títulos ni acotaciones, solo las líneas.\n` +
     `Responde JSON: {"species": "perro|gato|otro", "lines": ["línea 1", "línea 2", ...]}`;
   let text = "", usage: Awaited<ReturnType<typeof runClaude>>["usage"] | null = null;
@@ -194,7 +194,7 @@ export async function writePetSong(photoB64: string, petName: string | null, fee
   }
   let data: { species?: string; lines?: string[] } = {};
   try { data = text ? extractJson(text) : {}; } catch { data = {}; }
-  const lines = (data.lines ?? []).map((l) => String(l).trim()).filter(Boolean).slice(0, 6);
+  const lines = (data.lines ?? []).map((l) => String(l).trim()).filter(Boolean).slice(0, 5);
   const lyrics = lines.length >= 2 ? lines.join("\n")
     : [`${ctx.toName ? ctx.toName + ", " : ""}soy ${name}, tu regalón`, "y esta canción es para ti", `${name}, ${name}, con el corazón`, "te quiero hasta el fin"].join("\n");
   return { lyrics, species: data.species || "otro", usage };

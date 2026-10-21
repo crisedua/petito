@@ -21,7 +21,7 @@ export const llmModel = (fast = false) =>
 
 export const runLlm = (system: string, text: string, imagesB64: string[] = [], fast = false) =>
   llmProvider() === "openai" && !env.mockAi
-    ? runOpenAI(system, text, imagesB64, llmModel(fast))
+    ? runOpenAI(system, text, imagesB64, llmModel(fast), fast)
     : runClaude(system, text, imagesB64, llmModel(fast));
 
 export const llmCost = (usage: LlmUsage | null | undefined, fast = false) =>
