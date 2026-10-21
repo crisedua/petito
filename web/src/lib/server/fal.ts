@@ -132,3 +132,29 @@ export async function editImageNow(imageDataUri: string, prompt: string, aspectR
     await new Promise((r) => setTimeout(r, 2000));
   }
 }
+
+export const FAL_MOTION_MODEL = process.env.FAL_MOTION_MODEL ?? "fal-ai/kling-video/o1/reference-to-video";
+export const FAL_MOTION_COST_PER_SEC = Number(process.env.FAL_MOTION_COST_PER_SEC ?? "0.112");
+
+/**
+ * Short clip of the real pet doing something (Kling O1 reference-to-video): the photo goes in as an
+ * element so the same animal, fur and markings carry through the whole clip.
+ */
+export async function submitMotion(imageJpeg: Buffer, scenePrompt: string, seconds: number): Promise<string> {
+  const prompt =
+    `@Element1 is this exact pet: keep the very same animal, breed, fur colors, markings and face throughout. ` +
+    `Realistic video of @Element1 ${scenePrompt}. Natural movement, the pet stays the clear subject, ` +
+    `vertical 9:16 framing, steady camera, no text, no watermark.`;
+  if (env.mockAi) return submit(FAL_MOTION_MODEL, { prompt });
+  if (!env.falKey) throw new PermanentFalError("FAL_KEY no está configurada");
+  let imageUrl: string;
+  try {
+    imageUrl = await fal().storage.upload(new Blob([new Uint8Array(imageJpeg)], { type: "image/jpeg" }));
+  } catch (e: any) {
+    const st = Number(e?.status ?? 0);
+    if (st === 401 || st === 403) throw new PermanentFalError(`fal.ai rechazó la FAL_KEY (${st})`);
+    if (st === 402) throw new PermanentFalError("fal.ai: sin saldo en la cuenta (402)");
+    throw e;
+  }
+  return submit(FAL_MOTION_MODEL, { prompt, elements: [{ frontal_image_url: imageUrl }], duration: String(seconds), aspect_ratio: "9:16" });
+}

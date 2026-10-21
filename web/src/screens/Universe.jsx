@@ -95,7 +95,7 @@ export default function Universe() {
   const name = active.name;
   const invitations = [
     { key: "recuerdo", icon: BookHeart, title: "Guarda un recuerdo especial", desc: "Un momento real para siempre", to: "/album", bg: "#F3EAF0", fg: "#9C5F86" },
-    { key: "habla", icon: Mic, title: `${name} habla… o te canta`, desc: "Un videomensaje para quien tú elijas, o su propia canción", to: "/hablar", bg: "#FBEEE4", fg: "#B85C3C" },
+    { key: "habla", icon: Mic, title: `${name} habla, canta o se mueve`, desc: "Un videomensaje, su propia canción, o en acción en video", to: "/hablar", bg: "#FBEEE4", fg: "#B85C3C" },
     { key: "historia", icon: Film, title: "Creen una aventura juntos", desc: "Una historia ilustrada", to: "/crear", bg: "#EEF1E6", fg: "#7A8B5A" },
     { key: "retrato", icon: Crown, title: `Descubre a ${name} en otro mundo`, desc: "Un retrato de realeza", to: "/retrato", bg: "#FBF3DD", fg: "#C79A3B" },
   ];

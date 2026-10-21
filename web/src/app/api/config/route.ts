@@ -1,7 +1,7 @@
 import { defaultVoiceId, ensureVoices, voices } from "@/lib/server/elevenlabs";
 import { handler, json } from "@/lib/server/http";
 import { env } from "@/lib/server/env";
-import { BRAND_NAME, BRAND_URL, MEMORIAL_STYLES, PORTRAIT_STYLES, TALK_MESSAGE_MAX, TALK_SCENARIOS, THEMES, TRAITS, PORTRAIT_FRAMES, STYLE_DEFAULT_FRAME, SONG_STYLES, SONG_SECONDS } from "@/lib/catalogs";
+import { BRAND_NAME, BRAND_URL, MEMORIAL_STYLES, PORTRAIT_STYLES, TALK_MESSAGE_MAX, TALK_SCENARIOS, THEMES, TRAITS, PORTRAIT_FRAMES, STYLE_DEFAULT_FRAME, SONG_STYLES, SONG_SECONDS, MOTION_SCENES } from "@/lib/catalogs";
 
 export const GET = handler(async () => {
   await ensureVoices();
@@ -30,6 +30,7 @@ export const GET = handler(async () => {
     talk_message_max: TALK_MESSAGE_MAX,
     song_styles: Object.entries(SONG_STYLES).map(([key, v]) => ({ key, label: v.label, emoji: v.emoji })),
     song_seconds: SONG_SECONDS,
+    motion_scenes: Object.entries(MOTION_SCENES).map(([key, v]) => ({ key, label: v.label, emoji: v.emoji })),
     plus_monthly_clp: env.plusMonthlyClp,
     plus_annual_clp: env.plusAnnualClp,
   });

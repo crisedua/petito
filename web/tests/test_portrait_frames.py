@@ -180,3 +180,26 @@ def test_song_videos_are_plus_only_and_generate():
     assert d["song"] is True and d["song_style"] == "cumbia" and d["line"] and "\n" in d["line"]
     html = requests.get(f"{BASE}/v/{v['slug']}", timeout=60).text
     assert 'content="Rocco le canta a mamá' in html
+
+
+def test_motion_videos_are_plus_only_and_generate_clean():
+    me = requests.get(f"{API}/auth/me", headers=NORM, timeout=20).json()
+    requests.post(f"{API}/admin/users/{me['user_id']}/plus", json={"active": False}, headers=ADMIN, timeout=20)
+    try:
+        assert requests.post(f"{API}/talk", json={"pet_name": "Rocco", "kind": "motion", "scene": "playa"}, headers=NORM, timeout=20).status_code == 402
+    finally:
+        requests.post(f"{API}/admin/users/{me['user_id']}/plus", json={"active": True}, headers=ADMIN, timeout=20)
+    assert [s["key"] for s in requests.get(f"{API}/config", timeout=20).json()["motion_scenes"]] == ["baile", "playa", "regalo", "nieve", "superheroe"]
+    v = requests.post(f"{API}/talk", json={"pet_name": "Rocco", "kind": "motion", "scene": "playa", "pet_id": ROCCO}, headers=NORM, timeout=20).json()
+    requests.post(f"{API}/talk/{v['id']}/photo", files={"files": ("p.jpg", jpeg(), "image/jpeg")}, headers=NORM, timeout=60)
+    requests.post(f"{API}/talk/{v['id']}/generate", headers=NORM, timeout=20)
+    for _ in range(80):
+        d = requests.get(f"{API}/talk/{v['id']}", headers=NORM, timeout=20).json()
+        if d["status"] in ("preview_ready", "paid", "failed"):
+            break
+        time.sleep(1.5)
+    assert d["status"] == "paid", d.get("error")  # Plus-only: delivered clean, no watermark step
+    assert d["motion"] is True and d["scene"] == "playa" and d["clean_url"] and d["clean_ready"]
+    assert requests.get(f"{BASE}{d['clean_url']}", timeout=20).headers["content-type"].startswith("video/")
+    html = requests.get(f"{BASE}/v/{v['slug']}", timeout=60).text
+    assert 'content="Rocco en acción' in html

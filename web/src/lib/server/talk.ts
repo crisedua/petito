@@ -29,7 +29,7 @@ export async function getVideoBySlug(slug: string): Promise<VideoRow> {
 export const talkPublic = (v: VideoRow) => {
   const paid = v.status === "paid";
   return {
-    id: v.id, slug: v.share_slug, pet_name: v.pet_name, mode: v.mode, song: v.mode === "song", song_style: v.mode === "song" ? v.scenario : null, status: v.status, to_name: v.to_name ?? null,
+    id: v.id, slug: v.share_slug, pet_name: v.pet_name, mode: v.mode, song: v.mode === "song", song_style: v.mode === "song" ? v.scenario : null, motion: v.mode === "motion", scene: v.mode === "motion" ? v.scenario : null, status: v.status, to_name: v.to_name ?? null,
     progress_step: v.progress_step, progress_pct: v.progress_pct, line: v.line, price_clp: v.price_clp,
     paid, error: v.error, brand_url: BRAND_URL,
     preview_url: v.preview_file ? mediaPath(v.id, v.preview_file) : null,

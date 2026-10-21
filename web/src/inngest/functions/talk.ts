@@ -1,7 +1,7 @@
 import { track } from "@/lib/server/events";
 import { NonRetriableError } from "inngest";
 import { inngest, EV } from "../client";
-import { awaitElevenVideo, awaitFal, creepingProgress } from "../helpers";
+import { awaitElevenVideo, awaitFal, creepingProgress, progress } from "../helpers";
 import { db, logGeneration } from "@/lib/server/db";
 import * as fal from "@/lib/server/fal";
 import * as eleven from "@/lib/server/elevenvideo";
@@ -14,7 +14,7 @@ import { ensureVoices, generateNarration, validVoice } from "@/lib/server/eleven
 import { talkSource } from "@/lib/render/watermarks";
 import { env } from "@/lib/server/env";
 import { hex16 } from "@/lib/server/ids";
-import { BRAND_NAME, PERSONALITY_LABELS, SONG_SECONDS, SONG_STYLES, TALK_MESSAGE_MAX, TALK_SCENARIOS } from "@/lib/catalogs";
+import { BRAND_NAME, MOTION_SCENES, MOTION_SECONDS, PERSONALITY_LABELS, SONG_SECONDS, SONG_STYLES, TALK_MESSAGE_MAX, TALK_SCENARIOS } from "@/lib/catalogs";
 
 const loadVideo = async (id: string) => (await db().from("videos").select("*").eq("id", id).single()).data!;
 const firstPhoto = async (id: string) =>
@@ -100,6 +100,31 @@ export const generateTalk = inngest.createFunction(
     if (!photo) throw new Error("No hay foto");
     const long = v.mode === "full" || v.mode === "song";
     const song = v.mode === "song";
+
+    // "Que se mueva": the real pet in a short scene (Kling reference-to-video). Plus-only, so the clip
+    // is delivered clean right away (no watermarked preview).
+    if (v.mode === "motion") {
+      const scene = MOTION_SCENES[v.scenario] ?? MOTION_SCENES.baile;
+      await progress(step, "videos", id, "20", { progress_step: "Estudiando a tu mascota...", progress_pct: 20 });
+      const t0 = Date.now();
+      const requestId: string = await step.run("motion-submit", async () => {
+        const photoBuf = await loadImage(id, photo);
+        // Thumbnails and the HD frame use the real photo (no watermark: Plus-only).
+        await storage.put(id, "source.jpg", photoBuf, "image/jpeg");
+        await storage.put(id, "source_hd.jpg", photoBuf, "image/jpeg");
+        await db().from("videos").update({ progress_step: "Grabando la escena (1 a 3 minutos)...", progress_pct: 35 }).eq("id", id);
+        return fal.submitMotion(photoBuf, scene.prompt, MOTION_SECONDS);
+      });
+      const url = await awaitFal(step, "motion-fal", fal.FAL_MOTION_MODEL, requestId, 60, creepingProgress("videos", id, "Grabando la escena (1 a 3 minutos)...", 35, 95));
+      await step.run("motion-save", async () => {
+        const bytes = await fal.download(url);
+        await storage.put(id, "preview.mp4", bytes, "video/mp4");
+        await logGeneration({ ownerId: id, step: "motion_video", model: fal.FAL_MOTION_MODEL, costUsd: fal.FAL_MOTION_COST_PER_SEC * MOTION_SECONDS, durationMs: Date.now() - t0 });
+        await db().from("videos").update({ status: "paid", paid_at: new Date().toISOString(), preview_file: "preview.mp4", clean_file: "preview.mp4", line: scene.label, progress_pct: 100, progress_step: "¡Listo!" }).eq("id", id);
+        await track("result_ready", { feature: "video", deviceId: v.device_id, userId: v.user_id, props: { mode: "motion", scene: v.scenario } });
+      });
+      return { ok: true };
+    }
 
     // The voice (line + speech) and the watermarked frame don't depend on each other: run them together.
     await Promise.all([

@@ -387,6 +387,17 @@ export const SONG_STYLES: Record<string, SongStyle> = {
   reggaeton: { label: "Reggaetón suave", emoji: "🔥", styles: ["soft reggaeton", "dembow beat", "playful", "summer"], feel: "juguetona y con flow, sin groserías" },
   cueca: { label: "Cueca", emoji: "🇨🇱", styles: ["cueca chilena", "guitar and tambourine", "lively folk", "handclaps"], feel: "dieciochera y picarona, con picardía de cueca" },
 };
+/** "Tu mascota en movimiento": the real pet (as a reference element) in a short scene. */
+export type MotionScene = { label: string; emoji: string; prompt: string };
+export const MOTION_SCENES: Record<string, MotionScene> = {
+  baile: { label: "Bailando", emoji: "💃", prompt: "dancing happily to upbeat music in a living room, bouncing and wiggling to the beat, tail wagging, warm party lights, playful and funny" },
+  playa: { label: "En la playa", emoji: "🏖️", prompt: "running joyfully along a sunny Chilean beach at golden hour, splashing through small waves, sand flying, slow-motion feel" },
+  regalo: { label: "Abriendo un regalo", emoji: "🎁", prompt: "excitedly tearing the wrapping paper off a big birthday gift with its paws, confetti falling, happy surprised reaction" },
+  nieve: { label: "En la nieve", emoji: "❄️", prompt: "playing in gently falling snow in a pine forest, catching snowflakes, leaving paw prints, cozy winter light" },
+  superheroe: { label: "Superhéroe", emoji: "🦸", prompt: "wearing a small red cape, striking a heroic pose on a rooftop at sunset as the cape flutters in the wind, then turning to the camera, cinematic" },
+};
+export const MOTION_SECONDS = 5;
+
 /** Seconds of song (and of lip-synced video): keep it short, the video costs by the second. */
 export const SONG_SECONDS = 18;
 

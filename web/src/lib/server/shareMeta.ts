@@ -31,10 +31,10 @@ export async function videoMeta(slug: string): Promise<Metadata> {
     const { data: v } = await db().from("videos").select("id, user_id, pet_name, line, status, clean_file, to_name, mode").eq("share_slug", slug).maybeSingle();
     if (!v || !READY.includes(v.status)) return fallback(path);
     const name = v.pet_name || "Esta mascota";
-    const song = v.mode === "song";
+    const song = v.mode === "song", motion = v.mode === "motion";
     return meta(path,
-      song ? (v.to_name ? `${name} le canta a ${v.to_name} 🎤` : `${name} te canta 🎤`) : v.to_name ? `${name} tiene un mensaje para ${v.to_name} 🐾` : `${name} tiene algo que decirte 🐾`,
-      song ? `Una canción original cantada por ${name}. Haz que tu mascota cante en Petito.` : `${quote(v.line)} Mira el video y haz que tu mascota hable en Petito.`.trim(),
+      motion ? `${name} en acción 🎬` : song ? (v.to_name ? `${name} le canta a ${v.to_name} 🎤` : `${name} te canta 🎤`) : v.to_name ? `${name} tiene un mensaje para ${v.to_name} 🐾` : `${name} tiene algo que decirte 🐾`,
+      motion ? `Mira a ${name} ${String(v.line || "").toLowerCase()}. Hecho con su foto real en Petito.` : song ? `Una canción original cantada por ${name}. Haz que tu mascota cante en Petito.` : `${quote(v.line)} Mira el video y haz que tu mascota hable en Petito.`.trim(),
       { url: videoThumb(v, await isPlus(v.user_id)) });
   } catch { return fallback(path); }
 }
