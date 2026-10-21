@@ -5,7 +5,7 @@ import { awaitFal, progress } from "../helpers";
 import { db, logGeneration } from "@/lib/server/db";
 import * as fal from "@/lib/server/fal";
 import * as storage from "@/lib/server/storage";
-import { imageToB64, imageToDataUri, loadImage } from "@/lib/server/images";
+import { imageToB64, loadImage } from "@/lib/server/images";
 import { bonusScenePrompt, selectPhotos, writeCaptions } from "@/lib/server/prompts";
 import { llmCost, llmModel } from "@/lib/server/llm";
 import { ensureVoices, generateNarration, validVoice } from "@/lib/server/elevenlabs";
@@ -13,6 +13,7 @@ import { addSlide } from "@/lib/server/stories";
 import { decode, toJpeg } from "@/lib/render/core";
 import { closingSlide, photoSlide, titleSlide } from "@/lib/render/slides";
 import { env } from "@/lib/server/env";
+import { photoEngine, submitEditWith } from "@/lib/server/imageEngines";
 import { BONUS_ORDER_BASE, BRAND_NAME, BRAND_URL, CLOSING_ORDER, SPECIES, THEMES } from "@/lib/catalogs";
 
 const loadStory = async (id: string) => (await db().from("stories").select("*").eq("id", id).single()).data!;
@@ -52,19 +53,21 @@ export const generateBonusScenes = inngest.createFunction(
     const scenes = (THEMES[story.theme] ?? Object.values(THEMES)[0]).bonus_scenes.slice(0, env.bonusScenesCount);
     const species = SPECIES[story.species] ?? "mascota";
     const t0 = Date.now();
+    // Scenes are meant to look like real photos, so they use the photo engine (always a fal model).
+    const engine = photoEngine();
 
     const submitScene = (i: number, attempt: number): Promise<string> =>
       step.run(`submit-${i}-${attempt}`, async () =>
-        fal.submitEdit(await imageToDataUri(story_id, best_file), bonusScenePrompt(species, scenes[i].prompt), "9:16"));
+        (await submitEditWith(engine, [await loadImage(story_id, best_file)], bonusScenePrompt(species, scenes[i].prompt), "9:16")).id);
 
     // all scenes in parallel at fal; one retry for any that fail
     const ids: string[] = await Promise.all(scenes.map((_, i) => submitScene(i, 0)));
     const urls = await Promise.all(scenes.map(async (_, i) => {
       try {
-        return await awaitFal(step, `bonus-${i}`, env.falImageModel, ids[i], 20);
+        return await awaitFal(step, `bonus-${i}`, engine.model, ids[i], 20);
       } catch {
         try {
-          return await awaitFal(step, `bonus-${i}-retry`, env.falImageModel, await submitScene(i, 1), 20);
+          return await awaitFal(step, `bonus-${i}-retry`, engine.model, await submitScene(i, 1), 20);
         } catch (e) {
           console.warn(`Bonus scene ${i} skipped`, e);
           return null;
@@ -86,7 +89,7 @@ export const generateBonusScenes = inngest.createFunction(
     }
     await step.run("finish", async () => {
       if (created.length) {
-        await logGeneration({ ownerId: story_id, step: "bonus_scenes", model: env.falImageModel, images: created.length, costUsd: fal.FAL_IMG_COST * created.length, durationMs: Date.now() - t0 });
+        await logGeneration({ ownerId: story_id, step: "bonus_scenes", model: engine.model, images: created.length, costUsd: engine.costUsd * created.length, durationMs: Date.now() - t0 });
       }
       await db().from("stories").update({ bonus_pending: false, progress_step: "¡Tu historia está lista!" }).eq("id", story_id);
     });

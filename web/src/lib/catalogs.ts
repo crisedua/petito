@@ -30,7 +30,7 @@ export const THEMES: Record<string, Theme> = {
         "caption": "Así se ve un año entero de ser el regalón de la casa."
       },
       {
-        "prompt": "a dreamy painterly portrait surrounded by floating polaroid photo frames and soft pastel flowers, nostalgic scrapbook mood",
+        "prompt": "a dreamy portrait in front of polaroid photos hanging from strings with tiny clips, soft pastel flowers around, warm nostalgic scrapbook mood",
         "sticker": "¡Puro recuerdo!",
         "caption": "Cada foto mía es un recuerdito que guardo con la patita."
       },

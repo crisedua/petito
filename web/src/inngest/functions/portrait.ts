@@ -10,7 +10,7 @@ import { photoEditPrompt, portraitPrompt } from "@/lib/server/prompts";
 import { renderPhotoStyle } from "@/lib/render/photoStyles";
 import { loadImage } from "@/lib/server/images";
 import * as hf from "@/lib/server/higgsfield";
-import { defaultEngine, engineAvailable, submitEditWith, IMAGE_ENGINES } from "@/lib/server/imageEngines";
+import { defaultEngine, engineAvailable, photoEngine, submitEditWith, IMAGE_ENGINES } from "@/lib/server/imageEngines";
 import { portraitPreview } from "@/lib/render/watermarks";
 import { env } from "@/lib/server/env";
 import { hex16 } from "@/lib/server/ids";
@@ -49,7 +49,7 @@ export const generatePortrait = inngest.createFunction(
         ? photoEditPrompt("mascota", style.prompt)
         : portraitPrompt("mascota", p.category === "memorial" ? style.prompt : `${style.prompt}, ${frameFor(p.style, p.frame).prompt}`);
       const sub: { provider: "fal" | "higgsfield"; id: string; model: string } = await step.run("submit", async () => {
-        let engine = await defaultEngine();
+        let engine = mode === "edit" ? photoEngine() : await defaultEngine();
         if (!engineAvailable(engine)) engine = IMAGE_ENGINES.nano_banana;
         // Extra photos of the same pet help engines that take several references.
         const refs: Buffer[] = [await loadImage(id, photo)];

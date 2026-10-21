@@ -8,7 +8,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
 import * as storage from "./storage";
-import { IMAGE_ENGINES, defaultEngine, editImageNow, engineAvailable, type EngineKey } from "./imageEngines";
+import { IMAGE_ENGINES, defaultEngine, editImageNow, engineAvailable, photoEngine, type EngineKey } from "./imageEngines";
 import { photoEditPrompt, portraitPrompt } from "./prompts";
 import { renderPhotoStyle } from "@/lib/render/photoStyles";
 import { PORTRAIT_FRAMES, PORTRAIT_STYLES, STYLE_DEFAULT_FRAME, frameFor, styleMode } from "@/lib/catalogs";
@@ -61,7 +61,7 @@ export async function generateCandidate(style: string, frame: string | null, ref
   const frameKey = mode !== "paint" ? "sin_marco" : frame && PORTRAIT_FRAMES[frame] ? frame : STYLE_DEFAULT_FRAME[style] ?? "dorado";
   const fr = frameFor(style, frameKey);
   const photo = ref.photo ?? (await readFile(path.join(process.cwd(), "assets", "sample-pets", "dog.jpg")));
-  const engine = engineKey && IMAGE_ENGINES[engineKey] ? IMAGE_ENGINES[engineKey] : await defaultEngine();
+  const engine = engineKey && IMAGE_ENGINES[engineKey] ? IMAGE_ENGINES[engineKey] : mode === "edit" ? photoEngine() : await defaultEngine();
   if (mode !== "render" && !engineAvailable(engine)) throw new Error(`${engine.label} no está configurado`);
   const out = mode === "render"
     ? await renderPhotoStyle(style, photo, ref.label === "Perro de ejemplo" ? "Rocco" : ref.label)

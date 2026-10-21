@@ -43,24 +43,35 @@ export async function setDefaultEngine(key: EngineKey) {
   cache = { at: Date.now(), key };
 }
 
+/**
+ * Engine for everything meant to look like a real photo (photo-edit portraits, story scenes). Nano Banana
+ * Pro keeps the pet's real face and fur best and renders at 2K, so it is the default; PHOTO_IMAGE_ENGINE
+ * can switch to another fal engine. Paintings keep using the admin's default engine.
+ */
+export function photoEngine(): Engine {
+  const key = process.env.PHOTO_IMAGE_ENGINE as EngineKey;
+  const e = IMAGE_ENGINES[key] ?? IMAGE_ENGINES.nano_banana_pro;
+  return e.provider === "fal" ? e : IMAGE_ENGINES.nano_banana_pro;
+}
+
 export const engineAvailable = (e: Engine) => env.mockAi || (e.provider === "fal" ? Boolean(env.falKey) : hf.higgsfieldEnabled());
 
 const toDataUri = async (buf: Buffer) =>
   `data:image/jpeg;base64,${(await sharp(buf).rotate().resize(1024, 1024, { fit: "inside" }).jpeg({ quality: 88 }).toBuffer()).toString("base64")}`;
 
 /** Submit an edit; the first image is the photo to keep, the rest are extra references of the same pet. */
-export async function submitEditWith(engine: Engine, images: Buffer[], prompt: string): Promise<{ provider: "fal" | "higgsfield"; id: string; model: string }> {
+export async function submitEditWith(engine: Engine, images: Buffer[], prompt: string, aspect: "3:4" | "9:16" = "3:4"): Promise<{ provider: "fal" | "higgsfield"; id: string; model: string }> {
   const refs = images.slice(0, Math.max(1, engine.maxRefs));
   if (engine.provider === "fal") {
     const urls = await Promise.all(refs.map(toDataUri));
     const input: Record<string, unknown> = engine.key === "flux2"
-      ? { image_urls: urls, prompt, image_size: { width: 1152, height: 1536 }, output_format: "jpeg" }
-      : { image_urls: urls, prompt, num_images: 1, output_format: "jpeg", aspect_ratio: "3:4", ...(engine.key === "nano_banana_pro" ? { resolution: "2K" } : {}) };
+      ? { image_urls: urls, prompt, image_size: aspect === "9:16" ? { width: 864, height: 1536 } : { width: 1152, height: 1536 }, output_format: "jpeg" }
+      : { image_urls: urls, prompt, num_images: 1, output_format: "jpeg", aspect_ratio: aspect, ...(engine.key === "nano_banana_pro" ? { resolution: "2K" } : {}) };
     return { provider: "fal", id: await fal.submitRaw(engine.model, input), model: engine.model };
   }
   if (env.mockAi) return { provider: "higgsfield", id: `mock-hf-img-${randomUUID()}`, model: engine.model };
   const urls = await Promise.all(refs.map((b) => hf.uploadImage(b)));
-  return { provider: "higgsfield", id: await hf.submitRaw(engine.model, { prompt, image_urls: urls, aspect_ratio: "3:4", resolution: "2k", quality: "medium" }), model: engine.model };
+  return { provider: "higgsfield", id: await hf.submitRaw(engine.model, { prompt, image_urls: urls, aspect_ratio: aspect, resolution: "2k", quality: "medium" }), model: engine.model };
 }
 
 /** Wait for the edit in the same request (admin samples; ~10–60 s). Returns JPEG bytes. */

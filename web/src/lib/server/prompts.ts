@@ -96,10 +96,19 @@ export async function writePetLine(photoB64: string, petName: string | null, len
   return { line, species: data.species || "otro", usage };
 }
 
+/** What makes an image read as a real photo by a professional pet photographer, not as AI art. */
+const PRO_PHOTO =
+  "Shot by a professional pet photographer on a full-frame camera with an 85mm prime lens at f/2: " +
+  "tack-sharp focus on the eyes with natural catchlights, true-to-life fur texture with individual hairs visible, " +
+  "realistic soft directional lighting, accurate natural colors, gentle background blur, clean high-end editorial finish. " +
+  "Fully photorealistic: not a painting, illustration, cartoon or 3D render; no plastic or over-smoothed look, " +
+  "no oversaturation, no extra limbs, no text or watermark.";
+
 export const bonusScenePrompt = (species: string, bonusPrompt: string) =>
-  `Transform this exact ${species} into a fun stylized portrait: ${bonusPrompt}. ` +
-  `Critically preserve the pet's real fur colors, markings, breed and face so it is ` +
-  `clearly the same pet. Cute, warm, high quality, vertical composition.`;
+  `Create a real photograph of this exact ${species}: ${bonusPrompt}. ` +
+  `Critically preserve the pet's real fur colors, markings, breed, face and proportions so it is ` +
+  `unmistakably the same pet; any costume or props are real objects sized for the pet. ${PRO_PHOTO} ` +
+  `Vertical composition.`;
 
 export const portraitPrompt = (species: string, stylePrompt: string) =>
   `Transform this exact ${species} into ${stylePrompt}. ` +
@@ -112,7 +121,7 @@ export const photoEditPrompt = (species: string, stylePrompt: string) =>
   `This is a real photograph of a ${species}. Keep the photo exactly as it is: the same animal, pose, ` +
   `expression, fur, colors, markings, lighting and camera angle, fully photorealistic, not a painting ` +
   `or illustration. Make only this change: ${stylePrompt}. The result must look like a real photo ` +
-  `taken of this same pet, sharp and natural, vertical 3:4 composition, no text, no frame.`;
+  `taken of this same pet. ${PRO_PHOTO} Vertical 3:4 composition, no frame.`;
 
 export const petIntroFallback = (name: string) =>
   `${name} llegó para llenar de cariño cada día. Este es el comienzo de su universo, donde cada recuerdo tendrá su lugar. 🐾`;
