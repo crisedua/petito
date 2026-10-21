@@ -104,6 +104,8 @@ export async function download(url: string): Promise<Buffer> {
 export async function keyCheck(): Promise<{ ok: boolean; reason?: string }> {
   if (!higgsfieldCredentials()) {
     const names = higgsfieldEnvNames();
+    const single = process.env.HIGGSFIELD_API_KEY?.trim();
+    if (single && !single.includes(":")) return { ok: false, reason: "HIGGSFIELD_API_KEY debe tener las dos partes de la clave unidas con dos puntos: keyid:secret (o usa HIGGSFIELD_KEY_ID + HIGGSFIELD_KEY_SECRET)" };
     return { ok: false, reason: names.length
       ? `Encontré estas variables pero falta el ID o el secreto: ${names.join(", ")}`
       : "Higgsfield no está configurado: no hay variables HIGGSFIELD_* en este deploy (¿falta redeploy?)" };
