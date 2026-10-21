@@ -16,12 +16,20 @@ export const HF_MOTION_COST_PER_SEC = Number(process.env.HIGGSFIELD_MOTION_COST_
 /** A problem retrying won't fix: missing/refused key, no balance, rejected input. */
 export class PermanentHiggsfieldError extends Error {}
 
+const first = (...names: string[]) => names.map((n) => process.env[n]?.trim()).find(Boolean) || "";
+
 export function higgsfieldCredentials(): string | null {
-  const id = process.env.HIGGSFIELD_KEY_ID?.trim(), secret = process.env.HIGGSFIELD_KEY_SECRET?.trim();
+  // Accept the names people commonly use (and the legacy hf-api-key / hf-secret pair from Higgsfield's docs).
+  const id = first("HIGGSFIELD_KEY_ID", "HIGGSFIELD_API_KEY_ID", "HF_API_KEY_ID", "HF_KEY_ID", "HIGGSFIELD_ID", "HF_API_KEY", "HIGGSFIELD_KEY", "HIGGSFIELD_API_KEY");
+  const secret = first("HIGGSFIELD_KEY_SECRET", "HIGGSFIELD_API_KEY_SECRET", "HIGGSFIELD_SECRET", "HIGGSFIELD_API_SECRET", "HF_API_KEY_SECRET", "HF_API_SECRET", "HF_SECRET", "HF_KEY_SECRET");
+  if (id.includes(":")) return id; // "id:secret" in one variable
   if (id && secret) return `${id}:${secret}`;
-  const both = process.env.HIGGSFIELD_API_KEY?.trim();
-  return both && both.includes(":") ? both : null;
+  return null;
 }
+
+/** Names (never values) of Higgsfield-looking env vars, to diagnose a missing key. */
+export const higgsfieldEnvNames = () =>
+  Object.keys(process.env).filter((k) => /higgs|^hf_/i.test(k)).sort();
 export const higgsfieldEnabled = () => Boolean(higgsfieldCredentials()) || env.mockAi;
 
 async function call<T = any>(method: string, url: string, body?: unknown, idempotent = false): Promise<T> {
@@ -94,7 +102,12 @@ export async function download(url: string): Promise<Buffer> {
 
 /** Cheap credential check (asks for an upload URL; nothing is generated or charged). */
 export async function keyCheck(): Promise<{ ok: boolean; reason?: string }> {
-  if (!higgsfieldCredentials()) return { ok: false, reason: "Higgsfield no está configurado" };
+  if (!higgsfieldCredentials()) {
+    const names = higgsfieldEnvNames();
+    return { ok: false, reason: names.length
+      ? `Encontré estas variables pero falta el ID o el secreto: ${names.join(", ")}`
+      : "Higgsfield no está configurado: no hay variables HIGGSFIELD_* en este deploy (¿falta redeploy?)" };
+  }
   try {
     await call("POST", "/files/generate-upload-url", { content_type: "image/jpeg" });
     return { ok: true };
