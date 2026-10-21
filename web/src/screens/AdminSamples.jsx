@@ -105,7 +105,7 @@ function StyleRow({ s, frames, petId, reload, busyAll, onMissing }) {
       </div>
       <div className="mt-3 text-[11px] font-semibold text-neutral-500">Alternativas (toca “Usar” para mostrarla en su marco)</div>
       <div className="mt-1 flex gap-2 overflow-x-auto no-scrollbar pb-1">
-        <Thumb url={s.builtin} label="Original" active={!s.current_name} onUse={() => choose(null)} />
+        {s.builtin && <Thumb url={s.builtin} label="Original" active={!s.current_name} onUse={() => choose(null)} />}
         {s.candidates.map((c) => (
           <Thumb key={c.name} url={c.url} label={frameLabel(c.frame)} sub={c.ref} active={s.current_name === c.name} onUse={() => choose(c.name)} />
         ))}

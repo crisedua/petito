@@ -13,13 +13,27 @@ import { ensureVoices, generateNarration, validVoice } from "@/lib/server/eleven
 import { talkSource } from "@/lib/render/watermarks";
 import { env } from "@/lib/server/env";
 import { hex16 } from "@/lib/server/ids";
-import { BRAND_NAME, TALK_MESSAGE_MAX, TALK_SCENARIOS } from "@/lib/catalogs";
+import { BRAND_NAME, PERSONALITY_LABELS, TALK_MESSAGE_MAX, TALK_SCENARIOS } from "@/lib/catalogs";
 
 const loadVideo = async (id: string) => (await db().from("videos").select("*").eq("id", id).single()).data!;
 const firstPhoto = async (id: string) =>
   (await db().from("talk_photos").select("file").eq("video_id", id).order("created_at", { ascending: false }).limit(1).maybeSingle()).data?.file as string | undefined;
 
 const WAIT_TEXT = "Moviéndole la boquita... casi listo";
+
+/** Who the message is for, the pet's personality and one real memory, so the line is unmistakably this pet's. */
+async function lineContext(v: any) {
+  const ctx: { toName?: string | null; personality?: string[]; memory?: string | null } = { toName: v.to_name ?? null };
+  if (!v.pet_id) return ctx;
+  try {
+    const { data: pet } = await db().from("pets").select("personality").eq("id", v.pet_id).maybeSingle();
+    ctx.personality = (pet?.personality ?? []).map((k: string) => PERSONALITY_LABELS[k] ?? k).slice(0, 3);
+    const { data: mems } = await db().from("memories").select("title").eq("pet_id", v.pet_id).order("created_at", { ascending: false }).limit(5);
+    const titles = (mems ?? []).map((m) => String(m.title || "").trim()).filter((t) => t.length >= 4);
+    if (titles.length) ctx.memory = titles[Math.floor(Math.random() * titles.length)];
+  } catch { /* the line still works without it */ }
+  return ctx;
+}
 
 type Provider = "fal" | "elevenlabs";
 const providerOrder = (): Provider[] => {
@@ -97,7 +111,7 @@ export const generateTalk = inngest.createFunction(
         } else {
           const hint = v.scenario ? TALK_SCENARIOS[v.scenario]?.hint : null;
           const b64 = await imageToB64(id, photo, 512);
-          ({ line: text, species, usage } = await writePetLine(b64, v.pet_name, long ? "long" : "mini", hint));
+          ({ line: text, species, usage } = await writePetLine(b64, v.pet_name, long ? "long" : "mini", hint, await lineContext(v)));
         }
         await db().from("videos").update({ line: text, species, progress_step: "Buscando la voz perfecta...", progress_pct: 40 }).eq("id", id);
         const lineMs = Date.now() - tLine;

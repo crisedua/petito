@@ -13,6 +13,7 @@ export const GET = handler(async () => {
     "0006 admin users": await probe("app_users", "is_admin, suspended_at, admin_note"),
     "0007 embudo": await probe("events", "id, name, feature, device_id, user_id, props"),
     "0008 marcos": await probe("portraits", "frame"),
+    "0009 videomensaje": await probe("videos", "to_name"),
   };
   return json({ ok: Object.values(checks).every((v) => v === "ok"), checks });
 });

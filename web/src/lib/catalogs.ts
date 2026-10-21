@@ -5,7 +5,12 @@
 
 export type BonusScene = { prompt: string; sticker: string; caption: string };
 export type Theme = { label: string; emoji: string; music: string; bonus_scenes: BonusScene[] };
-export type StyleDef = { label: string; emoji: string; desc: string; prompt: string };
+/**
+ * mode: "paint" = AI repaints the photo (oil painting etc.); "edit" = AI keeps the real photo and only
+ * adds background/props (photoreal); "render" = our own renderer, no AI at all.
+ */
+export type StyleMode = "paint" | "edit" | "render";
+export type StyleDef = { label: string; emoji: string; desc: string; prompt: string; mode?: StyleMode; group?: "foto" | "pintura" };
 export type Option = { key: string; label: string; emoji: string };
 export type TalkScenario = { label: string; emoji: string; hint: string };
 export type Voice = { id: string; label: string };
@@ -216,43 +221,91 @@ export const EMOTIONS: Option[] = [
 export const EMOTION_LABELS: Record<string, string> = Object.fromEntries(EMOTIONS.map((e) => [e.key, e.label]));
 
 export const PORTRAIT_STYLES: Record<string, StyleDef> = {
+  // ---- Tu foto, mejorada: the real photo stays the real photo ----
+  "polaroid": {
+    "label": "Polaroid",
+    "emoji": "📸",
+    "desc": "Tu foto tal cual, en una polaroid con su nombre escrito a mano",
+    "prompt": "", "mode": "render", "group": "foto"
+  },
+  "revista": {
+    "label": "Portada de revista",
+    "emoji": "📰",
+    "desc": "Tu mascota en la portada de la revista Petito",
+    "prompt": "", "mode": "render", "group": "foto"
+  },
+  "antigua": {
+    "label": "Foto antigua",
+    "emoji": "🎞️",
+    "desc": "Revelado sepia con borde de álbum y fecha",
+    "prompt": "", "mode": "render", "group": "foto"
+  },
+  "estudio": {
+    "label": "Foto de estudio",
+    "emoji": "💡",
+    "desc": "Tu foto real con fondo de estudio y luz profesional",
+    "prompt": "a professional pet photography studio: replace only the background with a smooth, softly lit neutral studio backdrop (warm beige to charcoal gradient) and add gentle professional studio lighting and a subtle catchlight in the eyes",
+    "mode": "edit", "group": "foto"
+  },
+  "coronita": {
+    "label": "Con coronita",
+    "emoji": "👑",
+    "desc": "Tu foto real con una pequeña corona y capa de terciopelo",
+    "prompt": "add a small, realistic golden crown resting naturally on the pet's head and a short red velvet cape with white fur trim around its shoulders, matching the photo's real lighting and perspective; keep the real background",
+    "mode": "edit", "group": "foto"
+  },
+  "flores": {
+    "label": "Entre flores",
+    "emoji": "🌸",
+    "desc": "Tu foto real rodeada de flores frescas",
+    "prompt": "surround the pet with real-looking fresh flowers (peonies, daisies and eucalyptus) in the foreground and background, soft natural daylight, photorealistic, like a professional spring photoshoot",
+    "mode": "edit", "group": "foto"
+  },
+  // ---- Pinturas: the AI repaints the photo ----
   "renacentista": {
+    "mode": "paint", "group": "pintura",
     "label": "Renacentista",
     "emoji": "🎨",
     "desc": "Óleo clásico, telón oscuro y vestuario de época",
     "prompt": "a masterful classical Renaissance oil painting portrait, the pet wearing regal Renaissance noble attire such as a velvet robe and a ruffled lace collar, dramatic chiaroscuro lighting, dark elegant painted background, visible oil brush strokes, museum masterpiece style"
   },
   "victoriano": {
+    "mode": "paint", "group": "pintura",
     "label": "Victoriano",
     "emoji": "🎩",
     "desc": "Atuendo aristócrata: capa, encaje y joyas",
     "prompt": "a refined Victorian aristocratic oil painting portrait, the pet dressed as a noble aristocrat with a velvet cape, delicate lace, pearls and jewels, dignified regal pose, soft classic painted studio background, elegant and stately mood"
   },
   "halloween": {
+    "mode": "paint", "group": "pintura",
     "label": "Halloween",
     "emoji": "🎃",
     "desc": "Retrato clásico con toque gótico de Halloween",
     "prompt": "a classical oil painting portrait with an elegant gothic Halloween theme, warm candlelight and flickering candles, subtle cobwebs, deep moody dark tones, the pet wearing a small aristocratic costume, spooky yet refined mansion background"
   },
   "vampiro": {
+    "mode": "paint", "group": "pintura",
     "label": "Conde vampiro",
     "emoji": "🦇",
     "desc": "Capa negra y roja, castillo y luna llena",
     "prompt": "a dramatic gothic oil painting portrait of the pet as an elegant vampire count, wearing a high-collared black cape with a deep crimson silk lining and a ruby brooch, moonlit stone castle balcony at night, a huge full moon and small bats in the sky, cool blue moonlight with warm candle accents, charming rather than scary"
   },
   "bruja": {
+    "mode": "paint", "group": "pintura",
     "label": "Bruja",
     "emoji": "🧙",
     "desc": "Sombrero puntudo, caldero y pociones",
     "prompt": "a whimsical classical oil painting portrait of the pet as a charming witch, wearing a tall crooked pointed black witch hat with a purple ribbon and a small velvet cloak, cozy candlelit witch's study with a bubbling cauldron giving off soft green glow, potion bottles, old spell books and dried herbs, warm magical atmosphere"
   },
   "calabazas": {
+    "mode": "paint", "group": "pintura",
     "label": "Noche de calabazas",
     "emoji": "🌕",
     "desc": "Huerto de calabazas iluminadas bajo la luna",
     "prompt": "a warm storybook oil painting portrait of the pet sitting in an autumn pumpkin patch at dusk, surrounded by glowing carved jack-o'-lanterns with friendly smiling faces, fallen orange leaves, a cozy knitted orange and black scarf around its neck, a big golden harvest moon in a deep purple sky, warm orange glow, sweet and festive rather than spooky"
   },
   "casa_embrujada": {
+    "mode": "paint", "group": "pintura",
     "label": "Casa embrujada",
     "emoji": "👻",
     "desc": "Mansión antigua con fantasmitas amistosos",
@@ -276,6 +329,9 @@ export const STYLE_DEFAULT_FRAME: Record<string, string> = {
 };
 export const frameFor = (style: string, frame?: string | null) =>
   PORTRAIT_FRAMES[frame ?? ""] ?? PORTRAIT_FRAMES[STYLE_DEFAULT_FRAME[style] ?? "dorado"];
+export const styleMode = (style: string): StyleMode => PORTRAIT_STYLES[style]?.mode ?? "paint";
+/** Frames only make sense on paintings. */
+export const styleHasFrame = (style: string) => styleMode(style) === "paint";
 
 export const MEMORIAL_STYLES: Record<string, StyleDef> = {
   "acuarela": {

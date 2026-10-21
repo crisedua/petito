@@ -9,8 +9,9 @@ import path from "node:path";
 import sharp from "sharp";
 import * as storage from "./storage";
 import * as fal from "./fal";
-import { portraitPrompt } from "./prompts";
-import { PORTRAIT_FRAMES, PORTRAIT_STYLES, STYLE_DEFAULT_FRAME, frameFor } from "@/lib/catalogs";
+import { photoEditPrompt, portraitPrompt } from "./prompts";
+import { renderPhotoStyle } from "@/lib/render/photoStyles";
+import { PORTRAIT_FRAMES, PORTRAIT_STYLES, STYLE_DEFAULT_FRAME, frameFor, styleMode } from "@/lib/catalogs";
 
 const OWNER = "stylesamples";
 const FILE = "catalog.json";
@@ -56,9 +57,13 @@ async function referenceDataUri(photo?: Buffer): Promise<string> {
 export async function generateCandidate(style: string, frame: string | null, ref: { label: string; photo?: Buffer }) {
   const def = PORTRAIT_STYLES[style];
   if (!def) throw new Error("Estilo inválido");
-  const frameKey = frame && PORTRAIT_FRAMES[frame] ? frame : STYLE_DEFAULT_FRAME[style] ?? "dorado";
+  const mode = styleMode(style);
+  const frameKey = mode !== "paint" ? "sin_marco" : frame && PORTRAIT_FRAMES[frame] ? frame : STYLE_DEFAULT_FRAME[style] ?? "dorado";
   const fr = frameFor(style, frameKey);
-  const out = await fal.editImageNow(await referenceDataUri(ref.photo), portraitPrompt("mascota", `${def.prompt}, ${fr.prompt}`), "3:4");
+  const photo = ref.photo ?? (await readFile(path.join(process.cwd(), "assets", "sample-pets", "dog.jpg")));
+  const out = mode === "render"
+    ? await renderPhotoStyle(style, photo, ref.label === "Perro de ejemplo" ? "Rocco" : ref.label)
+    : await fal.editImageNow(await referenceDataUri(photo), mode === "edit" ? photoEditPrompt("mascota", def.prompt) : portraitPrompt("mascota", `${def.prompt}, ${fr.prompt}`), "3:4");
   const small = await sharp(out).resize(600, 800, { fit: "cover" }).jpeg({ quality: 86 }).toBuffer();
   const name = `${style}_${Date.now()}.jpg`;
   await storage.put(OWNER, name, small, "image/jpeg");

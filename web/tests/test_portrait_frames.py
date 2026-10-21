@@ -113,3 +113,46 @@ def test_plus_owner_sees_clean_thumbnails_free_owner_sees_watermark():
         assert col.endswith("/preview.jpg") and mine["thumb_url"].endswith("/preview.jpg") and mine["paid"] is False
     finally:
         requests.post(f"{API}/admin/users/{me['user_id']}/plus", json={"active": True}, headers=ADMIN, timeout=20)
+
+
+def _finish(h, pid):
+    for _ in range(60):
+        d = requests.get(f"{API}/portraits/{pid}", headers=h, timeout=20).json()
+        if d["status"] in ("preview_ready", "paid", "failed"):
+            return d
+        time.sleep(1.5)
+    return d
+
+
+def test_photo_styles_render_without_ai_and_keep_the_original():
+    cfg = requests.get(f"{API}/config", timeout=20).json()
+    by = {s["key"]: s for s in cfg["portrait_styles"]}
+    assert by["polaroid"]["mode"] == "render" and by["polaroid"]["group"] == "foto" and by["polaroid"]["has_frame"] is False
+    assert by["estudio"]["mode"] == "edit" and by["renacentista"]["mode"] == "paint" and by["renacentista"]["has_frame"] is True
+    assert [s["group"] for s in cfg["portrait_styles"]][:6] == ["foto"] * 6  # photo styles come first
+    for style in ("polaroid", "revista", "antigua", "estudio"):
+        p = requests.post(f"{API}/portraits", json={"style": style, "pet_name": "Rocco"}, headers=NORM, timeout=20).json()
+        requests.post(f"{API}/portraits/{p['id']}/photo", files={"files": ("p.jpg", jpeg(), "image/jpeg")}, headers=NORM, timeout=60)
+        requests.post(f"{API}/portraits/{p['id']}/generate", headers=NORM, timeout=20)
+        d = _finish(NORM, p["id"])
+        assert d["status"] in ("preview_ready", "paid"), (style, d.get("error"))
+        assert d["photo_url"] and d["mode"] == by[style]["mode"]
+        img = requests.get(f"{BASE}{d['preview_url']}", timeout=20)
+        assert img.status_code == 200 and img.headers["content-type"].startswith("image/")
+    for s in ("polaroid", "revista", "antigua"):
+        assert requests.get(f"{BASE}/portrait-styles/{s}.jpg", timeout=20).status_code == 200
+
+
+def test_dedicated_video_message():
+    v = requests.post(f"{API}/talk", json={"pet_name": "Rocco", "scenario": "cumpleanos", "to_name": "Abuela Rosa", "pet_id": ROCCO}, headers=NORM, timeout=20).json()
+    requests.post(f"{API}/talk/{v['id']}/photo", files={"files": ("p.jpg", jpeg(), "image/jpeg")}, headers=NORM, timeout=60)
+    requests.post(f"{API}/talk/{v['id']}/generate", headers=NORM, timeout=20)
+    for _ in range(60):
+        d = requests.get(f"{API}/talk/{v['id']}", headers=NORM, timeout=20).json()
+        if d["status"] in ("preview_ready", "paid", "failed"):
+            break
+        time.sleep(1.5)
+    assert d["status"] in ("preview_ready", "paid"), d.get("error")
+    assert d["to_name"] == "Abuela Rosa"
+    html = requests.get(f"{BASE}/v/{v['slug']}", timeout=60).text
+    assert 'content="Rocco tiene un mensaje para Abuela Rosa' in html

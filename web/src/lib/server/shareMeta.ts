@@ -28,10 +28,10 @@ const quote = (s?: string | null, n = 120) => (s ? `“${s.length > n ? s.slice(
 export async function videoMeta(slug: string): Promise<Metadata> {
   const path = `/v/${slug}`;
   try {
-    const { data: v } = await db().from("videos").select("id, user_id, pet_name, line, status, clean_file").eq("share_slug", slug).maybeSingle();
+    const { data: v } = await db().from("videos").select("id, user_id, pet_name, line, status, clean_file, to_name").eq("share_slug", slug).maybeSingle();
     if (!v || !READY.includes(v.status)) return fallback(path);
     const name = v.pet_name || "Esta mascota";
-    return meta(path, `${name} tiene algo que decirte 🐾`,
+    return meta(path, v.to_name ? `${name} tiene un mensaje para ${v.to_name} 🐾` : `${name} tiene algo que decirte 🐾`,
       `${quote(v.line)} Mira el video y haz que tu mascota hable en Petito.`.trim(),
       { url: videoThumb(v, await isPlus(v.user_id)) });
   } catch { return fallback(path); }

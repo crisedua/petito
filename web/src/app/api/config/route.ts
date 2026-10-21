@@ -21,7 +21,7 @@ export const GET = handler(async () => {
     themes: Object.entries(THEMES).map(([key, v]) => ({ key, label: v.label, emoji: v.emoji })),
     traits: TRAITS,
     portrait_price_clp: env.portraitPriceClp,
-    portrait_styles: Object.entries(PORTRAIT_STYLES).map(([key, v]) => ({ key, label: v.label, emoji: v.emoji, desc: v.desc, default_frame: STYLE_DEFAULT_FRAME[key] ?? "dorado" })),
+    portrait_styles: Object.entries(PORTRAIT_STYLES).map(([key, v]) => ({ key, label: v.label, emoji: v.emoji, desc: v.desc, mode: v.mode ?? "paint", group: v.group ?? "pintura", has_frame: (v.mode ?? "paint") === "paint", default_frame: STYLE_DEFAULT_FRAME[key] ?? "dorado" })),
     portrait_frames: Object.entries(PORTRAIT_FRAMES).map(([key, v]) => ({ key, label: v.label, desc: v.desc })),
     memorial_styles: Object.entries(MEMORIAL_STYLES).map(([key, v]) => ({ key, label: v.label, emoji: v.emoji, desc: v.desc })),
     talk_price_clp: env.talkPriceClp,

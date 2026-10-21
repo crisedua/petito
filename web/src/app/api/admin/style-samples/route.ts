@@ -18,7 +18,7 @@ export const GET = handler(async (req: Request) => {
     pets: (pets ?? []).map((p) => ({ id: p.id, name: p.name, photo_url: mediaPath(p.id, p.photo_file!) })),
     styles: Object.entries(PORTRAIT_STYLES).map(([key, s]) => ({
       key, label: s.label, emoji: s.emoji, default_frame: STYLE_DEFAULT_FRAME[key] ?? "dorado",
-      builtin: `/portrait-styles/${key}.jpg`,
+      builtin: ["estudio", "coronita", "flores"].includes(key) ? null : `/portrait-styles/${key}.jpg`,
       current: c[key]?.current ? sampleUrl(c[key].current!) : null, current_name: c[key]?.current ?? null,
       by_frame: c[key]?.byFrame ?? {},
       candidates: (c[key]?.candidates ?? []).map((x) => ({ ...x, url: sampleUrl(x.name) })),

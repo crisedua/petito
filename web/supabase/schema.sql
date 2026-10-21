@@ -412,3 +412,7 @@ end $$;
 -- Frame chosen for a royal/Halloween portrait (dorado, madera, negro_gotico, plata, sin_marco).
 -- Empty means the style's default frame.
 alter table portraits add column if not exists frame text;
+
+-- ===== 0009_talk_to_name.sql =====
+-- Talking video dedicated to someone: the pet addresses this person by name.
+alter table videos add column if not exists to_name text;

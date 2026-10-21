@@ -31,6 +31,7 @@ export default function Talk() {
   const [voiceId, setVoiceId] = useState("");
   const [scenario, setScenario] = useState("chistoso");
   const [message, setMessage] = useState("");
+  const [toName, setToName] = useState("");
   const [talkId, setTalkId] = useState(null);
   const [slug, setSlug] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -45,7 +46,7 @@ export default function Talk() {
     if (!file) return toast.error("Sube una foto");
     setBusy(true);
     try {
-      const t = await createTalk({ pet_name: petName, voice_id: voiceId, scenario, message: message.trim() || undefined });
+      const t = await createTalk({ pet_name: petName, voice_id: voiceId, scenario, message: message.trim() || undefined, to_name: toName.trim() || undefined });
       setTalkId(t.id); setSlug(t.slug);
       await uploadTalkPhoto(t.id, file.file);
       await generateTalk(t.id);
@@ -62,7 +63,7 @@ export default function Talk() {
           onNext={() => (file ? setStep("mensaje") : toast.error("Sube una foto 🐾"))} />
       )}
       {step === "mensaje" && (
-        <StepMessage key="mensaje" cfg={cfg} scenario={scenario} setScenario={setScenario} message={message} setMessage={setMessage}
+        <StepMessage key="mensaje" cfg={cfg} scenario={scenario} setScenario={setScenario} message={message} setMessage={setMessage} toName={toName} setToName={setToName}
           onBack={() => setStep("photo")} onNext={() => setStep("voice")} />
       )}
       {step === "voice" && (
@@ -150,7 +151,7 @@ function StepPhoto({ nav, cfg, petName, setPetName, file, setFile, onNext }) {
   );
 }
 
-function StepMessage({ cfg, scenario, setScenario, message, setMessage, onBack, onNext }) {
+function StepMessage({ cfg, scenario, setScenario, message, setMessage, toName, setToName, onBack, onNext }) {
   const max = cfg.talk_message_max || 160;
   const scenarios = cfg.talk_scenarios || [];
   return (
@@ -169,7 +170,14 @@ function StepMessage({ cfg, scenario, setScenario, message, setMessage, onBack, 
           ))}
         </div>
 
-        <label className="block mt-7 text-sm font-semibold text-neutral-700 mb-2">
+        <label className="block mt-7 text-sm font-semibold text-neutral-700 mb-1">
+          ¿Para quién es? <span className="text-muted-foreground font-normal">(opcional)</span>
+        </label>
+        <p className="text-xs text-muted-foreground mb-2">Escribe su nombre y tu mascota le hablará directamente, con su personalidad y hasta un recuerdo de ustedes.</p>
+        <Input value={toName} onChange={(e) => setToName(e.target.value.slice(0, 40))} placeholder="Ej: mamá, Abuela Rosa, Tomás…" data-testid="talk-to-name"
+          className="h-12 rounded-2xl bg-white" />
+
+        <label className="block mt-6 text-sm font-semibold text-neutral-700 mb-2">
           Escríbele tú el mensaje <span className="text-muted-foreground font-normal">(opcional)</span>
         </label>
         <textarea value={message} onChange={(e) => setMessage(e.target.value.slice(0, max))} rows={3}

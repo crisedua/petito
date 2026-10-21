@@ -59,19 +59,27 @@ export async function writeCaptions(petName: string, species: string, traits: st
   return { title, captions: caps.slice(0, k), stickers: stks.slice(0, k).map((s) => String(s).slice(0, 22)), usage };
 }
 
-export async function writePetLine(photoB64: string, petName: string | null, length: "mini" | "short" | "long" = "short", scenarioHint?: string | null) {
+export type LineContext = { toName?: string | null; personality?: string[] | null; memory?: string | null; species?: string | null };
+
+export async function writePetLine(photoB64: string, petName: string | null, length: "mini" | "short" | "long" = "short", scenarioHint?: string | null, ctx: LineContext = {}) {
   const system =
     "Eres un comediante chileno que le pone voz a las mascotas. Hablas en primera persona " +
     "como si fueras la mascota de la foto. Español de Chile, cálido y chistoso, con modismos " +
     "suaves (regalón, pancito, choro, aperrado, bacán, al tiro), sin groserías ni humor " +
     "ofensivo. Respondes SOLO JSON válido.";
   // Video render time grows with clip length, so full videos use a ~5 s line (was 20–26 words, ~8 s).
-  const words = { mini: "6 a 9", short: "11 a 15", long: "12 a 16" }[length] ?? "11 a 15";
+  const dedicated = Boolean(ctx.toName);
+  const words = { mini: "6 a 9", short: "11 a 15", long: dedicated ? "16 a 22" : "12 a 16" }[length] ?? "11 a 15";
   const nameTxt = petName ? `Mi nombre es ${petName}. ` : "";
   const intent = scenarioHint ? `La frase debe ser ${scenarioHint}. ` : "Inventa UNA sola frase graciosa en primera persona ";
+  // What makes it unmistakably THIS pet talking to THIS person: their name, its personality, a real memory.
+  const extras =
+    (dedicated ? `El mensaje es para ${ctx.toName}: háblale directamente y dile su nombre al principio. ` : "") +
+    (ctx.personality?.length ? `Mi personalidad: ${ctx.personality.join(", ")}; que se note. ` : "") +
+    (ctx.memory ? `Si calza, menciona de pasada este recuerdo real nuestro: "${ctx.memory}". ` : "");
   const prompt =
     `Mira la foto de esta mascota. ${nameTxt}` +
-    `Identifica si es perro, gato u otro. ${intent}` +
+    `Identifica si es perro, gato u otro. ${intent}${extras}` +
     `que la mascota diría mirando a la cámara en un video, de ${words} palabras, ` +
     `con tono cálido y chileno. Usa el nombre si lo tienes.\n` +
     `Responde JSON: {"species": "perro|gato|otro", "line": "<frase>"}`;
@@ -84,7 +92,7 @@ export async function writePetLine(photoB64: string, petName: string | null, len
   }
   let data: { species?: string; line?: string } = {};
   try { data = text ? extractJson<{ species?: string; line?: string }>(text) : {}; } catch { data = {}; }
-  const line = (data.line ?? "").trim() || `¡Hola! Soy ${petName || "tu regalón"}, el más choro de la casa.`;
+  const line = (data.line ?? "").trim() || (ctx.toName ? `¡${ctx.toName}! Soy ${petName || "tu regalón"} y te quiero un montón.` : `¡Hola! Soy ${petName || "tu regalón"}, el más choro de la casa.`);
   return { line, species: data.species || "otro", usage };
 }
 
@@ -98,6 +106,13 @@ export const portraitPrompt = (species: string, stylePrompt: string) =>
   `CRITICAL: preserve the pet's real fur colors, markings, breed and facial features so it ` +
   `is unmistakably the same pet. The pet's face must stay clearly visible and centered. ` +
   `Luxurious, elegant, high quality, vertical portrait composition.`;
+
+/** Photo-edit styles: the photograph stays a photograph; the model only adds what the style says. */
+export const photoEditPrompt = (species: string, stylePrompt: string) =>
+  `This is a real photograph of a ${species}. Keep the photo exactly as it is: the same animal, pose, ` +
+  `expression, fur, colors, markings, lighting and camera angle, fully photorealistic, not a painting ` +
+  `or illustration. Make only this change: ${stylePrompt}. The result must look like a real photo ` +
+  `taken of this same pet, sharp and natural, vertical 3:4 composition, no text, no frame.`;
 
 export const petIntroFallback = (name: string) =>
   `${name} llegó para llenar de cariño cada día. Este es el comienzo de su universo, donde cada recuerdo tendrá su lugar. 🐾`;

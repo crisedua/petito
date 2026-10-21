@@ -66,7 +66,7 @@ export default function TalkView() {
   };
 
   const share = async () => {
-    const text = `¡Mira a ${t.pet_name || "mi mascota"} hablando en Petito! 🐾🗣️`;
+    const text = t.to_name ? `${t.to_name}, ${t.pet_name || "mi mascota"} te mandó un videomensaje 💌🐾` : `¡Mira a ${t.pet_name || "mi mascota"} hablando en Petito! 🐾🗣️`;
     if (navigator.share) { try { await navigator.share({ title: "Petito", text, url: shareUrl }); } catch { /**/ } }
     else window.open(`https://wa.me/?text=${encodeURIComponent(text + " " + shareUrl)}`, "_blank");
   };
@@ -127,6 +127,11 @@ export default function TalkView() {
       </div>
 
       <div className="flex-1 px-5 pt-3 pb-40 overflow-y-auto no-scrollbar">
+        {t.to_name && (
+          <p className="mb-3 text-center font-display font-bold text-lg text-neutral-900" data-testid="talk-view-dedication">
+            {t.pet_name || "Tu mascota"} tiene un mensaje para <span className="text-primary">{t.to_name}</span> 💌
+          </p>
+        )}
         <div className="relative w-full rounded-3xl overflow-hidden bg-stone-900 border-4 border-white shadow-2xl mx-auto" style={{ aspectRatio: "9 / 16", maxWidth: 320 }} data-testid="talk-view-video">
           <video ref={videoRef} src={videoSrc} className="w-full h-full object-cover" autoPlay loop muted={muted} playsInline onClick={toggleSound} />
           <button onClick={toggleSound} data-testid="talk-sound-toggle"

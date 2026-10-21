@@ -16,15 +16,9 @@ import {
   portraitCheckout, mediaUrl, activePetName, portraitSamples } from "@/lib/api";
 import { InviteButton } from "@/components/InviteButton";
 
-const STYLE_IMG = {
-  renacentista: "/portrait-styles/renacentista.jpg",
-  victoriano: "/portrait-styles/victoriano.jpg",
-  halloween: "/portrait-styles/halloween.jpg",
-  vampiro: "/portrait-styles/vampiro.jpg",
-  bruja: "/portrait-styles/bruja.jpg",
-  calabazas: "/portrait-styles/calabazas.jpg",
-  casa_embrujada: "/portrait-styles/casa_embrujada.jpg",
-};
+// Styles that ship with a built-in sample at /portrait-styles/<style>.jpg (others show their emoji until an admin generates one in Muestras).
+const BUILTIN_SAMPLES = ["polaroid", "revista", "antigua", "renacentista", "victoriano", "halloween", "vampiro", "bruja", "calabazas", "casa_embrujada"];
+const STYLE_IMG = Object.fromEntries(BUILTIN_SAMPLES.map((k) => [k, `/portrait-styles/${k}.jpg`]));
 // Little drawn previews of each frame (no image needed).
 const FRAME_SWATCH = {
   dorado: { outer: "linear-gradient(135deg,#7a5418,#f3d27a 30%,#a9781f 55%,#f6dd8c 80%,#6e4a12)" },
@@ -209,8 +203,9 @@ function StepStyle({ cfg, style, setStyle, gift, setGift, onBack, onNext, busy, 
   // Real sample for this style in this frame, if an admin generated one.
   const exactSample = (k, f) => samples?.[k]?.frames?.[f] || null;
   // Best picture for the style: its default-frame sample, its chosen sample, or the built-in one.
-  const styleSample = (k) => exactSample(k, styleDef(k)?.default_frame) || samples?.[k]?.default || STYLE_IMG[k] || null;
-  const preview = style ? exactSample(style, frame) || styleSample(style) : null;
+  const styleSample = (k) => exactSample(k, styleDef(k)?.has_frame === false ? "sin_marco" : styleDef(k)?.default_frame) || samples?.[k]?.default || STYLE_IMG[k] || null;
+  const hasFrame = (k) => styleDef(k)?.has_frame !== false;
+  const preview = style ? (hasFrame(style) ? exactSample(style, frame) : exactSample(style, "sin_marco")) || styleSample(style) : null;
   const previewIsExact = Boolean(style && exactSample(style, frame));
   const frameLabel = (cfg.portrait_frames || []).find((f) => f.key === frame)?.label;
   return (
@@ -218,8 +213,12 @@ function StepStyle({ cfg, style, setStyle, gift, setGift, onBack, onNext, busy, 
       <Header stepText="Paso 2 de 2 · El estilo" onBack={onBack} />
       <div className="flex-1 px-5 pt-5 pb-40 overflow-y-auto no-scrollbar">
         <h2 className="font-display font-bold text-2xl text-neutral-900">¿Cómo quieres el retrato? 🎨</h2>
-        <div className="mt-5 grid grid-cols-1 gap-3">
-          {(cfg.portrait_styles || []).map((s) => (
+        {[["foto", "Tu foto, mejorada", "Sigue siendo su foto real: solo le agregamos algo."], ["pintura", "Pinturas", "La IA la convierte en una pintura con marco."]].map(([g, title, sub]) => (
+        <div key={g} className="mt-5" data-testid={`portrait-group-${g}`}>
+          <div className="font-display font-bold text-neutral-900">{title}</div>
+          <div className="text-xs text-muted-foreground mb-2">{sub}</div>
+        <div className="grid grid-cols-1 gap-3">
+          {(cfg.portrait_styles || []).filter((s) => (s.group || "pintura") === g).map((s) => (
             <button key={s.key} onClick={() => setStyle(s.key)} data-testid={`portrait-style-${s.key}`}
               className={`relative w-full flex items-center gap-4 p-3 rounded-2xl border-2 text-left transition-all ${style === s.key ? "border-primary bg-primary/10 ring-2 ring-primary/20" : "border-border bg-white"}`}>
               <div className="w-16 h-20 rounded-xl overflow-hidden bg-stone-200 shrink-0">
@@ -234,8 +233,10 @@ function StepStyle({ cfg, style, setStyle, gift, setGift, onBack, onNext, busy, 
             </button>
           ))}
         </div>
+        </div>
+        ))}
 
-        {style && (cfg.portrait_frames || []).length > 0 && (
+        {style && (cfg.portrait_frames || []).length > 0 && styleDef(style)?.has_frame !== false && (
           <div className="mt-6" data-testid="portrait-frames">
             <div className="font-display font-semibold text-neutral-900">Así se verá</div>
             <div className="mt-2 mx-auto w-full max-w-[260px] rounded-2xl overflow-hidden bg-stone-200 shadow-md" style={{ aspectRatio: "3 / 4" }} data-testid="portrait-preview">
@@ -351,7 +352,9 @@ function StepResult({ portrait, setPortrait, portraitId, slug, cfg, price, nav }
   const [busy, setBusy] = useState(false);
   const paid = portrait?.paid;
   const giftUrl = `${window.location.origin}/r/${slug}`;
-  const imgUrl = paid ? mediaUrl(portrait?.clean_url) : mediaUrl(portrait?.preview_url);
+  const resultUrl = paid ? mediaUrl(portrait?.clean_url) : mediaUrl(portrait?.preview_url);
+  const [showOriginal, setShowOriginal] = useState(false);
+  const imgUrl = showOriginal && portrait?.photo_url ? mediaUrl(portrait.photo_url) : resultUrl;
 
   const refresh = async () => setPortrait(await getPortrait(portraitId));
 
@@ -411,6 +414,13 @@ function StepResult({ portrait, setPortrait, portraitId, slug, cfg, price, nav }
         )}
         <div className="relative w-full rounded-3xl overflow-hidden bg-stone-900 border-4 border-white shadow-2xl mx-auto" style={{ aspectRatio: "3 / 4", maxWidth: 360 }} data-testid="portrait-result-image">
           {imgUrl && <img src={imgUrl} alt="Retrato" className="w-full h-full object-cover" />}
+          {portrait?.photo_url && (
+            <button onPointerDown={() => setShowOriginal(true)} onPointerUp={() => setShowOriginal(false)} onPointerLeave={() => setShowOriginal(false)}
+              data-testid="portrait-hold-original"
+              className="absolute bottom-3 left-1/2 -translate-x-1/2 px-3 h-9 rounded-full bg-black/60 text-white text-xs font-semibold backdrop-blur select-none">
+              {showOriginal ? "Tu foto original" : "Mantén presionado: ver la foto original"}
+            </button>
+          )}
         </div>
 
         {portrait?.gift_enabled && portrait?.gift_message && (

@@ -5,11 +5,13 @@ import { db, logGeneration } from "@/lib/server/db";
 import * as fal from "@/lib/server/fal";
 import * as storage from "@/lib/server/storage";
 import { imageToDataUri } from "@/lib/server/images";
-import { portraitPrompt } from "@/lib/server/prompts";
+import { photoEditPrompt, portraitPrompt } from "@/lib/server/prompts";
+import { renderPhotoStyle } from "@/lib/render/photoStyles";
+import { loadImage } from "@/lib/server/images";
 import { portraitPreview } from "@/lib/render/watermarks";
 import { env } from "@/lib/server/env";
 import { hex16 } from "@/lib/server/ids";
-import { ALL_PORTRAIT_STYLES, BRAND_NAME, PORTRAIT_STYLES, frameFor } from "@/lib/catalogs";
+import { ALL_PORTRAIT_STYLES, BRAND_NAME, PORTRAIT_STYLES, frameFor, styleMode } from "@/lib/catalogs";
 
 /** Port of run_portrait_pipeline: photo → fal oil/watercolour portrait → clean HD + watermarked preview. */
 export const generatePortrait = inngest.createFunction(
@@ -29,22 +31,33 @@ export const generatePortrait = inngest.createFunction(
       (await db().from("portrait_photos").select("file").eq("portrait_id", id).limit(1).maybeSingle()).data?.file ?? null);
     if (!photo) throw new Error("No hay foto");
     const style = ALL_PORTRAIT_STYLES[p.style] ?? Object.values(PORTRAIT_STYLES)[0];
-
-    await progress(step, "portraits", id, "20", { progress_step: "Preparando el lienzo...", progress_pct: 20 });
-    await progress(step, "portraits", id, "45", { progress_step: "Pintando a tu mascota...", progress_pct: 45 });
+    const mode = p.category === "memorial" ? "paint" : styleMode(p.style);
     const t0 = Date.now();
-    const requestId: string = await step.run("submit", async () =>
-      fal.submitEdit(await imageToDataUri(id, photo), portraitPrompt("mascota", p.category === "memorial" ? style.prompt : `${style.prompt}, ${frameFor(p.style, p.frame).prompt}`), "3:4"));
-    const url = await awaitFal(step, "portrait", env.falImageModel, requestId, 20);
 
-    await progress(step, "portraits", id, "80", { progress_step: "Poniéndole el marco dorado...", progress_pct: 80 });
+    // "render" styles (polaroid, revista, antigua) are drawn by us from the real photo: no AI call.
+    let url: string | null = null;
+    if (mode === "render") {
+      await progress(step, "portraits", id, "40", { progress_step: "Revelando tu foto...", progress_pct: 40 });
+    } else {
+      await progress(step, "portraits", id, "20", { progress_step: mode === "edit" ? "Preparando tu foto..." : "Preparando el lienzo...", progress_pct: 20 });
+      await progress(step, "portraits", id, "45", { progress_step: mode === "edit" ? "Retocando con cuidado..." : "Pintando a tu mascota...", progress_pct: 45 });
+      const prompt = mode === "edit"
+        ? photoEditPrompt("mascota", style.prompt)
+        : portraitPrompt("mascota", p.category === "memorial" ? style.prompt : `${style.prompt}, ${frameFor(p.style, p.frame).prompt}`);
+      const requestId: string = await step.run("submit", async () => fal.submitEdit(await imageToDataUri(id, photo), prompt, "3:4"));
+      url = await awaitFal(step, "portrait", env.falImageModel, requestId, 20);
+    }
+
+    await progress(step, "portraits", id, "80", { progress_step: mode === "paint" ? "Poniéndole el marco..." : "Últimos detalles...", progress_pct: 80 });
     await step.run("save", async () => {
       const sharp = (await import("sharp")).default;
-      const clean = await sharp(await fal.download(url)).jpeg({ quality: 94 }).toBuffer();
+      const clean = url
+        ? await sharp(await fal.download(url)).jpeg({ quality: 94 }).toBuffer()
+        : await renderPhotoStyle(p.style, await loadImage(id, photo), p.pet_name);
       const cleanName = `clean_${hex16()}.jpg`;
       await storage.put(id, cleanName, clean, "image/jpeg");
       await storage.put(id, "preview.jpg", await portraitPreview(clean, BRAND_NAME), "image/jpeg");
-      await logGeneration({ ownerId: id, step: "portrait", model: env.falImageModel, images: 1, costUsd: fal.FAL_IMG_COST, durationMs: Date.now() - t0 });
+      await logGeneration({ ownerId: id, step: "portrait", model: url ? env.falImageModel : "petito-renderer", images: 1, costUsd: url ? fal.FAL_IMG_COST : 0, durationMs: Date.now() - t0 });
       await db().from("portraits").update({
         status: "preview_ready", preview_file: "preview.jpg", clean_file: cleanName, progress_pct: 100, progress_step: "¡Listo!",
       }).eq("id", id);
