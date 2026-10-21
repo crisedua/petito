@@ -1,4 +1,5 @@
 "use client";
+import { HomeLink } from "@/components/HomeLink";
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "@/lib/router";
 import { toast } from "sonner";
@@ -69,10 +70,10 @@ export default function StoryView() {
   return (
     <div className="mobile-frame" data-testid="story-view-screen">
       <div className="flex items-center justify-between px-5 pt-5">
-        <button onClick={() => nav("/")} className="flex items-center gap-2 font-display font-semibold text-primary">
+        <HomeLink className="flex items-center gap-2 font-display font-semibold text-primary">
           <div className="w-8 h-8 rounded-full bg-primary grid place-items-center"><PawPrint className="w-5 h-5 text-white" /></div>
           Petito
-        </button>
+        </HomeLink>
         <InviteButton />
       </div>
       <div className="flex-1 px-5 pt-4 pb-32 overflow-y-auto no-scrollbar">

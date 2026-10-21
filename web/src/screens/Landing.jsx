@@ -1,4 +1,5 @@
 "use client";
+import { HomeLink } from "@/components/HomeLink";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@/lib/router";
 import { motion, useReducedMotion } from "framer-motion";
@@ -54,12 +55,12 @@ export default function Landing() {
   return (
     <div className="mobile-frame" style={{ background: "#FBF6EE" }} data-testid="landing-screen">
       <div className="flex items-center justify-between px-5 pt-5">
-        <div className="flex items-center gap-2 font-display font-semibold" style={{ color: "#B85C3C" }}>
+        <HomeLink className="flex items-center gap-2 font-display font-semibold" style={{ color: "#B85C3C" }}>
           <div className="w-8 h-8 rounded-full grid place-items-center" style={{ background: "#B85C3C" }}>
             <PawPrint className="w-5 h-5 text-white" />
           </div>
           Petito
-        </div>
+        </HomeLink>
         <ProfileMenu />
       </div>
 

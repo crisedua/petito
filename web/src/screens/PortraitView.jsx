@@ -1,4 +1,5 @@
 "use client";
+import { HomeLink } from "@/components/HomeLink";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "@/lib/router";
 import { motion, AnimatePresence } from "framer-motion";
@@ -78,10 +79,10 @@ export default function PortraitView() {
           </motion.div>
         ) : (
           <motion.div key="reveal" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex-1 flex flex-col">
-            <div className="flex items-center gap-2 px-5 pt-5 font-display font-semibold text-primary">
+            <HomeLink className="flex items-center gap-2 px-5 pt-5 font-display font-semibold text-primary">
               <div className="w-8 h-8 rounded-full bg-primary grid place-items-center"><PawPrint className="w-5 h-5 text-white" /></div>
               Petito
-            </div>
+            </HomeLink>
             <div className="flex-1 px-5 pt-3 pb-8 overflow-y-auto no-scrollbar">
               {p.gift_enabled && p.gift_to && (
                 <p className="text-center font-script text-2xl text-primary mb-1" data-testid="portrait-view-dedication">

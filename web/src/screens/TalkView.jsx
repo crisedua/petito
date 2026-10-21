@@ -1,4 +1,5 @@
 "use client";
+import { HomeLink } from "@/components/HomeLink";
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "@/lib/router";
 import { motion } from "framer-motion";
@@ -119,10 +120,10 @@ export default function TalkView() {
   return (
     <div className="mobile-frame" data-testid="talk-view-screen">
       <div className="flex items-center justify-between px-5 pt-5">
-        <div className="flex items-center gap-2 font-display font-semibold text-primary">
+        <HomeLink className="flex items-center gap-2 font-display font-semibold text-primary">
           <div className="w-8 h-8 rounded-full bg-primary grid place-items-center"><PawPrint className="w-5 h-5 text-white" /></div>
           Petito
-        </div>
+        </HomeLink>
         <InviteButton />
       </div>
 
