@@ -50,17 +50,25 @@ function stampTile(brand: string, size: number, alphaA: number, alphaB?: number)
   });
 }
 
-/** Low-res, watermarked portrait for the free preview/share (max side 900). */
+/**
+ * Free preview of a portrait: the picture itself, at most 900 px, with one small "petito.pro" mark in
+ * a corner. No tiled stamp: the preview has to look good enough to share. HD and no mark come with Plus.
+ */
 export async function portraitPreview(clean: Buffer, brand = "Petito", maxSide = 900, quality = 82) {
   const small = await sharp(clean).resize(maxSide, maxSide, { fit: "inside", withoutEnlargement: true }).jpeg({ quality: 95 }).toBuffer();
   const img = await decode(small);
   const w = img.width, h = img.height;
   const [c, ctx] = canvas(w, h);
   ctx.drawImage(img, 0, 0);
-  const stamp = stampTile(brand, Math.max(28, Math.floor(w / 14)), 70, 46);
-  const stepX = Math.floor(stamp.width * 0.9), stepY = Math.floor(stamp.height * 1.5);
-  for (let ry = -stamp.height; ry < h + stamp.height; ry += stepY)
-    for (let rx = -stamp.width; rx < w + stamp.width; rx += stepX) ctx.drawImage(stamp, rx, ry);
+  const label = brand.toLowerCase().includes(".") ? brand : `${brand.toLowerCase()}.pro`;
+  const size = Math.max(16, Math.round(w / 34));
+  const f = displayFont(size, 600);
+  const tw = textWidth(ctx, label, f);
+  const padX = size * 0.7, padY = size * 0.4, m = size * 0.9;
+  const x0 = w - tw - padX * 2 - m, y0 = h - size - padY * 2 - m;
+  roundRect(ctx, x0, y0, w - m, h - m, size * 0.6, "rgba(0,0,0,0.38)");
+  ctx.font = f; ctx.fillStyle = "rgba(255,255,255,0.92)";
+  ctx.fillText(label, x0 + padX, y0 + padY);
   return toJpeg(c, quality);
 }
 

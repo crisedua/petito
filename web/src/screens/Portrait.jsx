@@ -495,7 +495,7 @@ function StepResult({ portrait, setPortrait, portraitId, slug, cfg, price, nav }
           <>
             <div className="mt-5 text-center">
               <p className="font-display font-semibold text-lg text-neutral-900">Así quedó tu mascota 👑</p>
-              <p className="text-sm text-muted-foreground mt-1">Descárgala en alta calidad, sin marca de agua, con Petito Plus.</p>
+              <p className="text-sm text-muted-foreground mt-1">Descárgala en alta resolución, lista para imprimir, con Petito Plus.</p>
             </div>
             <div className="mt-4 bg-white rounded-3xl border border-border p-5 shadow-sm" data-testid="portrait-paywall-card">
               <div className="text-center">
@@ -504,7 +504,7 @@ function StepResult({ portrait, setPortrait, portraitId, slug, cfg, price, nav }
                 <div className="text-xs text-muted-foreground mt-1">Una sola membresía desbloquea todas tus creaciones</div>
               </div>
               <ul className="mt-4 space-y-2 text-sm text-neutral-700">
-                {["Retrato en alta resolución, sin marca de agua", "Marco dorado incluido", "Historias y videos incluidos, sin pago por unidad", portrait?.gift_enabled ? "Enlace de regalo listo para enviar" : "Listo para imprimir o compartir"].map((b) => (
+                {["Retrato en alta resolución, sin el sello de Petito", "Marco dorado incluido", "Historias y videos incluidos, sin pago por unidad", portrait?.gift_enabled ? "Enlace de regalo listo para enviar" : "Listo para imprimir o compartir"].map((b) => (
                   <li key={b} className="flex items-center gap-2"><Check className="w-4 h-4 text-primary shrink-0" /> {b}</li>
                 ))}
               </ul>

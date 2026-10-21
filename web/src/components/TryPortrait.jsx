@@ -163,7 +163,7 @@ export default function TryPortrait({ title = "Mira a tu mascota como obra de ar
               {showOriginal ? "Su foto original" : "Mantén presionado: ver la original"}
             </button>
           </div>
-          {!result.paid && <p className="mt-2 text-center text-[11px]" style={{ color: "#A7937F" }}>Con marca de agua. En HD y sin marca con Petito Plus.</p>}
+          {!result.paid && <p className="mt-2 text-center text-[11px]" style={{ color: "#A7937F" }}>Esta es la versión para compartir. En alta resolución, lista para imprimir, con Petito Plus.</p>}
 
           <motion.button whileTap={{ scale: 0.97 }} onClick={() => keep("/universo")} disabled={busy} data-testid={`${testid}-keep`}
             className="mt-4 w-full h-14 rounded-2xl text-white font-display font-bold text-base flex items-center justify-center gap-2"
