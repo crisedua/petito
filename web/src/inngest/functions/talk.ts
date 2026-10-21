@@ -1,3 +1,4 @@
+import { isPlus } from "@/lib/server/plus";
 import { track } from "@/lib/server/events";
 import { NonRetriableError } from "inngest";
 import { inngest, EV } from "../client";
@@ -96,7 +97,11 @@ export const generateTalk = inngest.createFunction(
   },
   async ({ event, step }) => {
     const id: string = (event.data as any).video_id;
-    const { v, photo } = await step.run("load", async () => ({ v: await loadVideo(id), photo: (await firstPhoto(id)) ?? null }));
+    const { v, photo, plus } = await step.run("load", async () => {
+      const v = await loadVideo(id);
+      // Plus members get the clean video directly: no watermark, no second HD pass.
+      return { v, photo: (await firstPhoto(id)) ?? null, plus: v.user_id ? await isPlus(v.user_id) : false };
+    });
     if (!photo) throw new Error("No hay foto");
     const long = v.mode === "full" || v.mode === "song";
     const song = v.mode === "song";
@@ -163,7 +168,7 @@ export const generateTalk = inngest.createFunction(
         await logGeneration({ ownerId: id, step: "talk_voice", model: env.talkVoiceModel, durationMs: voiceMs });
       }),
       step.run("source", async () => {
-        const src = await talkSource(await loadImage(id, photo), true, long ? 720 : 480, BRAND_NAME);
+        const src = await talkSource(await loadImage(id, photo), !plus, long ? 720 : 480, BRAND_NAME);
         await storage.put(id, "source.jpg", src, "image/jpeg");
       }),
     ]);
@@ -171,7 +176,9 @@ export const generateTalk = inngest.createFunction(
     const gen = await lipsyncToStorage(step, "lipsync", id, "source.jpg", "preview.mp4", false, 60);
     await step.run("done", async () => {
       await logGeneration({ ownerId: id, step: "talk_video", model: gen.model, costUsd: env.talkVideoCostPerSec * (song ? SONG_SECONDS : long ? 5 : 3), durationMs: gen.ms });
-      await db().from("videos").update({ status: "preview_ready", preview_file: "preview.mp4", progress_pct: 100, progress_step: "¡Listo!" }).eq("id", id);
+      await db().from("videos").update(plus
+        ? { status: "paid", paid_at: new Date().toISOString(), preview_file: "preview.mp4", clean_file: "preview.mp4", progress_pct: 100, progress_step: "¡Listo!" }
+        : { status: "preview_ready", preview_file: "preview.mp4", progress_pct: 100, progress_step: "¡Listo!" }).eq("id", id);
       await track("result_ready", { feature: "video", deviceId: v.device_id, userId: v.user_id, props: { mode: v.mode } });
     });
     return { ok: true };

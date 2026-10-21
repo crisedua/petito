@@ -1,3 +1,4 @@
+import { isPlus } from "@/lib/server/plus";
 import { track } from "@/lib/server/events";
 import { inngest, EV } from "../client";
 import { awaitFal, progress } from "../helpers";
@@ -58,8 +59,11 @@ export const generatePortrait = inngest.createFunction(
       await storage.put(id, cleanName, clean, "image/jpeg");
       await storage.put(id, "preview.jpg", await portraitPreview(clean, BRAND_NAME), "image/jpeg");
       await logGeneration({ ownerId: id, step: "portrait", model: url ? env.falImageModel : "petito-renderer", images: 1, costUsd: url ? fal.FAL_IMG_COST : 0, durationMs: Date.now() - t0 });
+      // Plus members get it unlocked right away (no watermarked preview shown to them).
+      const plus = p.user_id ? await isPlus(p.user_id) : false;
       await db().from("portraits").update({
-        status: "preview_ready", preview_file: "preview.jpg", clean_file: cleanName, progress_pct: 100, progress_step: "¡Listo!",
+        status: plus ? "paid" : "preview_ready", ...(plus ? { paid_at: new Date().toISOString() } : {}),
+        preview_file: "preview.jpg", clean_file: cleanName, progress_pct: 100, progress_step: "¡Listo!",
       }).eq("id", id);
       await track("result_ready", { feature: p.category === "memorial" ? "memorial" : "portrait", deviceId: p.device_id, userId: p.user_id, props: { style: p.style } });
     });

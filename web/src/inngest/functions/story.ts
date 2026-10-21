@@ -1,3 +1,4 @@
+import { isPlus } from "@/lib/server/plus";
 import { track } from "@/lib/server/events";
 import { inngest, EV } from "../client";
 import { awaitFal, progress } from "../helpers";
@@ -153,10 +154,14 @@ export const generateStory = inngest.createFunction(
     const bonus = Boolean(story.bonus_enabled && env.bonusEnabled);
     const narrate = env.narrationEnabled;
     await step.run("publish", async () => {
+      const plus = story.user_id ? await isPlus(story.user_id) : false;
       await db().from("stories").update({
-        status: "preview_ready", title: copy.title, progress_pct: 100, bonus_pending: bonus, narration_pending: narrate,
+        status: plus ? "paid" : "preview_ready", ...(plus ? { paid_at: new Date().toISOString() } : {}),
+        title: copy.title, progress_pct: 100, bonus_pending: bonus, narration_pending: narrate,
         progress_step: bonus ? "Agregando escenas mágicas..." : "¡Tu historia está lista!",
       }).eq("id", id);
+      // Plus members see every slide unlocked straight away.
+      if (plus) await db().from("slides").update({ locked: false }).eq("story_id", id);
       await track("result_ready", { feature: "story", deviceId: story.device_id, userId: story.user_id, props: { theme: story.theme } });
     });
 

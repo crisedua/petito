@@ -98,22 +98,36 @@ ROCCO = "a8f1f1bb-e5ef-4854-b07e-dc438112bd4a"
 
 def test_plus_owner_sees_clean_thumbnails_free_owner_sees_watermark():
     me = requests.get(f"{API}/auth/me", headers=NORM, timeout=20).json()
-    pid = _portrait_for(NORM)  # norm user has Plus (courtesy) in the test setup
-
-    def thumbs():
-        col = {c["id"]: c["thumb_url"] for c in requests.get(f"{API}/pets/{ROCCO}/creations", headers=NORM, timeout=20).json()}
-        mine = {c["id"]: c for c in requests.get(f"{API}/me/portraits", headers=NORM, timeout=20).json()}
-        return col[pid], mine[pid]
-
-    col, mine = thumbs()
-    assert "/clean_" in col and "/clean_" in mine["thumb_url"] and mine["paid"] is True
     requests.post(f"{API}/admin/users/{me['user_id']}/plus", json={"active": False}, headers=ADMIN, timeout=20)
     try:
+        pid = _portrait_for(NORM)  # made as a free user: stays a watermarked preview
+
+        def thumbs():
+            col = {c["id"]: c["thumb_url"] for c in requests.get(f"{API}/pets/{ROCCO}/creations", headers=NORM, timeout=20).json()}
+            mine = {c["id"]: c for c in requests.get(f"{API}/me/portraits", headers=NORM, timeout=20).json()}
+            return col[pid], mine[pid]
+
         col, mine = thumbs()
         assert col.endswith("/preview.jpg") and mine["thumb_url"].endswith("/preview.jpg") and mine["paid"] is False
     finally:
         requests.post(f"{API}/admin/users/{me['user_id']}/plus", json={"active": True}, headers=ADMIN, timeout=20)
+    col, mine = thumbs()  # now Plus: the same portrait shows clean
+    assert "/clean_" in col and "/clean_" in mine["thumb_url"] and mine["paid"] is True
 
+
+def test_plus_owner_gets_clean_results_at_creation():
+    pid = _portrait_for(NORM)  # norm user has Plus
+    d = requests.get(f"{API}/portraits/{pid}", headers=NORM, timeout=20).json()
+    assert d["status"] == "paid" and d["clean_url"]
+    v = requests.post(f"{API}/talk", json={"pet_name": "Rocco", "scenario": "chistoso", "pet_id": ROCCO}, headers=NORM, timeout=20).json()
+    requests.post(f"{API}/talk/{v['id']}/photo", files={"files": ("p.jpg", jpeg(), "image/jpeg")}, headers=NORM, timeout=60)
+    requests.post(f"{API}/talk/{v['id']}/generate", headers=NORM, timeout=20)
+    for _ in range(60):
+        t = requests.get(f"{API}/talk/{v['id']}", headers=NORM, timeout=20).json()
+        if t["status"] in ("preview_ready", "paid", "failed"):
+            break
+        time.sleep(1.5)
+    assert t["status"] == "paid" and t["clean_url"] and t["clean_ready"], t
 
 def _finish(h, pid):
     for _ in range(60):
