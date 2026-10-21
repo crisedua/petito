@@ -11,6 +11,8 @@ export const GET = handler(async () => {
   const out: Record<string, unknown> = {
     payment_mode: env.paymentMode, enabled: mpEnabled(),
     token_kind: !token ? "missing" : token.startsWith("TEST-") ? "TEST (sandbox)" : token.startsWith("APP_USR-") ? "APP_USR (production)" : "unknown",
+    webhook_url: "https://www.petito.pro/api/payments/webhook/mercadopago",
+    webhook_secret_set: Boolean(env.mpWebhookSecret),
   };
   try {
     const me: any = await mp("GET", "/users/me");
@@ -21,6 +23,8 @@ export const GET = handler(async () => {
     .order("created_at", { ascending: false }).limit(3);
   out.latest = await Promise.all((subs ?? []).map(async (s) => {
     let mpState: any = null;
+    // courtesy-/admin-/dev- rows are Petito grants, not Mercado Pago subscriptions.
+    if (/^(courtesy|admin|dev)-/.test(s.mp_id)) return { plan: s.plan, status: s.status, source: "petito-grant", created_at: s.created_at };
     try {
       const p: any = await mp("GET", `/preapproval/${s.mp_id}`);
       mpState = { status: p.status, payer_id: p.payer_id, payer_email: mask(p.payer_email), collector_id: p.collector_id, amount: p.auto_recurring?.transaction_amount, currency: p.auto_recurring?.currency_id, init_point_host: p.init_point ? new URL(p.init_point).host : null };
