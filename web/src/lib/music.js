@@ -54,6 +54,19 @@ const TRACKS = {
     ],
     drums: { kick: "cueca", clap: true, hat: true, energy: 1.1 },
   },
+  // halloween — playful-spooky minor groove with a chromatic slide
+  halloween: {
+    bpm: 120, beatsPerBar: 4, root: 220.0, wave: "square", gain: 0.06,
+    chords: [[0, 3, 7], [5, 8, 12], [-4, 0, 3], [7, 11, 14]],
+    bass: [0, null, 0, null, 5, null, 7, null],
+    melody: [
+      [12, 0.5], [15, 0.5], [19, 0.5], [15, 0.5], [12, 1], [null, 1],
+      [11, 0.5], [14, 0.5], [19, 0.5], [14, 0.5], [11, 1], [null, 1],
+      [12, 0.5], [15, 0.5], [20, 0.5], [19, 0.5], [15, 0.5], [12, 0.5], [15, 1],
+      [19, 0.5], [18, 0.5], [17, 0.5], [16, 0.5], [15, 1], [12, 1],
+    ],
+    drums: { kick: "two", clap: true, hat: true, energy: 0.9 },
+  },
   // navidad — bright, joyful, bells + beat
   navidad: {
     bpm: 118, beatsPerBar: 4, root: 261.63, wave: "triangle", gain: 0.085,
@@ -74,6 +87,7 @@ const THEME_TRACK = {
   mis_aventuras: "aventura",
   un_dia: "tierno",
   dieciochero: "cueca",
+  halloween: "halloween",
   navidad: "navidad",
 };
 

@@ -26,7 +26,7 @@ const THEME_DESC = {
   mi_ano: "Resumen de siestas y travesuras del año",
   mis_aventuras: "Expediciones al patio y la plaza",
   un_dia: "La rutina secreta de comer y dormir",
-  dieciochero: "Tiki tiki ti: asados, empanadas y cueca",
+  halloween: "Disfraces, calabazas y dulce o travesura",
   navidad: "Modo duende pascuero mañoso",
 };
 const QUOTES = [

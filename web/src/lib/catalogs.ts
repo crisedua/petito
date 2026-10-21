@@ -4,7 +4,7 @@
  */
 
 export type BonusScene = { prompt: string; sticker: string; caption: string };
-export type Theme = { label: string; emoji: string; music: string; bonus_scenes: BonusScene[] };
+export type Theme = { label: string; emoji: string; music: string; bonus_scenes: BonusScene[]; /** kept for old stories, not offered for new ones */ hidden?: boolean };
 /**
  * mode: "paint" = AI repaints the photo (oil painting etc.); "edit" = AI keeps the real photo and only
  * adds background/props (photoreal); "render" = our own renderer, no AI at all.
@@ -89,6 +89,7 @@ export const THEMES: Record<string, Theme> = {
     "label": "Dieciochero",
     "emoji": "🇨🇱",
     "music": "cueca",
+    "hidden": true,
     "bonus_scenes": [
       {
         "prompt": "dressed as a Chilean huaso for Fiestas Patrias, wearing a chupalla straw hat and a colorful chamanto poncho, festive ramada background with chilean flags",
@@ -104,6 +105,28 @@ export const THEMES: Record<string, Theme> = {
         "prompt": "next to a Chilean asado and empanadas stall, holding an empanada, colorful volantín kites flying in the blue sky",
         "sticker": "¡Empanada mía!",
         "caption": "Esa empanada tenía mi nombre: {name}, bien clarito."
+      }
+    ]
+  },
+  "halloween": {
+    "label": "Halloween",
+    "emoji": "🎃",
+    "music": "halloween",
+    "bonus_scenes": [
+      {
+        "prompt": "wearing a cute little witch hat and a tiny purple cape, sitting next to glowing carved jack-o'-lantern pumpkins, cozy and playful Halloween night with warm orange candle light",
+        "sticker": "¡Dulce o travesura!",
+        "caption": "Me disfracé de brujito y ya tengo la bolsa lista para los dulces."
+      },
+      {
+        "prompt": "dressed in a small vampire cape with a high red collar, in a friendly haunted house hallway with candles, soft cobwebs and purple moonlight, fun not scary",
+        "sticker": "¡Buuu!",
+        "caption": "Vampiro de noche, regalón de día: igual me pasan pancito."
+      },
+      {
+        "prompt": "sitting in a pumpkin patch at night under a big full moon with small cartoon bats flying, holding a pumpkin-shaped candy bucket full of treats",
+        "sticker": "¡Puros dulces!",
+        "caption": "Salí a pedir dulces y volví con la calabaza llena. Soy {name} y esta noche mando yo."
       }
     ]
   },

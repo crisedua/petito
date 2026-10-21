@@ -11,7 +11,7 @@ export const POST = handler(async (req: Request) => {
   const user = await requireUser(req);
   await ensureVoices();
   const b = await readJson<{ pet_name?: string; species?: string; traits?: string[]; theme?: string; email?: string; voice_id?: string; pet_id?: string }>(req);
-  if (!b.theme || !(b.theme in THEMES)) throw fail(400, "Tema inválido");
+  if (!b.theme || !(b.theme in THEMES) || THEMES[b.theme].hidden) throw fail(400, "Tema inválido");
   const s = {
     id: newId(), share_slug: newSlug(), device_id: deviceId(req), user_id: user.user_id,
     pet_id: await validatePetId(b.pet_id, user.user_id),

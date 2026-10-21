@@ -18,7 +18,7 @@ export const GET = handler(async () => {
     narration_default_voice: defaultVoiceId(),
     free_per_day: env.freePerDay,
     retention_days: env.retentionDays,
-    themes: Object.entries(THEMES).map(([key, v]) => ({ key, label: v.label, emoji: v.emoji })),
+    themes: Object.entries(THEMES).filter(([, v]) => !v.hidden).map(([key, v]) => ({ key, label: v.label, emoji: v.emoji })),
     traits: TRAITS,
     portrait_price_clp: env.portraitPriceClp,
     portrait_styles: Object.entries(PORTRAIT_STYLES).map(([key, v]) => ({ key, label: v.label, emoji: v.emoji, desc: v.desc, mode: v.mode ?? "paint", group: v.group ?? "pintura", has_frame: (v.mode ?? "paint") === "paint", default_frame: STYLE_DEFAULT_FRAME[key] ?? "dorado" })),

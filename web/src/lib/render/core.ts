@@ -5,13 +5,14 @@ import { ensureFonts } from "./fonts";
 export const W = 1080;
 export const H = 1920;
 export type RGB = [number, number, number];
-export type Style = { grad: [RGB, RGB]; accent: RGB; accent2: RGB; motif: "confetti" | "mountains" | "sun" | "garland" | "snow" };
+export type Style = { grad: [RGB, RGB]; accent: RGB; accent2: RGB; motif: "confetti" | "mountains" | "sun" | "garland" | "snow" | "bats" };
 
 export const THEME_STYLE: Record<string, Style> = {
   mi_ano: { grad: [[247, 196, 92], [224, 112, 60]], accent: [224, 90, 71], accent2: [255, 255, 255], motif: "confetti" },
   mis_aventuras: { grad: [[96, 150, 128], [30, 58, 50]], accent: [245, 166, 35], accent2: [255, 255, 255], motif: "mountains" },
   un_dia: { grad: [[252, 214, 134], [240, 146, 104]], accent: [224, 90, 71], accent2: [255, 255, 255], motif: "sun" },
   dieciochero: { grad: [[214, 48, 34], [138, 24, 18]], accent: [0, 57, 166], accent2: [255, 255, 255], motif: "garland" },
+  halloween: { grad: [[244, 128, 36], [64, 26, 84]], accent: [255, 140, 30], accent2: [255, 255, 255], motif: "bats" },
   navidad: { grad: [[22, 112, 72], [9, 56, 38]], accent: [213, 43, 30], accent2: [245, 200, 90], motif: "snow" },
 };
 export const styleFor = (theme?: string | null): Style => THEME_STYLE[theme ?? ""] ?? THEME_STYLE.mi_ano;
@@ -164,7 +165,32 @@ const blob = (ctx: SKRSContext2D, cx: number, cy: number, r: number, color: stri
   ctx.fill();
 };
 
-/** Theme decorations (confetti, snow, Chilean flag garland, sun, mountains). */
+/** A bat silhouette: round body and two scalloped wings, `s` = wingspan. */
+const bat = (ctx: SKRSContext2D, cx: number, cy: number, s: number, color: string) => {
+  const h = s / 2;
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, s * 0.09, s * 0.14, 0, 0, Math.PI * 2);
+  ctx.fill();
+  for (const dir of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - s * 0.06);
+    ctx.quadraticCurveTo(cx + dir * h * 0.5, cy - s * 0.28, cx + dir * h, cy - s * 0.1);
+    ctx.quadraticCurveTo(cx + dir * h * 0.82, cy + s * 0.02, cx + dir * h * 0.66, cy + s * 0.08);
+    ctx.quadraticCurveTo(cx + dir * h * 0.55, cy - s * 0.02, cx + dir * h * 0.42, cy + s * 0.06);
+    ctx.quadraticCurveTo(cx + dir * h * 0.3, cy - s * 0.02, cx + dir * h * 0.16, cy + s * 0.08);
+    ctx.lineTo(cx, cy + s * 0.04);
+    ctx.closePath();
+    ctx.fill();
+  }
+  // little ears
+  ctx.beginPath();
+  ctx.moveTo(cx - s * 0.07, cy - s * 0.1); ctx.lineTo(cx - s * 0.05, cy - s * 0.2); ctx.lineTo(cx - s * 0.01, cy - s * 0.12);
+  ctx.moveTo(cx + s * 0.07, cy - s * 0.1); ctx.lineTo(cx + s * 0.05, cy - s * 0.2); ctx.lineTo(cx + s * 0.01, cy - s * 0.12);
+  ctx.fill();
+};
+
+/** Theme decorations (confetti, snow, Chilean flag garland, sun, mountains, Halloween moon and bats). */
 export function applyMotif(ctx: SKRSContext2D, style: Style, density: "full" | "light" = "full") {
   const a = style.accent, a2 = style.accent2;
   const rnd = rng(7);
@@ -226,6 +252,14 @@ export function applyMotif(ctx: SKRSContext2D, style: Style, density: "full" | "
     }
     blob(ctx, cx, cy, 90, "rgba(255,240,180,0.9)");
     if (full) for (let i = 0; i < 12; i++) blob(ctx, rnd.randint(0, W), rnd.randint(0, H), rnd.randint(6, 14), "rgba(255,255,255,0.47)");
+  } else if (style.motif === "bats") {
+    const mx = W - 170, my = full ? 210 : 150;
+    blob(ctx, mx, my, full ? 150 : 110, "rgba(255,236,170,0.18)");
+    blob(ctx, mx, my, full ? 105 : 78, "rgba(255,240,190,0.92)");
+    // Bats stay in the sky band at the top so they never land on the pet's face.
+    const zone = Math.floor(H * (full ? 0.17 : 0.13));
+    for (let i = 0; i < (full ? 6 : 4); i++) bat(ctx, rnd.randint(60, W - 300), rnd.randint(60, zone), rnd.randint(80, 140), "rgba(28,12,40,0.85)");
+    if (full) for (let i = 0; i < 10; i++) star(ctx, rnd.randint(0, W), rnd.randint(0, zone), rnd.randint(6, 12), "rgba(255,255,255,0.6)");
   } else if (style.motif === "mountains") {
     if (full) {
       ctx.fillStyle = "rgba(255,255,255,0.137)";
