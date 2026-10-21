@@ -32,6 +32,8 @@ export default function Talk() {
   const [scenario, setScenario] = useState("chistoso");
   const [message, setMessage] = useState("");
   const [toName, setToName] = useState("");
+  const [kind, setKind] = useState("talk"); // "talk" | "song"
+  const [songStyle, setSongStyle] = useState("cumbia");
   const [talkId, setTalkId] = useState(null);
   const [slug, setSlug] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -46,12 +48,13 @@ export default function Talk() {
     if (!file) return toast.error("Sube una foto");
     setBusy(true);
     try {
-      const t = await createTalk({ pet_name: petName, voice_id: voiceId, scenario, message: message.trim() || undefined, to_name: toName.trim() || undefined });
+      const t = await createTalk({ pet_name: petName, voice_id: voiceId, scenario, message: message.trim() || undefined, to_name: toName.trim() || undefined, kind, song_style: songStyle });
       setTalkId(t.id); setSlug(t.slug);
       await uploadTalkPhoto(t.id, file.file);
       await generateTalk(t.id);
       setStep("progress");
     } catch (e) {
+      if (e?.response?.status === 402) { toast.info(e.response.data?.detail || "Las canciones son parte de Petito Plus"); nav("/plus?from=video"); return; }
       toast.error(e?.response?.data?.detail || "No se pudo iniciar");
     } finally { setBusy(false); }
   };
@@ -64,7 +67,8 @@ export default function Talk() {
       )}
       {step === "mensaje" && (
         <StepMessage key="mensaje" cfg={cfg} scenario={scenario} setScenario={setScenario} message={message} setMessage={setMessage} toName={toName} setToName={setToName}
-          onBack={() => setStep("photo")} onNext={() => setStep("voice")} />
+          kind={kind} setKind={setKind} songStyle={songStyle} setSongStyle={setSongStyle} busy={busy}
+          onBack={() => setStep("photo")} onNext={() => (kind === "song" ? start() : setStep("voice"))} />
       )}
       {step === "voice" && (
         <StepVoice key="voice" cfg={cfg} voiceId={voiceId} setVoiceId={setVoiceId}
@@ -73,7 +77,7 @@ export default function Talk() {
       {step === "progress" && (
         <StepProgress key="progress" talkId={talkId}
           onReady={() => nav(`/v/${slug}`)}
-          onFail={() => { toast.error("No pudimos crear el video. Intenta con otra foto."); setStep("voice"); }} />
+          onFail={() => { toast.error("No pudimos crear el video. Intenta con otra foto."); setStep(kind === "song" ? "mensaje" : "voice"); }} />
       )}
     </AnimatePresence>
   );
@@ -151,14 +155,36 @@ function StepPhoto({ nav, cfg, petName, setPetName, file, setFile, onNext }) {
   );
 }
 
-function StepMessage({ cfg, scenario, setScenario, message, setMessage, toName, setToName, onBack, onNext }) {
+function StepMessage({ cfg, scenario, setScenario, message, setMessage, toName, setToName, kind, setKind, songStyle, setSongStyle, busy, onBack, onNext }) {
   const max = cfg.talk_message_max || 160;
   const scenarios = cfg.talk_scenarios || [];
+  const song = kind === "song";
   return (
     <Screen>
-      <Header stepText="Paso 2 de 3 · El mensaje" onBack={onBack} />
+      <Header stepText={song ? "Paso 2 de 2 · La canción" : "Paso 2 de 3 · El mensaje"} onBack={onBack} />
       <div className="flex-1 px-5 pt-5 pb-40 overflow-y-auto no-scrollbar">
-        <h2 className="font-display font-bold text-2xl text-neutral-900">¿Qué va a decir? 💬</h2>
+        <div className="grid grid-cols-2 gap-2 p-1 rounded-2xl bg-white border border-border" data-testid="talk-kind">
+          {[["talk", "🗣️ Que hable"], ["song", "🎤 Que cante"]].map(([k, l]) => (
+            <button key={k} onClick={() => setKind(k)} data-testid={`talk-kind-${k}`}
+              className={`h-11 rounded-xl font-display font-semibold text-sm transition-all ${kind === k ? "bg-primary text-white shadow" : "text-neutral-700"}`}>{l}</button>
+          ))}
+        </div>
+        {song ? (
+          <>
+            <h2 className="mt-5 font-display font-bold text-2xl text-neutral-900">Su propia canción 🎶</h2>
+            <p className="text-sm text-muted-foreground mt-1">Escribimos una canción original sobre tu mascota, con su nombre, su personalidad y un recuerdo de ustedes, y la canta en video. Solo Petito Plus.</p>
+            <label className="block mt-5 text-sm font-semibold text-neutral-700 mb-2">Estilo musical</label>
+            <div className="flex flex-wrap gap-2" data-testid="talk-song-styles">
+              {(cfg.song_styles || []).map((s) => (
+                <button key={s.key} onClick={() => setSongStyle(s.key)} data-testid={`talk-song-style-${s.key}`}
+                  className={`px-4 py-2.5 rounded-full border-2 font-display font-semibold text-sm transition-all ${songStyle === s.key ? "border-primary bg-primary/10 text-primary" : "border-border bg-white text-neutral-700"}`}>
+                  {s.emoji} {s.label}
+                </button>
+              ))}
+            </div>
+          </>
+        ) : (<>
+        <h2 className="mt-5 font-display font-bold text-2xl text-neutral-900">¿Qué va a decir? 💬</h2>
         <p className="text-sm text-muted-foreground mt-1">Elige una ocasión y, si quieres, escríbele tú el mensaje.</p>
 
         <div className="mt-5 flex flex-wrap gap-2" data-testid="talk-scenarios">
@@ -170,13 +196,16 @@ function StepMessage({ cfg, scenario, setScenario, message, setMessage, toName, 
           ))}
         </div>
 
+        </>)}
+
         <label className="block mt-7 text-sm font-semibold text-neutral-700 mb-1">
           ¿Para quién es? <span className="text-muted-foreground font-normal">(opcional)</span>
         </label>
-        <p className="text-xs text-muted-foreground mb-2">Escribe su nombre y tu mascota le hablará directamente, con su personalidad y hasta un recuerdo de ustedes.</p>
+        <p className="text-xs text-muted-foreground mb-2">{song ? "Escribe su nombre y la canción será para esa persona." : "Escribe su nombre y tu mascota le hablará directamente, con su personalidad y hasta un recuerdo de ustedes."}</p>
         <Input value={toName} onChange={(e) => setToName(e.target.value.slice(0, 40))} placeholder="Ej: mamá, Abuela Rosa, Tomás…" data-testid="talk-to-name"
           className="h-12 rounded-2xl bg-white" />
 
+        {!song && (<>
         <label className="block mt-6 text-sm font-semibold text-neutral-700 mb-2">
           Escríbele tú el mensaje <span className="text-muted-foreground font-normal">(opcional)</span>
         </label>
@@ -187,10 +216,11 @@ function StepMessage({ cfg, scenario, setScenario, message, setMessage, toName, 
           <span>{message.trim() ? "Diremos exactamente esto" : "Si lo dejas vacío, la IA lo inventa según la ocasión"}</span>
           <span data-testid="talk-message-counter">{message.length}/{max}</span>
         </div>
+        </>)}
       </div>
       <BottomBar>
-        <Button onClick={onNext} className="w-full h-14 text-base font-display font-semibold rounded-2xl" data-testid="talk-message-next">
-          Elegir la voz <ArrowRight className="w-5 h-5 ml-1" />
+        <Button onClick={onNext} disabled={busy} className="w-full h-14 text-base font-display font-semibold rounded-2xl" data-testid="talk-message-next">
+          {song ? (busy ? <><Loader2 className="w-5 h-5 animate-spin mr-2" /> Preparando...</> : <>🎤 Crear su canción</>) : <>Elegir la voz <ArrowRight className="w-5 h-5 ml-1" /></>}
         </Button>
       </BottomBar>
     </Screen>

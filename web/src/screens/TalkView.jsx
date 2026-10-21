@@ -66,7 +66,7 @@ export default function TalkView() {
   };
 
   const share = async () => {
-    const text = t.to_name ? `${t.to_name}, ${t.pet_name || "mi mascota"} te mandó un videomensaje 💌🐾` : `¡Mira a ${t.pet_name || "mi mascota"} hablando en Petito! 🐾🗣️`;
+    const text = t.song ? `${t.to_name ? t.to_name + ", " : ""}${t.pet_name || "mi mascota"} te canta una canción 🎤🐾` : t.to_name ? `${t.to_name}, ${t.pet_name || "mi mascota"} te mandó un videomensaje 💌🐾` : `¡Mira a ${t.pet_name || "mi mascota"} hablando en Petito! 🐾🗣️`;
     if (navigator.share) { try { await navigator.share({ title: "Petito", text, url: shareUrl }); } catch { /**/ } }
     else window.open(`https://wa.me/?text=${encodeURIComponent(text + " " + shareUrl)}`, "_blank");
   };
@@ -127,9 +127,11 @@ export default function TalkView() {
       </div>
 
       <div className="flex-1 px-5 pt-3 pb-40 overflow-y-auto no-scrollbar">
-        {t.to_name && (
+        {(t.to_name || t.song) && (
           <p className="mb-3 text-center font-display font-bold text-lg text-neutral-900" data-testid="talk-view-dedication">
-            {t.pet_name || "Tu mascota"} tiene un mensaje para <span className="text-primary">{t.to_name}</span> 💌
+            {t.song
+              ? <>{t.pet_name || "Tu mascota"} {t.to_name ? <>le canta a <span className="text-primary">{t.to_name}</span></> : "te canta"} 🎤</>
+              : <>{t.pet_name || "Tu mascota"} tiene un mensaje para <span className="text-primary">{t.to_name}</span> 💌</>}
           </p>
         )}
         <div className="relative w-full rounded-3xl overflow-hidden bg-stone-900 border-4 border-white shadow-2xl mx-auto" style={{ aspectRatio: "9 / 16", maxWidth: 320 }} data-testid="talk-view-video">
@@ -145,7 +147,7 @@ export default function TalkView() {
           )}
         </div>
 
-        {t.line && <p className="mt-4 text-center font-script text-2xl text-primary leading-tight" data-testid="talk-view-line">“{t.line}”</p>}
+        {t.line && <p className={`mt-4 text-center font-script text-primary leading-tight whitespace-pre-line ${t.song ? "text-xl" : "text-2xl"}`} data-testid="talk-view-line">{t.song ? t.line : `“${t.line}”`}</p>}
 
         {finalizing && (
           <div className="mt-5 flex items-center justify-center gap-2 text-sm text-primary" data-testid="talk-finalizing">

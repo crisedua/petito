@@ -7,13 +7,14 @@ import * as fal from "@/lib/server/fal";
 import * as eleven from "@/lib/server/elevenvideo";
 import * as storage from "@/lib/server/storage";
 import { imageToB64, loadImage } from "@/lib/server/images";
-import { writePetLine } from "@/lib/server/prompts";
+import { writePetLine, writePetSong } from "@/lib/server/prompts";
+import { composeSong, SONG_COST_USD, SONG_MODEL } from "@/lib/server/elevenmusic";
 import { llmCost, llmModel } from "@/lib/server/llm";
 import { ensureVoices, generateNarration, validVoice } from "@/lib/server/elevenlabs";
 import { talkSource } from "@/lib/render/watermarks";
 import { env } from "@/lib/server/env";
 import { hex16 } from "@/lib/server/ids";
-import { BRAND_NAME, PERSONALITY_LABELS, TALK_MESSAGE_MAX, TALK_SCENARIOS } from "@/lib/catalogs";
+import { BRAND_NAME, PERSONALITY_LABELS, SONG_SECONDS, SONG_STYLES, TALK_MESSAGE_MAX, TALK_SCENARIOS } from "@/lib/catalogs";
 
 const loadVideo = async (id: string) => (await db().from("videos").select("*").eq("id", id).single()).data!;
 const firstPhoto = async (id: string) =>
@@ -97,14 +98,27 @@ export const generateTalk = inngest.createFunction(
     const id: string = (event.data as any).video_id;
     const { v, photo } = await step.run("load", async () => ({ v: await loadVideo(id), photo: (await firstPhoto(id)) ?? null }));
     if (!photo) throw new Error("No hay foto");
-    const long = v.mode === "full";
+    const long = v.mode === "full" || v.mode === "song";
+    const song = v.mode === "song";
 
     // The voice (line + speech) and the watermarked frame don't depend on each other: run them together.
     await Promise.all([
       step.run("line-and-voice", async () => {
-        await db().from("videos").update({ progress_step: "Escuchando a tu mascota...", progress_pct: 20 }).eq("id", id);
+        await db().from("videos").update({ progress_step: song ? "Componiendo su canción..." : "Escuchando a tu mascota...", progress_pct: 20 }).eq("id", id);
         let text: string, species: string, usage = null;
         const tLine = Date.now();
+        if (song) {
+          const style = SONG_STYLES[v.scenario] ?? SONG_STYLES.pop;
+          const b64 = await imageToB64(id, photo, 512);
+          ({ lyrics: text, species, usage } = await writePetSong(b64, v.pet_name, style.feel, await lineContext(v)));
+          await db().from("videos").update({ line: text, species, progress_step: "Grabando la canción (esto toma un minuto)...", progress_pct: 35 }).eq("id", id);
+          const tMusic = Date.now();
+          const audio = await composeSong(text, style.styles, SONG_SECONDS * 1000);
+          await storage.put(id, "audio.mp3", audio, "audio/mpeg");
+          await logGeneration({ ownerId: id, step: "song_lyrics", model: llmModel(true), usage, costUsd: usage ? llmCost(usage, true) : 0, durationMs: tMusic - tLine });
+          await logGeneration({ ownerId: id, step: "song_music", model: SONG_MODEL, costUsd: SONG_COST_USD, durationMs: Date.now() - tMusic });
+          return;
+        }
         if (v.message) {
           text = String(v.message).trim().slice(0, TALK_MESSAGE_MAX);
           species = v.species || "otro";
@@ -131,7 +145,7 @@ export const generateTalk = inngest.createFunction(
 
     const gen = await lipsyncToStorage(step, "lipsync", id, "source.jpg", "preview.mp4", false, 60);
     await step.run("done", async () => {
-      await logGeneration({ ownerId: id, step: "talk_video", model: gen.model, costUsd: env.talkVideoCostPerSec * (long ? 5 : 3), durationMs: gen.ms });
+      await logGeneration({ ownerId: id, step: "talk_video", model: gen.model, costUsd: env.talkVideoCostPerSec * (song ? SONG_SECONDS : long ? 5 : 3), durationMs: gen.ms });
       await db().from("videos").update({ status: "preview_ready", preview_file: "preview.mp4", progress_pct: 100, progress_step: "¡Listo!" }).eq("id", id);
       await track("result_ready", { feature: "video", deviceId: v.device_id, userId: v.user_id, props: { mode: v.mode } });
     });

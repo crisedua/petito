@@ -156,3 +156,27 @@ def test_dedicated_video_message():
     assert d["to_name"] == "Abuela Rosa"
     html = requests.get(f"{BASE}/v/{v['slug']}", timeout=60).text
     assert 'content="Rocco tiene un mensaje para Abuela Rosa' in html
+
+
+def test_song_videos_are_plus_only_and_generate():
+    me = requests.get(f"{API}/auth/me", headers=NORM, timeout=20).json()
+    requests.post(f"{API}/admin/users/{me['user_id']}/plus", json={"active": False}, headers=ADMIN, timeout=20)
+    try:
+        r = requests.post(f"{API}/talk", json={"pet_name": "Rocco", "kind": "song", "song_style": "cumbia"}, headers=NORM, timeout=20)
+        assert r.status_code == 402
+    finally:
+        requests.post(f"{API}/admin/users/{me['user_id']}/plus", json={"active": True}, headers=ADMIN, timeout=20)
+    cfg = requests.get(f"{API}/config", timeout=20).json()
+    assert [s["key"] for s in cfg["song_styles"]] == ["cumbia", "balada", "pop", "reggaeton", "cueca"]
+    v = requests.post(f"{API}/talk", json={"pet_name": "Rocco", "kind": "song", "song_style": "cumbia", "to_name": "mamá", "pet_id": ROCCO}, headers=NORM, timeout=20).json()
+    requests.post(f"{API}/talk/{v['id']}/photo", files={"files": ("p.jpg", jpeg(), "image/jpeg")}, headers=NORM, timeout=60)
+    requests.post(f"{API}/talk/{v['id']}/generate", headers=NORM, timeout=20)
+    for _ in range(80):
+        d = requests.get(f"{API}/talk/{v['id']}", headers=NORM, timeout=20).json()
+        if d["status"] in ("preview_ready", "paid", "failed"):
+            break
+        time.sleep(1.5)
+    assert d["status"] in ("preview_ready", "paid"), d.get("error")
+    assert d["song"] is True and d["song_style"] == "cumbia" and d["line"] and "\n" in d["line"]
+    html = requests.get(f"{BASE}/v/{v['slug']}", timeout=60).text
+    assert 'content="Rocco le canta a mamá' in html

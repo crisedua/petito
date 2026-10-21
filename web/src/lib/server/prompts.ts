@@ -168,3 +168,34 @@ export async function writeMemoryReflection(petName: string, title: string, feel
   }
   return { reflection: reflection || reflectionFallback(petName), usage: usage as ClaudeUsage };
 }
+
+
+/** A short original song about this pet (two short verses + a hook), sung in ~18 s. */
+export async function writePetSong(photoB64: string, petName: string | null, feel: string, ctx: LineContext & { occasion?: string | null } = {}) {
+  const system =
+    "Eres un compositor chileno que escribe canciones cortas y pegajosas sobre mascotas, en español de Chile, " +
+    "con cariño y humor suave (regalón, pancito, choro, bacán), sin groserías. Respondes SOLO JSON válido.";
+  const name = petName || "mi regalón";
+  const prompt =
+    `Mira la foto de esta mascota (identifica si es perro, gato u otro). Escribe una canción ORIGINAL sobre ${name}, ` +
+    `cantada en primera persona por ${name}. Estilo: ${feel}. ` +
+    (ctx.toName ? `La canción es para ${ctx.toName}: nómbralo/a en la primera línea y en el coro. ` : "") +
+    (ctx.occasion ? `Ocasión: ${ctx.occasion}. ` : "") +
+    (ctx.personality?.length ? `Personalidad de ${name}: ${ctx.personality.join(", ")}; que se note. ` : "") +
+    (ctx.memory ? `Menciona este recuerdo real: "${ctx.memory}". ` : "") +
+    `Largo: se canta en unos 18 segundos, así que máximo 6 líneas cortas (4 a 7 palabras cada una), con rima fácil ` +
+    `y un coro de 2 líneas que repita el nombre ${name}. Sin títulos ni acotaciones, solo las líneas.\n` +
+    `Responde JSON: {"species": "perro|gato|otro", "lines": ["línea 1", "línea 2", ...]}`;
+  let text = "", usage: Awaited<ReturnType<typeof runClaude>>["usage"] | null = null;
+  try {
+    ({ text, usage } = await runClaude(system, prompt, [photoB64], true));
+  } catch (e) {
+    console.error("writePetSong failed, using fallback lyrics", e);
+  }
+  let data: { species?: string; lines?: string[] } = {};
+  try { data = text ? extractJson(text) : {}; } catch { data = {}; }
+  const lines = (data.lines ?? []).map((l) => String(l).trim()).filter(Boolean).slice(0, 6);
+  const lyrics = lines.length >= 2 ? lines.join("\n")
+    : [`${ctx.toName ? ctx.toName + ", " : ""}soy ${name}, tu regalón`, "y esta canción es para ti", `${name}, ${name}, con el corazón`, "te quiero hasta el fin"].join("\n");
+  return { lyrics, species: data.species || "otro", usage };
+}

@@ -378,6 +378,18 @@ export const TALK_SCENARIOS: Record<string, TalkScenario> = {
 };
 export const TALK_MESSAGE_MAX = 160;
 
+/** "Tu mascota te canta": music styles. `styles` go to ElevenLabs Music, `feel` guides the lyric writer. */
+export type SongStyle = { label: string; emoji: string; styles: string[]; feel: string };
+export const SONG_STYLES: Record<string, SongStyle> = {
+  cumbia: { label: "Cumbia chilena", emoji: "🪗", styles: ["cumbia chilena", "upbeat", "accordion and brass", "festive"], feel: "fiestera y pegajosa, como cumbia de matrimonio chileno" },
+  balada: { label: "Balada romántica", emoji: "💖", styles: ["romantic latin ballad", "soft piano and strings", "emotional", "slow"], feel: "tierna y emocionante, como balada de los 90" },
+  pop: { label: "Pop alegre", emoji: "🎉", styles: ["catchy latin pop", "bright", "hand claps", "sing-along chorus"], feel: "alegre y cantable, con un coro que se pega" },
+  reggaeton: { label: "Reggaetón suave", emoji: "🔥", styles: ["soft reggaeton", "dembow beat", "playful", "summer"], feel: "juguetona y con flow, sin groserías" },
+  cueca: { label: "Cueca", emoji: "🇨🇱", styles: ["cueca chilena", "guitar and tambourine", "lively folk", "handclaps"], feel: "dieciochera y picarona, con picardía de cueca" },
+};
+/** Seconds of song (and of lip-synced video): keep it short, the video costs by the second. */
+export const SONG_SECONDS = 18;
+
 export const VOICES: Voice[] = [
   {
     "id": "G5fUGgDJhRU7jqXTv65B",
