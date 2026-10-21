@@ -163,7 +163,8 @@ function StepPhoto({ nav, cfg, petName, setPetName, file, setFile, onNext }) {
 
         {file ? (
           <div className="mt-5 relative w-full rounded-3xl overflow-hidden bg-stone-200 border-4 border-white shadow-lg" style={{ aspectRatio: "3 / 4" }} data-testid="portrait-photo-preview">
-            <img src={file.url} alt="" className="w-full h-full object-cover" />
+            <img src={file.url} alt="" aria-hidden className="absolute inset-0 w-full h-full object-cover blur-xl scale-110 opacity-60" />
+            <img src={file.url} alt="" className="relative w-full h-full object-contain" />
             <button onClick={() => setFile(null)} className="absolute top-3 right-3 w-9 h-9 rounded-full bg-black/60 text-white grid place-items-center" data-testid="portrait-photo-remove">
               <X className="w-4.5 h-4.5" />
             </button>
