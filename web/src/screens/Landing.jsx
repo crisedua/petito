@@ -4,13 +4,14 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@/lib/router";
 import { motion, useReducedMotion } from "framer-motion";
 import { toast } from "sonner";
-import { PawPrint, ArrowRight, Sparkles, BookHeart, Mic, Camera, Loader2 } from "lucide-react";
+import { PawPrint, Sparkles, BookHeart, Mic, Camera, Loader2 } from "lucide-react";
 import { ProfileMenu } from "@/components/ProfileMenu";
 import { useAuth } from "@/lib/auth";
 import { createTalkPreview, getPets } from "@/lib/api";
 import { openInstallSheet, useInstallOffer } from "@/components/app/InstallPrompt";
 import { isMobile, isStandalone } from "@/lib/install";
 import TryPortrait from "@/components/TryPortrait";
+import Showcase from "@/components/Showcase";
 
 
 const PREVIEW_LINES = [
@@ -22,9 +23,9 @@ const PREVIEW_LINES = [
 const SHOW_VOICE_PREVIEW = false;
 
 const STEPS = [
-  { icon: Sparkles, title: "Crea su universo", desc: "Cuéntanos quién es tu mascota y recibe una bienvenida hecha solo para ella." },
-  { icon: Mic, title: "Dale vida", desc: "Imagina lo que te diría, vívelo en aventuras y retratos, todo con su esencia." },
-  { icon: BookHeart, title: "Guarda lo que importa", desc: "Cada momento queda en su álbum, creciendo contigo con el tiempo." },
+  { icon: Camera, title: "Sube una foto" },
+  { icon: Sparkles, title: "Mírala en un minuto" },
+  { icon: BookHeart, title: "Guárdala y comparte" },
 ];
 
 export default function Landing() {
@@ -42,11 +43,6 @@ export default function Landing() {
       if (p.length > 0 && (isStandalone() || new URLSearchParams(window.location.search).get("app") === "1")) nav("/universo", { replace: true });
     }).catch(() => setHasPets(false));
   }, [user]); // eslint-disable-line
-
-  const startUniverse = () => {
-    if (user) nav(hasPets ? "/universo" : "/bienvenida");
-    else nav("/bienvenida"); // RequireAuth shows login, returns here after
-  };
 
   const fade = (d = 0) => reduce
     ? {}
@@ -82,33 +78,22 @@ export default function Landing() {
           data-testid="landing-headline">
           Mira a tu mascota <span style={{ color: "#B85C3C" }}>como nunca la viste.</span>
         </motion.h1>
-        <motion.div {...fade(0.12)} className="mt-4">
-          <TryPortrait title="Pruébalo con su foto, ahora" subtitle="Tu mascota como realeza, con corona, trono y su título. Gratis, sin cuenta, en menos de un minuto." testid="landing-try" />
+        <motion.p {...fade(0.08)} className="mt-2 text-[0.95rem] leading-snug" style={{ color: "#7A6A5E" }} data-testid="landing-subhead">
+          Con una sola foto: un retrato de realeza, un video donde te habla con su voz y su propia canción.
+        </motion.p>
+
+        <motion.div {...fade(0.14)} className="mt-5">
+          <Showcase />
+        </motion.div>
+
+        <motion.div {...fade(0.2)} className="mt-5">
+          <TryPortrait title="Pruébalo con su foto, ahora" subtitle="Tu mascota como realeza, con corona, trono y su título. Gratis, sin cuenta, en menos de un minuto." sample={null} testid="landing-try" />
         </motion.div>
         {SHOW_VOICE_PREVIEW && (
           <motion.div {...fade(0.28)}>
             <VoicePreviewCard onDone={(slug) => nav(`/v/${slug}`)} />
           </motion.div>
         )}
-
-        <motion.p {...fade(0.3)} className="mt-6 text-[0.95rem] leading-snug" style={{ color: "#7A6A5E" }}>
-          Y eso es solo el comienzo: videos donde te habla, su propia canción, historias ilustradas y un álbum de recuerdos reales.
-        </motion.p>
-
-        <motion.button {...fade(0.32)} whileTap={reduce ? undefined : { scale: 0.97 }}
-          onClick={startUniverse} data-testid="landing-create-universe"
-          className="mt-4 w-full h-14 rounded-2xl font-display font-bold text-base flex items-center justify-center gap-2 bg-white border-2"
-          style={{ color: "#B85C3C", borderColor: "#E7C9B5" }}>
-          <Sparkles className="w-5 h-5" /> Crea el universo de tu mascota
-        </motion.button>
-
-        <motion.button {...fade(0.36)}
-          onClick={() => document.getElementById("como-funciona")?.scrollIntoView({ behavior: reduce ? "auto" : "smooth" })}
-          data-testid="landing-how-it-works"
-          className="mt-3 w-full h-12 rounded-2xl font-display font-semibold text-sm flex items-center justify-center gap-1.5 bg-white border"
-          style={{ color: "#8A6D4B", borderColor: "#EADFCF" }}>
-          Descubre cómo funciona <ArrowRight className="w-4 h-4" />
-        </motion.button>
 
         {user && hasPets && (
           <button onClick={() => nav("/universo")} data-testid="landing-enter-universe"
@@ -118,24 +103,20 @@ export default function Landing() {
           </button>
         )}
 
-        <div id="como-funciona" className="mt-12 scroll-mt-4">
-          <h2 className="font-display font-bold text-lg" style={{ color: "#3A2A20" }}>Cómo funciona</h2>
-          <div className="mt-4 space-y-3">
+        <div id="como-funciona" className="mt-10 scroll-mt-4">
+          <div className="grid grid-cols-3 gap-2">
             {STEPS.map((s, i) => (
               <motion.div key={s.title} {...fade(0.05 * i)}
-                className="flex items-start gap-3 p-4 rounded-2xl bg-white border" style={{ borderColor: "#EEE3D2" }}
+                className="p-3 rounded-2xl bg-white border text-center" style={{ borderColor: "#EEE3D2" }}
                 data-testid={`landing-step-${i}`}>
-                <div className="w-11 h-11 rounded-xl grid place-items-center shrink-0" style={{ background: "#F3E9DA", color: "#B85C3C" }}>
-                  <s.icon className="w-5 h-5" />
+                <div className="w-9 h-9 mx-auto rounded-xl grid place-items-center" style={{ background: "#F3E9DA", color: "#B85C3C" }}>
+                  <s.icon className="w-4 h-4" />
                 </div>
-                <div>
-                  <div className="font-display font-bold" style={{ color: "#3A2A20" }}>{s.title}</div>
-                  <div className="text-sm mt-0.5" style={{ color: "#8A7868" }}>{s.desc}</div>
-                </div>
+                <div className="mt-2 font-display font-bold text-xs leading-tight" style={{ color: "#3A2A20" }}>{s.title}</div>
               </motion.div>
             ))}
           </div>
-          <p className="mt-5 text-center text-xs" style={{ color: "#A7937F" }}>
+          <p className="mt-4 text-center text-xs" style={{ color: "#A7937F" }}>
             Lo imaginado por IA siempre va marcado. Tus recuerdos reales son solo tuyos. 🐾
           </p>
         </div>

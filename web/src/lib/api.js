@@ -192,5 +192,8 @@ export const adminStyleSamples = () => api.get("/admin/style-samples").then((r) 
 export const adminGenerateSample = (style, frame, petId, engine) => api.post("/admin/style-samples", { style, frame, pet_id: petId || undefined, engine: engine || undefined }, { timeout: 70000 }).then((r) => r.data);
 export const adminSetImageEngine = (key) => api.put("/admin/style-samples", { default_engine: key }).then((r) => r.data);
 export const adminChooseSample = (style, name) => api.put("/admin/style-samples", { style, name }).then((r) => r.data);
+export const getShowcase = () => api.get("/showcase").then((r) => r.data);
+export const adminShowcase = () => api.get("/admin/showcase").then((r) => r.data);
+export const adminSetShowcase = (items) => api.put("/admin/showcase", { items }).then((r) => r.data);
 export const adminDances = () => api.get("/admin/dances").then((r) => r.data);
 export const adminGenerateDance = (key) => api.post("/admin/dances", { key }).then((r) => r.data);

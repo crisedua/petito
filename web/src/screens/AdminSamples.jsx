@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Loader2, Sparkles, Check } from "lucide-react";
-import { adminChooseSample, adminGenerateSample, adminSetImageEngine, adminStyleSamples } from "@/lib/api";
+import { adminChooseSample, adminGenerateSample, adminSetImageEngine, adminStyleSamples, adminShowcase, adminSetShowcase } from "@/lib/api";
 
 /**
  * Admin → Muestras: the pictures on the portrait style picker. Generate alternatives with the real
@@ -34,7 +34,8 @@ export default function AdminSamples() {
 
   return (
     <div data-testid="admin-samples">
-      <p className="text-xs text-muted-foreground">
+      <ShowcasePicker />
+      <p className="mt-6 text-xs text-muted-foreground">
         Estas son las imágenes que ven los clientes al elegir estilo. Genera alternativas con la IA real (mismo estilo y marco que recibe un cliente) y elige la mejor. Cada una cuesta lo mismo que un retrato (~US$0,04) y tarda unos 20 segundos.
       </p>
       <label className="mt-3 block text-[11px] font-semibold text-neutral-500">Mascota de referencia</label>
@@ -149,6 +150,43 @@ function Thumb({ url, label, sub, active, onUse }) {
       <div className="mt-1 text-[10px] leading-tight text-neutral-600 truncate">{label}</div>
       {sub && <div className="text-[9px] leading-tight text-muted-foreground truncate">{sub}</div>}
       {!active && <button onClick={onUse} className="mt-0.5 text-[10px] font-bold text-primary" data-testid="samples-use">Usar</button>}
+    </div>
+  );
+}
+
+/** The three creations featured on the landing (your own, so no customer's pet is ever shown). */
+function ShowcasePicker() {
+  const [d, setD] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const load = () => adminShowcase().then(setD).catch((e) => toast.error(e?.response?.data?.detail || "No se pudo cargar la portada"));
+  useEffect(() => { load(); }, []);
+  if (!d) return null;
+  const toggle = async (c) => {
+    const refs = d.refs.filter((r) => !(r.kind === c.kind && r.id === c.id));
+    if (!c.chosen) {
+      if (refs.length >= d.max) return toast.error(`Máximo ${d.max} en la portada`);
+      refs.push({ kind: c.kind, id: c.id });
+    }
+    setBusy(true);
+    try { await adminSetShowcase(refs); await load(); toast.success(c.chosen ? "Quitado de la portada" : "En la portada"); }
+    catch (e) { toast.error(e?.response?.data?.detail || "No se pudo guardar"); }
+    finally { setBusy(false); }
+  };
+  return (
+    <div className="bg-white rounded-2xl border border-border p-3.5" data-testid="admin-showcase">
+      <div className="font-display font-bold text-neutral-900">Portada ({d.items.length} de {d.max})</div>
+      <p className="text-xs text-muted-foreground mt-0.5">Lo que ven los visitantes antes de subir su foto. Elige hasta {d.max} de tus creaciones: idealmente un retrato, un video que habla y una más. Solo tus propias creaciones.</p>
+      {d.candidates.length === 0 && <p className="mt-3 text-xs text-amber-800">Aún no tienes retratos ni videos listos con tu cuenta. Crea algunos con tu mascota y vuelve aquí.</p>}
+      <div className="mt-3 grid grid-cols-4 gap-2">
+        {d.candidates.map((c) => (
+          <button key={`${c.kind}:${c.id}`} onClick={() => toggle(c)} disabled={busy} title={c.title} data-testid={`showcase-pick-${c.id}`}
+            className={`relative rounded-lg overflow-hidden border-2 ${c.chosen ? "border-primary" : "border-transparent"}`} style={{ aspectRatio: "3 / 4" }}>
+            <img src={c.thumb} alt={c.title} className="w-full h-full object-cover" onError={(e) => { e.currentTarget.style.opacity = 0.2; }} />
+            <span className="absolute top-1 left-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-black/60 text-white">{c.kind === "video" ? "video" : "retrato"}</span>
+            {c.chosen && <span className="absolute top-1 right-1 w-5 h-5 rounded-full bg-primary grid place-items-center"><Check className="w-3 h-3 text-white" /></span>}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
