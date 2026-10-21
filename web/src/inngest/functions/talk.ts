@@ -143,25 +143,41 @@ export const generateTalk = inngest.createFunction(
         }
       });
       const tick = creepingProgress("videos", id, WAIT, 35, 95);
-      let url: string;
+      let url = "";
+      let used: { provider: "higgsfield" | "fal"; dance?: boolean } = sub;
+      let hfFailure: string | null = null;
       if (sub.provider === "higgsfield") {
-        url = "";
-        for (let i = 0; i < 72 && !url; i++) {
+        for (let i = 0; i < 72 && !url && !hfFailure; i++) {
           const st: hf.HfState = await step.run(`motion-hf-status-${i}`, async () => { await tick(i * 5); return hf.status(sub.id); });
           if (st.state === "COMPLETED") url = st.url!;
-          else if (st.state === "FAILED") throw new NonRetriableError(`Higgsfield: ${st.error ?? "falló"}`);
+          else if (st.state === "FAILED") hfFailure = st.error ?? "falló";
           else await step.sleep(`motion-hf-wait-${i}`, "5s");
         }
-        if (!url) throw new NonRetriableError("Higgsfield tardó demasiado");
+        if (!url && !hfFailure) hfFailure = "tardó demasiado";
+        // Higgsfield blocked or lost the clip (e.g. its content-safety filter): try fal's Kling before giving up.
+        if (hfFailure) {
+          const falId: string | null = await step.run("motion-fal-fallback-submit", async () => {
+            await db().from("videos").update({ progress_step: "Probando con otro estudio...", progress_pct: 40 }).eq("id", id);
+            try {
+              return await fal.submitMotion(await loadImage(id, photo), scene.prompt, MOTION_SECONDS);
+            } catch (e) {
+              if (e instanceof fal.PermanentFalError) return null;
+              throw e;
+            }
+          });
+          if (!falId) throw new NonRetriableError(`Higgsfield: ${hfFailure}`);
+          url = await awaitFal(step, "motion-fal-fallback", fal.FAL_MOTION_MODEL, falId, 60, creepingProgress("videos", id, WAIT, 40, 95));
+          used = { provider: "fal" };
+        }
       } else {
         url = await awaitFal(step, "motion-fal", fal.FAL_MOTION_MODEL, sub.id, 60, tick);
       }
       await step.run("motion-save", async () => {
-        const bytes = sub.provider === "higgsfield" ? await hf.download(url) : await fal.download(url);
+        const bytes = used.provider === "higgsfield" ? await hf.download(url) : await fal.download(url);
         await storage.put(id, "preview.mp4", bytes, "video/mp4");
-        const model = sub.dance ? `higgsfield/${hf.HF_GENJUTSU_MODEL}` : sub.provider === "higgsfield" ? `higgsfield/${hf.HF_MOTION_MODEL}` : fal.FAL_MOTION_MODEL;
-        const cost = sub.dance ? hf.HF_GENJUTSU_COST_PER_SEC * DANCE_SECONDS : (sub.provider === "higgsfield" ? hf.HF_MOTION_COST_PER_SEC : fal.FAL_MOTION_COST_PER_SEC) * MOTION_SECONDS;
-        await logGeneration({ ownerId: id, step: "motion_video", model, costUsd: cost, durationMs: Date.now() - t0 });
+        const model = used.dance ? `higgsfield/${hf.HF_GENJUTSU_MODEL}` : used.provider === "higgsfield" ? `higgsfield/${hf.HF_MOTION_MODEL}` : fal.FAL_MOTION_MODEL;
+        const cost = used.dance ? hf.HF_GENJUTSU_COST_PER_SEC * DANCE_SECONDS : (used.provider === "higgsfield" ? hf.HF_MOTION_COST_PER_SEC : fal.FAL_MOTION_COST_PER_SEC) * MOTION_SECONDS;
+        await logGeneration({ ownerId: id, step: "motion_video", model: hfFailure ? `${model} (Higgsfield: ${hfFailure.slice(0, 80)})` : model, costUsd: cost, durationMs: Date.now() - t0 });
         await db().from("videos").update({ status: "paid", paid_at: new Date().toISOString(), preview_file: "preview.mp4", clean_file: "preview.mp4", line: scene.label, progress_pct: 100, progress_step: "¡Listo!" }).eq("id", id);
         await track("result_ready", { feature: "video", deviceId: v.device_id, userId: v.user_id, props: { mode: "motion", scene: v.scenario } });
       });
