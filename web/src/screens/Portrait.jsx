@@ -310,7 +310,7 @@ function StepProgress({ portraitId, onReady, onFail }) {
         const p = await getPortrait(portraitId);
         setStep(p.progress_step || "Pintando...");
         setPct(p.progress_pct || 5);
-        if (p.status === "preview_ready") { clearInterval(poll); clearInterval(q); onReady(p); }
+        if (p.status === "preview_ready" || p.status === "paid") { clearInterval(poll); clearInterval(q); onReady(p); }
         else if (p.status === "failed") { clearInterval(poll); clearInterval(q); onFail(p); }
       } catch { /* keep polling */ }
     }, 2500);

@@ -335,7 +335,7 @@ function StepProgress({ storyId, onReady, onFail }) {
         const s = await getStory(storyId);
         setStep(s.progress_step || "Trabajando...");
         setPct(s.progress_pct || 5);
-        if (s.status === "preview_ready") { clearInterval(poll); clearInterval(q); onReady(s); }
+        if (s.status === "preview_ready" || s.status === "paid") { clearInterval(poll); clearInterval(q); onReady(s); }
         else if (s.status === "failed") { clearInterval(poll); clearInterval(q); onFail(s); }
       } catch { /* keep polling */ }
     }, 2500);

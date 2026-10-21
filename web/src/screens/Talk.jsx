@@ -311,7 +311,7 @@ function StepProgress({ talkId, onReady, onFail, kind, nav }) {
       try {
         const t = await getTalk(talkId);
         setStep(t.progress_step || "Creando..."); setPct(t.progress_pct || 5);
-        if (t.status === "preview_ready") { clearInterval(poll); clearInterval(q); onReady(); }
+        if (t.status === "preview_ready" || t.status === "paid") { clearInterval(poll); clearInterval(q); onReady(); }
         else if (t.status === "failed") { clearInterval(poll); clearInterval(q); onFail(); }
       } catch { /* keep polling */ }
     }, 3000);
