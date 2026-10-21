@@ -12,7 +12,7 @@ export type Theme = { label: string; emoji: string; music: string; bonus_scenes:
 export type StyleMode = "paint" | "edit" | "render";
 export type StyleDef = { label: string; emoji: string; desc: string; prompt: string; mode?: StyleMode; group?: "foto" | "pintura" };
 export type Option = { key: string; label: string; emoji: string };
-export type TalkScenario = { label: string; emoji: string; hint: string };
+export type TalkScenario = { label: string; emoji: string; hint: string; group?: string };
 export type Voice = { id: string; label: string };
 
 export const BRAND_NAME = "Petito";
@@ -387,32 +387,73 @@ export const MEMORIAL_STYLES: Record<string, StyleDef> = {
 export const ALL_PORTRAIT_STYLES: Record<string, StyleDef> = { ...PORTRAIT_STYLES, ...MEMORIAL_STYLES };
 
 export const TALK_SCENARIOS: Record<string, TalkScenario> = {
+  // ---- Para reír (what people forward) ----
   "chistoso": {
     "label": "Algo chistoso",
     "emoji": "😄",
-    "hint": "una frase graciosa y tierna saludando a la cámara"
+    "hint": "una frase graciosa y tierna saludando a la cámara",
+    "group": "reir"
   },
+  "queja_comida": {
+    "label": "Se queja de la comida",
+    "emoji": "🍗",
+    "hint": "un reclamo indignado pero adorable por la comida que le dan (poca, tarde, siempre la misma) y lo que exige en cambio",
+    "group": "reir"
+  },
+  "pillado": {
+    "label": "Lo pillaron",
+    "emoji": "🙈",
+    "hint": "una excusa descarada y chistosa porque lo pillaron haciendo una travesura (cama, basura, sillón), sin admitir nada",
+    "group": "reir"
+  },
+  "chisme": {
+    "label": "Chisme del barrio",
+    "emoji": "🐾",
+    "hint": "contar un chisme inventado y chistoso sobre el perro o gato del vecino, con tono de copuchento",
+    "group": "reir"
+  },
+  // ---- Para dedicar (a greeting from the pet) ----
   "cumpleanos": {
     "label": "Feliz cumpleaños",
     "emoji": "🎂",
-    "hint": "un saludo tierno y alegre de feliz cumpleaños a su familia"
+    "hint": "un saludo tierno y alegre de feliz cumpleaños",
+    "group": "dedicar"
   },
   "te_amo": {
     "label": "Te amo",
     "emoji": "❤️",
-    "hint": "una declaración de amor dulce y tierna a su familia"
+    "hint": "una declaración de amor dulce y tierna",
+    "group": "dedicar"
   },
   "te_extrano": {
     "label": "Te extraño",
     "emoji": "🥺",
-    "hint": "decir con ternura cuánto extraña a su familia y que la espera"
+    "hint": "decir con ternura cuánto extraña a esa persona y que la espera",
+    "group": "dedicar"
   },
   "gracias": {
     "label": "Gracias",
     "emoji": "🙏",
-    "hint": "agradecer con cariño a su familia por cuidarlo y quererlo"
+    "hint": "agradecer con cariño por cuidarlo y quererlo",
+    "group": "dedicar"
+  },
+  "mejorate": {
+    "label": "Mejórate pronto",
+    "emoji": "🩹",
+    "hint": "un ánimo tierno y chistoso para alguien enfermo, prometiendo cuidarlo y que se mejore pronto",
+    "group": "dedicar"
+  },
+  "navidad": {
+    "label": "Feliz Navidad",
+    "emoji": "🎄",
+    "hint": "un saludo navideño alegre y tierno, con algo de la Navidad chilena (calor, asado, Viejito Pascuero)",
+    "group": "dedicar"
   }
 };
+export const TALK_SCENARIO_GROUPS: { key: string; label: string }[] = [
+  { key: "reir", label: "Para reír" },
+  { key: "dedicar", label: "Para dedicar" },
+];
 export const TALK_MESSAGE_MAX = 160;
 
 /** "Tu mascota te canta": music styles. `styles` go to ElevenLabs Music, `feel` guides the lyric writer. */

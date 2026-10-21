@@ -29,7 +29,9 @@ export default function Talk() {
   useEffect(() => { activePetName().then((n) => n && setPetName((cur) => cur || n)); }, []);
   const [file, setFile] = useState(null);
   const [voiceId, setVoiceId] = useState("");
-  const [scenario, setScenario] = useState("chistoso");
+  const [scenario, setScenario] = useState(() => {
+    try { return new URLSearchParams(window.location.search).get("scenario") || "chistoso"; } catch { return "chistoso"; }
+  });
   const [message, setMessage] = useState("");
   const [toName, setToName] = useState("");
   const [kind, setKind] = useState(() => {
@@ -210,14 +212,19 @@ function StepMessage({ cfg, scenario, setScenario, message, setMessage, toName, 
         <h2 className="mt-5 font-display font-bold text-2xl text-neutral-900">¿Qué va a decir? 💬</h2>
         <p className="text-sm text-muted-foreground mt-1">Elige una ocasión y, si quieres, escríbele tú el mensaje.</p>
 
-        <div className="mt-5 flex flex-wrap gap-2" data-testid="talk-scenarios">
-          {scenarios.map((s) => (
-            <button key={s.key} onClick={() => setScenario(s.key)} data-testid={`talk-scenario-${s.key}`}
-              className={`px-4 py-2.5 rounded-full border-2 font-display font-semibold text-sm transition-all ${scenario === s.key ? "border-primary bg-primary/10 text-primary" : "border-border bg-white text-neutral-700"}`}>
-              {s.emoji} {s.label}
-            </button>
-          ))}
-        </div>
+        {(cfg.talk_scenario_groups || [{ key: "dedicar", label: "" }]).map((g) => (
+          <div key={g.key} className="mt-4" data-testid={`talk-scenarios-${g.key}`}>
+            {g.label && <div className="text-[11px] font-bold uppercase tracking-wide text-neutral-500 mb-2">{g.label}</div>}
+            <div className="flex flex-wrap gap-2" data-testid="talk-scenarios">
+              {scenarios.filter((s) => (s.group || "dedicar") === g.key).map((s) => (
+                <button key={s.key} onClick={() => setScenario(s.key)} data-testid={`talk-scenario-${s.key}`}
+                  className={`px-4 py-2.5 rounded-full border-2 font-display font-semibold text-sm transition-all ${scenario === s.key ? "border-primary bg-primary/10 text-primary" : "border-border bg-white text-neutral-700"}`}>
+                  {s.emoji} {s.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
 
         </>)}
 

@@ -295,14 +295,17 @@ export default function Universe() {
         {specialDates.length > 0 ? (
           <div className="mt-3 space-y-2.5" data-testid="universe-dates">
             {specialDates.map((d) => (
-              <div key={d.key} className="p-4 rounded-2xl border flex items-center gap-3" style={{ background: "#F6EFE2", borderColor: "#EEE3D2" }} data-testid={`universe-date-${d.key}`}>
+              <button key={d.key} onClick={() => nav(d.key === "birthday" ? "/hablar?kind=song&scenario=cumpleanos" : "/album/nuevo")}
+                className="w-full p-4 rounded-2xl border flex items-center gap-3 text-left" style={{ background: d.days <= 10 ? "#FBEEE4" : "#F6EFE2", borderColor: "#EEE3D2" }} data-testid={`universe-date-${d.key}`}>
                 <div className="w-11 h-11 rounded-xl grid place-items-center shrink-0" style={{ background: "#fff", color: "#B85C3C" }}>{d.icon}</div>
                 <div className="flex-1">
                   <div className="font-display font-bold text-sm" style={{ color: "#3A2A20" }}>{d.label}</div>
-                  <div className="text-xs mt-0.5" style={{ color: "#8A7868" }}>{d.when}</div>
+                  <div className="text-xs mt-0.5" style={{ color: "#8A7868" }}>
+                    {d.days <= 10 ? (d.key === "birthday" ? `${d.when} · Prepara su canción de cumpleaños 🎵` : `${d.when} · Guarda un recuerdo de ese día`) : d.when}
+                  </div>
                 </div>
-                <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: "#FBEEE4", color: "#B85C3C" }}>{d.badge}</span>
-              </div>
+                <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: d.days <= 10 ? "#B85C3C" : "#FBEEE4", color: d.days <= 10 ? "#fff" : "#B85C3C" }}>{d.badge}</span>
+              </button>
             ))}
           </div>
         ) : (
