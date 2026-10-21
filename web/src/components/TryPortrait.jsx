@@ -8,7 +8,7 @@ import { useAuth } from "@/lib/auth";
 import { tryPortrait, getPortrait, mediaUrl, rememberClaim, claimPortrait } from "@/lib/api";
 
 const C = { ink: "#3A2A20", muted: "#8A7868", accent: "#C2683F", line: "#EEE3D2", soft: "#FBF6EE" };
-const STEPS = ["Mirando su carita...", "Eligiendo la pose...", "Pintando cada pelito...", "Un toque de luz...", "Poniéndole el marco..."];
+const STEPS = ["Mirando su carita...", "Encuadrando su mejor pose...", "Eligiendo un fondo que le quede...", "Poniendo la luz de estudio...", "Grabando su placa con nombre..."];
 
 /**
  * "Pruébalo gratis": upload one photo, watch it turn into a painted portrait, no account needed.
@@ -119,32 +119,38 @@ export default function TryPortrait({ title = "Mira a tu mascota como obra de ar
       )}
 
       {(phase === "working" || phase === "failed") && photo && (
-        <>
-          <div className="relative w-full max-w-[280px] mx-auto rounded-2xl overflow-hidden bg-stone-900 border-4 border-white shadow-lg" style={{ aspectRatio: "3 / 4" }} data-testid={`${testid}-working`}>
-            <img src={photo.url} alt="" className="absolute inset-0 w-full h-full object-cover" style={{ filter: phase === "working" ? "saturate(0.85)" : "none" }} />
-            {phase === "working" && (
-              <>
+        <div data-testid={`${testid}-working`}>
+          <div className="flex items-center gap-3">
+            <div className="relative w-16 h-20 shrink-0 rounded-xl overflow-hidden border-2 border-white shadow bg-stone-200">
+              <img src={photo.url} alt="" className="w-full h-full object-cover" />
+              {phase === "working" && (
                 <motion.div className="absolute inset-y-0 w-1/2 pointer-events-none"
-                  style={{ background: "linear-gradient(90deg, transparent, rgba(255,230,180,0.55), transparent)" }}
-                  animate={{ x: ["-120%", "320%"] }} transition={{ repeat: Infinity, duration: 2.2, ease: "easeInOut" }} />
-                <div className="absolute inset-x-0 bottom-0 p-3" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.7), transparent)" }}>
-                  <div className="h-1.5 rounded-full bg-white/25 overflow-hidden"><motion.div className="h-full bg-white" animate={{ width: `${pct}%` }} transition={{ duration: 0.8 }} /></div>
-                  <motion.div key={stepText} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="mt-2 text-white text-sm font-display font-semibold flex items-center gap-1.5">
-                    <Sparkles className="w-4 h-4" /> {stepText}
-                  </motion.div>
-                </div>
-              </>
-            )}
-          </div>
-          {phase === "working" ? (
-            <p className="mt-3 text-center text-xs" style={{ color: C.muted }}>Tarda entre 20 y 60 segundos. No cierres esta página.</p>
-          ) : (
-            <div className="mt-3 text-center">
-              <p className="text-sm" style={{ color: C.muted }}>No pudimos pintar esa foto. Prueba con otra de frente y con buena luz.</p>
-              <button onClick={reset} className="mt-2 text-sm font-bold flex items-center gap-1 mx-auto" style={{ color: C.accent }}><RotateCcw className="w-4 h-4" /> Probar con otra foto</button>
+                  style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.7), transparent)" }}
+                  animate={{ x: ["-120%", "320%"] }} transition={{ repeat: Infinity, duration: 1.6, ease: "easeInOut" }} />
+              )}
             </div>
-          )}
-        </>
+            <div className="flex-1 min-w-0">
+              {phase === "working" ? (
+                <>
+                  <div className="font-display font-bold" style={{ color: C.ink }}>Haciendo su foto de estudio</div>
+                  <motion.div key={stepText} initial={{ opacity: 0, y: 3 }} animate={{ opacity: 1, y: 0 }} className="mt-0.5 text-sm flex items-center gap-1.5" style={{ color: C.muted }}>
+                    <Sparkles className="w-4 h-4 shrink-0" style={{ color: C.accent }} /> {stepText}
+                  </motion.div>
+                  <div className="mt-2 h-1.5 rounded-full overflow-hidden" style={{ background: C.line }}>
+                    <motion.div className="h-full" style={{ background: C.accent }} animate={{ width: `${pct}%` }} transition={{ duration: 0.8 }} />
+                  </div>
+                  <div className="mt-1.5 text-[11px]" style={{ color: "#A7937F" }}>Entre 20 y 60 segundos. No cierres esta página.</div>
+                </>
+              ) : (
+                <>
+                  <div className="font-display font-bold" style={{ color: C.ink }}>No pudimos usar esa foto</div>
+                  <div className="mt-0.5 text-sm" style={{ color: C.muted }}>Prueba con otra, de frente y con buena luz.</div>
+                  <button onClick={reset} className="mt-2 text-sm font-bold flex items-center gap-1" style={{ color: C.accent }}><RotateCcw className="w-4 h-4" /> Probar con otra foto</button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
       {phase === "ready" && result && (
