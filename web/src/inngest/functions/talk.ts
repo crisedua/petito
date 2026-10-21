@@ -118,7 +118,13 @@ export const generateTalk = inngest.createFunction(
         await storage.put(id, "source.jpg", photoBuf, "image/jpeg");
         await storage.put(id, "source_hd.jpg", photoBuf, "image/jpeg");
         await db().from("videos").update({ progress_step: "Grabando la escena (1 a 3 minutos)...", progress_pct: 35 }).eq("id", id);
-        return fal.submitMotion(photoBuf, scene.prompt, MOTION_SECONDS);
+        try {
+          return await fal.submitMotion(photoBuf, scene.prompt, MOTION_SECONDS);
+        } catch (e) {
+          // A refused key or empty balance won't fix itself on retry: fail now instead of after minutes.
+          if (e instanceof fal.PermanentFalError) throw new NonRetriableError(e.message);
+          throw e;
+        }
       });
       const url = await awaitFal(step, "motion-fal", fal.FAL_MOTION_MODEL, requestId, 60, creepingProgress("videos", id, "Grabando la escena (1 a 3 minutos)...", 35, 95));
       await step.run("motion-save", async () => {

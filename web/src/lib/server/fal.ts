@@ -166,3 +166,15 @@ export async function submitMotion(imageJpeg: Buffer, scenePrompt: string, secon
   }
   return submit(FAL_MOTION_MODEL, { prompt, elements: [{ frontal_image_url: imageUrl }], duration: String(seconds), aspect_ratio: "9:16" });
 }
+
+/** Cheap check that fal accepts our key (uploads 1 byte to fal storage; no generation, no cost). */
+export async function falKeyCheck(): Promise<{ ok: boolean; status?: number; reason?: string }> {
+  if (!env.falKey) return { ok: false, reason: "FAL_KEY no está configurada" };
+  try {
+    await fal().storage.upload(new Blob([new Uint8Array([0])], { type: "application/octet-stream" }));
+    return { ok: true };
+  } catch (e: any) {
+    const st = Number(e?.status ?? 0) || undefined;
+    return { ok: false, status: st, reason: falReason(st ?? 0, e) };
+  }
+}
