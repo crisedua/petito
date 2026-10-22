@@ -1,7 +1,7 @@
 import { lastCheckoutFeature, trackLater } from "@/lib/server/events";
 import { fail, handler, json, originFrom, readJson } from "@/lib/server/http";
 import { requireUser } from "@/lib/server/auth";
-import { PLUS_PLANS, isPlus, type PlanKey } from "@/lib/server/plus";
+import { PLUS_PLANS, planTier, plusTier, tierLabel, type PlanKey } from "@/lib/server/plus";
 import { createPreapproval, getSellerEmail, mpEnabled, MpHttpError } from "@/lib/server/mercadopago";
 import { db } from "@/lib/server/db";
 import { isoNow, newId } from "@/lib/server/ids";
@@ -12,7 +12,8 @@ export const POST = handler(async (req: Request) => {
   const body = await readJson<{ plan?: string; email?: string; from?: string }>(req);
   if (!body.plan || !(body.plan in PLUS_PLANS)) throw fail(400, "Plan inválido");
   const plan = body.plan as PlanKey;
-  if (await isPlus(user.user_id)) throw fail(400, "Ya tienes Petito Plus activo");
+  const current = await plusTier(user.user_id);
+  if (current === "pro" || (current === "plus" && planTier(plan) === "plus")) throw fail(400, `Ya tienes ${tierLabel(current)} activo`);
   if (!mpEnabled()) throw fail(503, "Pagos no disponibles");
   // Mercado Pago requires the payer email to match the account that pays; the user confirms it.
   const payerEmail = (body.email || user.email || "").trim();

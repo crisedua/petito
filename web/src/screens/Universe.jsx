@@ -92,7 +92,7 @@ export default function Universe() {
       setActivePetId(chosen.id);
       loadCreations(chosen.id);
     }).catch(() => nav("/", { replace: true }));
-    plusStatus().then((s) => setPlus(s.active)).catch(() => {});
+    plusStatus().then((s) => setPlus(s.active ? (s.tier === "pro" ? "Plus+" : "Plus") : false)).catch(() => {});
     friendsSummary().then((s) => setFriendRequests(s.pending)).catch(() => {});
     if (new URLSearchParams(window.location.search).get("plus") === "success") {
       toast.success("¡Bienvenido a Petito Plus! 👑 Ahora todo es ilimitado.");
@@ -167,7 +167,7 @@ export default function Universe() {
       <div className="flex items-center justify-between px-6 pt-3">
         {plus ? (
           <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-display font-bold text-stone-900" style={{ background: "#F5C355" }} data-testid="universe-plus-badge">
-            <Crown className="w-3.5 h-3.5" /> Plus
+            <Crown className="w-3.5 h-3.5" /> {plus}
           </span>
         ) : (
           <button onClick={() => nav("/plus")} data-testid="universe-plus-cta"

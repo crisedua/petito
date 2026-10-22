@@ -115,6 +115,7 @@ function UserDetail({ id, onBack, onChanged }) {
   const [d, setD] = useState(null);
   const [form, setForm] = useState({ name: "", email: "", admin_note: "" });
   const [duration, setDuration] = useState("year");
+  const [grantTier, setGrantTier] = useState("plus");
   const [until, setUntil] = useState("");
   const [busy, setBusy] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -136,7 +137,7 @@ function UserDetail({ id, onBack, onChanged }) {
   };
   const dirty = form.name !== (d.name || "") || form.email !== d.email || form.admin_note !== (d.admin_note || "");
   const save = () => run(() => adminUpdateUser(id, form), "Datos guardados");
-  const grant = () => run(() => adminSetPlus(id, true, { duration, until }), "Pro activado");
+  const grant = () => run(() => adminSetPlus(id, true, { duration, until, tier: grantTier }), grantTier === "pro" ? "Plus+ activado" : "Plus activado");
   const revoke = () => run(() => adminSetPlus(id, false), (r) => r.mp_failed?.length
     ? "Pro quitado, pero Mercado Pago no confirmó la cancelación. Revísalo en Mercado Pago."
     : r.mp_canceled?.length ? "Pro quitado y suscripción de Mercado Pago cancelada" : "Pro quitado");
@@ -171,7 +172,7 @@ function UserDetail({ id, onBack, onChanged }) {
           </div>
         </div>
         <div className="mt-3 flex flex-wrap gap-1.5" data-testid="admin-user-badges">
-          {d.is_plus ? <Badge tone="plus">👑 PRO</Badge> : <Badge>GRATIS</Badge>}
+          {d.is_plus ? <Badge tone="plus">{d.plus?.tier === "pro" ? "👑 PLUS+" : "👑 PLUS"}</Badge> : <Badge>GRATIS</Badge>}
           {d.is_admin && <Badge tone="admin">{d.owner_admin ? "ADMIN (FIJO)" : "ADMIN"}</Badge>}
           {d.suspended && <Badge tone="danger">SUSPENDIDA</Badge>}
           {!d.linked && <Badge tone="muted">AÚN NO ENTRA</Badge>}
@@ -200,11 +201,11 @@ function UserDetail({ id, onBack, onChanged }) {
           className="mt-2 w-full h-10 rounded-xl bg-primary text-white text-sm font-bold disabled:opacity-40">Guardar cambios</button>
       </Section>
 
-      <Section title="Cuenta Pro (Petito Plus)" testid="admin-user-plus">
+      <Section title="Plan (Petito Plus / Plus+)" testid="admin-user-plus">
         <div className="text-sm" data-testid="admin-plus-status">
           {cur ? (
             <>
-              <div className="font-display font-bold text-amber-700">👑 Pro activo · {SOURCE_LABEL[cur.source] || cur.source}</div>
+              <div className="font-display font-bold text-amber-700">👑 {String(cur.plan).startsWith("pro_") ? "Plus+" : "Plus"} activo · {SOURCE_LABEL[cur.source] || cur.source}</div>
               <div className="text-xs text-muted-foreground mt-0.5">
                 {cur.until ? `Hasta ${fmtDate(cur.until)}` : "Sin fecha de término"}
                 {cur.source === "mercadopago" && cur.next_payment_date ? ` · próximo cobro ${fmtDate(cur.next_payment_date)}` : ""}
@@ -212,14 +213,20 @@ function UserDetail({ id, onBack, onChanged }) {
               </div>
             </>
           ) : d.is_plus && d.is_admin ? (
-            <div className="font-display font-bold text-amber-700">👑 Pro incluido por ser administrador</div>
+            <div className="font-display font-bold text-amber-700">👑 Plus+ incluido por ser administrador</div>
           ) : <div className="font-display font-semibold text-neutral-600">Cuenta gratis</div>}
         </div>
-        <div className="mt-3 text-[11px] font-semibold text-neutral-500">{cur ? "Cambiar duración (cortesía)" : "Dar Pro de cortesía"}</div>
+        <div className="mt-3 text-[11px] font-semibold text-neutral-500">{cur ? "Cambiar plan o duración (cortesía)" : "Dar un plan de cortesía"}</div>
+        <div className="mt-1.5 grid grid-cols-2 gap-1.5" data-testid="admin-plus-tier">
+          {[["plus", "Plus"], ["pro", "Plus+ (canta y baila)"]].map(([k, l]) => (
+            <button key={k} onClick={() => setGrantTier(k)} data-testid={`admin-plus-tier-${k}`}
+              className={`h-9 rounded-xl text-xs font-bold border ${grantTier === k ? "bg-amber-100 border-amber-400 text-amber-900" : "bg-white border-border text-neutral-600"}`}>{l}</button>
+          ))}
+        </div>
         <div className="mt-1.5"><PlusPicker value={duration} setValue={setDuration} until={until} setUntil={setUntil} /></div>
         <button onClick={grant} disabled={busy || (duration === "until" && !until)} data-testid="admin-plus-grant"
           className="mt-2 w-full h-10 rounded-xl text-sm font-bold text-stone-900 inline-flex items-center justify-center gap-1.5 disabled:opacity-40" style={{ background: "#F5C355" }}>
-          <Crown className="w-4 h-4" /> {cur ? "Aplicar" : "Dar Pro"}
+          <Crown className="w-4 h-4" /> {cur ? "Aplicar" : grantTier === "pro" ? "Dar Plus+" : "Dar Plus"}
         </button>
         {d.is_plus && (
           <div className="mt-3 flex items-center justify-between">
@@ -236,7 +243,7 @@ function UserDetail({ id, onBack, onChanged }) {
               <div className="mt-2 space-y-1.5" data-testid="admin-plus-history">
                 {d.plus.history.map((h) => (
                   <div key={h.id} className="text-[11px] flex items-center justify-between rounded-lg bg-neutral-50 px-2.5 py-1.5">
-                    <span className="font-semibold text-neutral-700">{SOURCE_LABEL[h.source] || h.source} · {h.plan === "annual" ? "anual" : "mensual"}</span>
+                    <span className="font-semibold text-neutral-700">{SOURCE_LABEL[h.source] || h.source} · {String(h.plan).startsWith("pro_") ? "Plus+ " : "Plus "}{String(h.plan).endsWith("annual") ? "anual" : "mensual"}</span>
                     <span className="text-muted-foreground">{h.active ? "activo" : h.status || "inactivo"} · {h.until ? fmtDate(h.until) : "sin término"}</span>
                   </div>
                 ))}

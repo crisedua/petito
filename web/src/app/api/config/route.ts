@@ -34,5 +34,8 @@ export const GET = handler(async () => {
     motion_scenes: Object.entries(MOTION_SCENES).map(([key, v]) => ({ key, label: v.label, emoji: v.emoji, dance: Boolean(v.choreo) })),
     plus_monthly_clp: env.plusMonthlyClp,
     plus_annual_clp: env.plusAnnualClp,
+    plus_pro_monthly_clp: env.plusProMonthlyClp,
+    plus_pro_annual_clp: env.plusProAnnualClp,
+    plus_pro_monthly_videos: env.plusProMonthlyVideos,
   });
 });

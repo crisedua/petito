@@ -59,7 +59,7 @@ export default function Talk() {
       await generateTalk(t.id);
       setStep("progress");
     } catch (e) {
-      if (e?.response?.status === 402) { toast.info(e.response.data?.detail || "Esta función es parte de Petito Plus"); nav("/plus?from=video"); return; }
+      if (e?.response?.status === 402) { toast.info(e.response.data?.detail || "Esta función es parte de Petito Plus+"); nav("/plus?from=video&tier=pro"); return; }
       toast.error(e?.response?.data?.detail || "No se pudo iniciar");
     } finally { setBusy(false); }
   };
@@ -172,13 +172,16 @@ function StepMessage({ cfg, scenario, setScenario, message, setMessage, toName, 
         <div className="grid grid-cols-3 gap-1 p-1 rounded-2xl bg-white border border-border" data-testid="talk-kind">
           {[["talk", "🗣️ Habla"], ["song", "🎤 Canta"], ["motion", "🎬 Se mueve"]].map(([k, l]) => (
             <button key={k} onClick={() => setKind(k)} data-testid={`talk-kind-${k}`}
-              className={`h-11 rounded-xl font-display font-semibold text-sm transition-all ${kind === k ? "bg-primary text-white shadow" : "text-neutral-700"}`}>{l}</button>
+              className={`relative h-11 rounded-xl font-display font-semibold text-sm transition-all ${kind === k ? "bg-primary text-white shadow" : "text-neutral-700"}`}>
+              {l}
+              {k !== "talk" && <span className="absolute -top-2 right-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full text-stone-900" style={{ background: "#F5C355" }}>Plus+</span>}
+            </button>
           ))}
         </div>
         {motion ? (
           <>
             <h2 className="mt-5 font-display font-bold text-2xl text-neutral-900">Tu mascota en acción 🎬</h2>
-            <p className="text-sm text-muted-foreground mt-1">Un video corto de tu mascota real, con su misma cara y pelaje, haciendo algo que nunca hizo. Solo Petito Plus.</p>
+            <p className="text-sm text-muted-foreground mt-1">Un video corto de tu mascota real, con su misma cara y pelaje, haciendo algo que nunca hizo. Solo Petito Plus+.</p>
             {[["Bailes", "Una coreografía real, bailada por tu mascota", true], ["Escenas", "Tu mascota en un lugar o situación", false]].map(([title, sub, dance]) => (
               <div key={title}>
                 <label className="block mt-5 text-sm font-semibold text-neutral-700">{title}</label>
@@ -197,7 +200,7 @@ function StepMessage({ cfg, scenario, setScenario, message, setMessage, toName, 
         ) : song ? (
           <>
             <h2 className="mt-5 font-display font-bold text-2xl text-neutral-900">Su propia canción 🎶</h2>
-            <p className="text-sm text-muted-foreground mt-1">Escribimos una canción original sobre tu mascota, con su nombre, su personalidad y un recuerdo de ustedes, y la canta en video. Solo Petito Plus.</p>
+            <p className="text-sm text-muted-foreground mt-1">Escribimos una canción original sobre tu mascota, con su nombre, su personalidad y un recuerdo de ustedes, y la canta en video. Solo Petito Plus+.</p>
             <label className="block mt-5 text-sm font-semibold text-neutral-700 mb-2">Estilo musical</label>
             <div className="flex flex-wrap gap-2" data-testid="talk-song-styles">
               {(cfg.song_styles || []).map((s) => (
