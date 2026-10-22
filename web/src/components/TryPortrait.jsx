@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { shareLink } from "@/lib/share";
 import { Camera, Loader2, Sparkles, Share2, Crown, RotateCcw, ArrowRight } from "lucide-react";
 import { useNavigate } from "@/lib/router";
 import { useAuth } from "@/lib/auth";
@@ -82,8 +83,7 @@ export default function TryPortrait({ title = "Mira a tu mascota como obra de ar
   const share = async () => {
     const url = `${window.location.origin}/r/${job.slug}`;
     const text = `¡Mira cómo quedó ${name.trim() || "mi mascota"} en Petito! 👑🐾`;
-    if (navigator.share) { try { await navigator.share({ title: "Petito", text, url }); } catch { /* cancelled */ } }
-    else window.open(`https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`, "_blank");
+    await shareLink({ text, url });
   };
 
   const resultUrl = result ? mediaUrl(result.paid ? result.clean_url : result.preview_url) : null;

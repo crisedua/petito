@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "@/lib/router";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { shareLink } from "@/lib/share";
 import {
   PawPrint, ArrowRight, ArrowLeft, X, Check, ImagePlus, Loader2, Lock, Crown,
   Download, Share2, Copy, Heart,
@@ -436,11 +437,7 @@ function StepResult({ story, setStory, storyId, slug, cfg, price, nav, onAnother
 
   const shareNative = async () => {
     const text = `¡Mira la historia de ${story.pet_name} en Petito! 🐾`;
-    if (navigator.share) {
-      try { await navigator.share({ title: "Petito", text, url: shareUrl }); } catch { /* cancelled */ }
-    } else {
-      window.open(`https://wa.me/?text=${encodeURIComponent(text + " " + shareUrl)}`, "_blank");
-    }
+    await shareLink({ text, url: shareUrl });
   };
 
   return (

@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "@/lib/router";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { shareLink, shareImage } from "@/lib/share";
 import {
   PawPrint, ArrowRight, ArrowLeft, X, Check, ImagePlus, Loader2, Crown,
   Download, Share2, Copy, Gift, Lock, Sparkles,
@@ -384,17 +385,7 @@ function StepProgress({ portraitId, onReady, onFail }) {
 /** Shares the before-and-after image itself where the browser allows it (WhatsApp, Instagram); otherwise the link. */
 export async function shareBeforeAfter(imgUrl, petName, link) {
   const text = `Mira el antes y después de ${petName || "mi mascota"} en Petito 👑🐾`;
-  try {
-    if (imgUrl && navigator.canShare) {
-      const blob = await (await fetch(imgUrl)).blob();
-      if (blob.size > 1000) {
-        const file = new File([blob], `petito-${petName || "mascota"}-antes-despues.jpg`, { type: "image/jpeg" });
-        if (navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: "Petito", text: `${text} ${link}` }); return; }
-      }
-    }
-    if (navigator.share) { await navigator.share({ title: "Petito", text, url: link }); return; }
-  } catch { return; /* cancelled */ }
-  window.open(imgUrl || `https://wa.me/?text=${encodeURIComponent(`${text} ${link}`)}`, "_blank");
+  return shareImage({ text, url: link, imageUrl: imgUrl, fileName: `petito-${petName || "mascota"}-antes-despues.jpg` });
 }
 
 /** After a result, one concrete next thing to make (keeps the momentum going). */
@@ -464,11 +455,7 @@ function StepResult({ portrait, setPortrait, portraitId, slug, cfg, price, nav }
     const text = portrait?.gift_enabled
       ? `Te tengo un regalo de Petito 🎁🐾`
       : `¡Mira el retrato de realeza de ${portrait?.pet_name || "mi mascota"} en Petito! 👑🐾`;
-    if (navigator.share) {
-      try { await navigator.share({ title: "Petito", text, url: giftUrl }); } catch { /* cancelled */ }
-    } else {
-      window.open(`https://wa.me/?text=${encodeURIComponent(text + " " + giftUrl)}`, "_blank");
-    }
+    await shareLink({ text, url: giftUrl });
   };
 
   return (

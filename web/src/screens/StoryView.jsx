@@ -3,6 +3,7 @@ import { HomeLink } from "@/components/HomeLink";
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "@/lib/router";
 import { toast } from "sonner";
+import { shareLink } from "@/lib/share";
 import { Loader2, PawPrint, Download, Share2, Copy, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getStoryBySlug, mediaUrl } from "@/lib/api";
@@ -52,8 +53,7 @@ export default function StoryView() {
 
   const shareNative = async () => {
     const text = `¡Mira la historia de ${story.pet_name} en Petito! 🐾`;
-    if (navigator.share) { try { await navigator.share({ title: "Petito", text, url: shareUrl }); } catch {} }
-    else window.open(`https://wa.me/?text=${encodeURIComponent(text + " " + shareUrl)}`, "_blank");
+    await shareLink({ text, url: shareUrl });
   };
 
   if (loading) return <div className="mobile-frame grid place-items-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;

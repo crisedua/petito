@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "@/lib/router";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { shareLink } from "@/lib/share";
 import { PawPrint, Loader2, Volume2, VolumeX, Share2, Copy, Download, Sparkles, Mic, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getTalkBySlug, talkCheckout, getConfig, mediaUrl } from "@/lib/api";
@@ -68,8 +69,7 @@ export default function TalkView() {
 
   const share = async () => {
     const text = t.motion ? `¡Mira a ${t.pet_name || "mi mascota"} en acción! 🎬🐾` : t.song ? `${t.to_name ? t.to_name + ", " : ""}${t.pet_name || "mi mascota"} te canta una canción 🎤🐾` : t.to_name ? `${t.to_name}, ${t.pet_name || "mi mascota"} te mandó un videomensaje 💌🐾` : `¡Mira a ${t.pet_name || "mi mascota"} hablando en Petito! 🐾🗣️`;
-    if (navigator.share) { try { await navigator.share({ title: "Petito", text, url: shareUrl }); } catch { /**/ } }
-    else window.open(`https://wa.me/?text=${encodeURIComponent(text + " " + shareUrl)}`, "_blank");
+    await shareLink({ text, url: shareUrl });
   };
 
   const download = async () => {

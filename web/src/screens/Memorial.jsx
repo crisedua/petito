@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "@/lib/router";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { shareLink } from "@/lib/share";
 import {
   ArrowRight, ArrowLeft, X, Check, ImagePlus, Loader2, Heart, Download, Share2, Copy, Sparkles,
 } from "lucide-react";
@@ -285,8 +286,7 @@ function StepResult({ portrait, setPortrait, portraitId, slug, cfg, price, capti
 
   const share = async () => {
     const text = `Un recuerdo de ${portrait?.pet_name || "mi mascota"} 🤍`;
-    if (navigator.share) { try { await navigator.share({ title: "Petito", text, url: shareUrl }); } catch { /**/ } }
-    else window.open(`https://wa.me/?text=${encodeURIComponent(text + " " + shareUrl)}`, "_blank");
+    await shareLink({ text, url: shareUrl });
   };
 
   return (
