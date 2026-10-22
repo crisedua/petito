@@ -162,6 +162,7 @@ function StepPhoto({ nav, cfg, petName, setPetName, file, setFile, onNext }) {
 }
 
 function StepMessage({ cfg, scenario, setScenario, message, setMessage, toName, setToName, kind, setKind, songStyle, setSongStyle, scene, setScene, busy, onBack, onNext }) {
+  const [own, setOwn] = useState(Boolean(message)); // the owner types the line, or Petito writes it from an occasion
   const max = cfg.talk_message_max || 160;
   const scenarios = cfg.talk_scenarios || [];
   const song = kind === "song", motion = kind === "motion";
@@ -213,9 +214,27 @@ function StepMessage({ cfg, scenario, setScenario, message, setMessage, toName, 
           </>
         ) : (<>
         <h2 className="mt-5 font-display font-bold text-2xl text-neutral-900">¿Qué va a decir? 💬</h2>
-        <p className="text-sm text-muted-foreground mt-1">Elige una ocasión y, si quieres, escríbele tú el mensaje.</p>
+        <div className="mt-3 grid grid-cols-2 gap-2" data-testid="talk-message-mode">
+          {[[true, "✍️ Lo escribo yo", "Dice tu mensaje, palabra por palabra"], [false, "✨ Que Petito lo invente", "Elige una ocasión y lo escribimos"]].map(([mine, title, sub]) => (
+            <button key={title} onClick={() => { setOwn(mine); if (!mine) setMessage(""); }} data-testid={mine ? "talk-mode-own" : "talk-mode-ai"}
+              className={`p-3 rounded-2xl border-2 text-left transition-all ${own === mine ? "border-primary bg-primary/10" : "border-border bg-white"}`}>
+              <div className={`font-display font-bold text-sm ${own === mine ? "text-primary" : "text-neutral-800"}`}>{title}</div>
+              <div className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{sub}</div>
+            </button>
+          ))}
+        </div>
 
-        {(cfg.talk_scenario_groups || [{ key: "dedicar", label: "" }]).map((g) => (
+        {own ? (
+          <div className="mt-4" data-testid="talk-own-message">
+            <textarea value={message} onChange={(e) => setMessage(e.target.value.slice(0, max))} rows={3} autoFocus
+              placeholder="Ej: ¡Chúpalo, Alexítico! 😜" data-testid="talk-message-input"
+              className="w-full p-4 rounded-2xl bg-white border-2 border-primary/40 outline-none font-display text-base resize-none" />
+            <div className="mt-1.5 flex items-center justify-between text-xs text-muted-foreground">
+              <span>Tu mascota dirá exactamente esto. No hace falta poner comillas.</span>
+              <span data-testid="talk-message-counter">{message.length}/{max}</span>
+            </div>
+          </div>
+        ) : (cfg.talk_scenario_groups || [{ key: "dedicar", label: "" }]).map((g) => (
           <div key={g.key} className="mt-4" data-testid={`talk-scenarios-${g.key}`}>
             {g.label && <div className="text-[11px] font-bold uppercase tracking-wide text-neutral-500 mb-2">{g.label}</div>}
             <div className="flex flex-wrap gap-2" data-testid="talk-scenarios">
@@ -228,7 +247,6 @@ function StepMessage({ cfg, scenario, setScenario, message, setMessage, toName, 
             </div>
           </div>
         ))}
-
         </>)}
 
         {!motion && (<>
@@ -240,21 +258,9 @@ function StepMessage({ cfg, scenario, setScenario, message, setMessage, toName, 
           className="h-12 rounded-2xl bg-white" />
         </>)}
 
-        {!song && !motion && (<>
-        <label className="block mt-6 text-sm font-semibold text-neutral-700 mb-2">
-          Escríbele tú el mensaje <span className="text-muted-foreground font-normal">(opcional)</span>
-        </label>
-        <textarea value={message} onChange={(e) => setMessage(e.target.value.slice(0, max))} rows={3}
-          placeholder="Ej: ¡Feliz cumpleaños, mamá! Te quiero un montón 🐾" data-testid="talk-message-input"
-          className="w-full p-4 rounded-2xl bg-white border border-border outline-none font-display text-base resize-none" />
-        <div className="mt-1.5 flex items-center justify-between text-xs text-muted-foreground">
-          <span>{message.trim() ? "Diremos exactamente esto" : "Si lo dejas vacío, la IA lo inventa según la ocasión"}</span>
-          <span data-testid="talk-message-counter">{message.length}/{max}</span>
-        </div>
-        </>)}
       </div>
       <BottomBar>
-        <Button onClick={onNext} disabled={busy} className="w-full h-14 text-base font-display font-semibold rounded-2xl" data-testid="talk-message-next">
+        <Button onClick={() => (!song && !motion && own && !message.trim() ? toast.error("Escribe el mensaje que dirá tu mascota") : onNext())} disabled={busy} className="w-full h-14 text-base font-display font-semibold rounded-2xl" data-testid="talk-message-next">
           {busy ? <><Loader2 className="w-5 h-5 animate-spin mr-2" /> Preparando...</> : song ? <>🎤 Crear su canción</> : motion ? <>🎬 Crear el video</> : <>Elegir la voz <ArrowRight className="w-5 h-5 ml-1" /></>}
         </Button>
       </BottomBar>
