@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from "@/lib/router";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { ArrowLeft, Loader2, Crown, Sparkles, Infinity as InfinityIcon, Share2, Mic, Info, AlertCircle, Music, Clapperboard, Image as ImageIcon, BookHeart } from "lucide-react";
-import { plusStatus, plusSubscribe, plusSync, plusCancel, plusDevActivate, plusAdminActivate, plusAdminDeactivate } from "@/lib/api";
+import { getConfig, plusStatus, plusSubscribe, plusSync, plusCancel, plusDevActivate, plusAdminActivate, plusAdminDeactivate } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 
 const PLUS_BENEFITS = [
@@ -27,7 +27,7 @@ const TIER_NAME = { plus: "Petito Plus", pro: "Petito Plus+" };
 export default function Plus() {
   const nav = useNavigate();
   const [params] = useSearchParams();
-  const { user } = useAuth();
+  const { user, loading, login } = useAuth();
   const [st, setSt] = useState(null);
   const [tier, setTier] = useState(params.get("tier") === "pro" ? "pro" : "plus");
   const [period, setPeriod] = useState("annual");
@@ -36,12 +36,22 @@ export default function Plus() {
   const [email, setEmail] = useState("");
   const [payHelp, setPayHelp] = useState(false);
 
-  const load = () => plusStatus().then((d) => { setSt(d); if (d?.tier === "plus") setTier("pro"); return d; }).catch(() => null);
+  // Visitors without an account see the plans and prices from the public config.
+  const loadPublic = () => getConfig().then((c) => {
+    const d = {
+      active: false, tier: "none", anon: true, monthly_clp: c.plus_monthly_clp, annual_clp: c.plus_annual_clp,
+      pro_monthly_clp: c.plus_pro_monthly_clp, pro_annual_clp: c.plus_pro_annual_clp,
+      allowance: { premium_limit: c.plus_pro_monthly_videos ?? 0 },
+    };
+    setSt(d); return d;
+  }).catch(() => null);
+  const load = () => (user ? plusStatus().then((d) => { setSt(d); if (d?.tier === "plus") setTier("pro"); return d; }).catch(() => null) : loadPublic());
 
   useEffect(() => { if (user?.email && !email) setEmail(user.email); }, [user]); // eslint-disable-line
 
   useEffect(() => {
-    if (params.get("pago") === "success") {
+    if (loading) return;
+    if (params.get("pago") === "success" && user) {
       setSyncing(true);
       plusSync()
         .then(() => load())
@@ -50,7 +60,7 @@ export default function Plus() {
     } else {
       load();
     }
-  }, []); // eslint-disable-line
+  }, [loading, user]); // eslint-disable-line
 
   const planKey = tier === "pro" ? `pro_${period}` : period;
 
@@ -106,7 +116,7 @@ export default function Plus() {
   return (
     <div className="mobile-frame" style={{ background: "linear-gradient(170deg,#3A2416,#241812)" }} data-testid="plus-screen">
       <div className="flex items-center gap-3 px-5 pt-5">
-        <button onClick={() => nav("/universo")} data-testid="plus-back" className="w-9 h-9 rounded-full grid place-items-center" style={{ background: "rgba(255,255,255,0.1)" }}>
+        <button onClick={() => nav(user ? "/universo" : "/")} data-testid="plus-back" className="w-9 h-9 rounded-full grid place-items-center" style={{ background: "rgba(255,255,255,0.1)" }}>
           <ArrowLeft className="w-4 h-4 text-amber-100" />
         </button>
         <div className="flex items-center gap-1.5 font-display font-bold text-amber-100"><Crown className="w-5 h-5 text-amber-300" /> Petito Plus</div>
@@ -217,7 +227,16 @@ export default function Plus() {
 
             <PeriodPicker st={st} tier={tier} period={period} setPeriod={setPeriod} />
 
-            {!preview && (<>
+            {st.anon && (
+              <>
+                <button onClick={() => login(`/plus?tier=${tier}`)} data-testid="plus-login-to-subscribe"
+                  className="mt-7 w-full py-4 rounded-2xl font-display font-bold text-lg text-stone-900 flex items-center justify-center gap-2" style={{ background: "#F5C355" }}>
+                  <Crown className="w-5 h-5" /> Entrar con Google para suscribirme
+                </button>
+                <p className="mt-3 text-center text-[11px] text-amber-100/50">Se paga con Mercado Pago. Puedes cancelar cuando quieras.</p>
+              </>
+            )}
+            {!preview && !st.anon && (<>
             <div className="mt-6" data-testid="plus-mp-email-block">
               <label className="text-xs font-display font-semibold text-amber-100/85">Correo de tu cuenta de Mercado Pago</label>
               <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" inputMode="email" data-testid="plus-mp-email"

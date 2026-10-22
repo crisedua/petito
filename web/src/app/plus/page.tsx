@@ -1,4 +1,5 @@
 "use client";
 import { screen } from "@/components/app/Screen";
 
-export default screen(() => import("@/screens/Plus"), "Inicia sesión para hacerte Petito Plus 👑");
+// Public: anyone can see the plans; subscribing asks for Google sign-in.
+export default screen(() => import("@/screens/Plus"));

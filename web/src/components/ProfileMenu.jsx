@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "@/lib/router";
-import { LogOut, Images, LogIn, Users, Smartphone, ShieldCheck, Camera } from "lucide-react";
+import { LogOut, Images, LogIn, Users, Smartphone, ShieldCheck, Camera, Crown } from "lucide-react";
 import { openInstallSheet, useInstallOffer } from "@/components/app/InstallPrompt";
 import { isMobile } from "@/lib/install";
 import { useAuth } from "@/lib/auth";
@@ -51,6 +51,10 @@ export function ProfileMenu() {
           <button onClick={() => { setOpen(false); nav("/mis-creaciones"); }} data-testid="menu-my-creations"
             className="w-full flex items-center gap-2.5 px-4 py-3 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 border-t border-border">
             <Images className="w-4 h-4 text-primary" /> Mis creaciones
+          </button>
+          <button onClick={() => { setOpen(false); nav("/plus"); }} data-testid="menu-plans"
+            className="w-full flex items-center gap-2.5 px-4 py-3 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 border-t border-border">
+            <Crown className="w-4 h-4 text-primary" /> Planes y precios
           </button>
           <button onClick={() => { setOpen(false); nav("/amigos"); }} data-testid="menu-friends"
             className="w-full flex items-center gap-2.5 px-4 py-3 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 border-t border-border">

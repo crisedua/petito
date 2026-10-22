@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { PawPrint, ArrowRight, Sparkles, Heart, BookHeart, Mic, Camera, Loader2 } from "lucide-react";
 import { ProfileMenu } from "@/components/ProfileMenu";
 import { useAuth } from "@/lib/auth";
-import { createTalkPreview, getPets } from "@/lib/api";
+import { createTalkPreview, getConfig, getPets } from "@/lib/api";
 import TryPortrait from "@/components/TryPortrait";
 
 const HERO_IMG = "https://images.unsplash.com/photo-1558788353-f76d92427f16?crop=entropy&cs=srgb&fm=jpg&q=85&w=900";
@@ -114,6 +114,8 @@ export default function Landing() {
           </button>
         )}
 
+        <Plans onOpen={(t) => nav(`/plus${t ? `?tier=${t}` : ""}`)} />
+
         <div id="como-funciona" className="mt-12 scroll-mt-4">
           <h2 className="font-display font-bold text-lg" style={{ color: "#3A2A20" }}>Cómo funciona</h2>
           <div className="mt-4 space-y-3">
@@ -210,6 +212,39 @@ function VoicePreviewCard({ onDone }) {
         {busy ? <><Loader2 className="w-5 h-5 animate-spin" /> Subiendo su foto...</>
           : photo ? <><Mic className="w-5 h-5" /> Darle voz</> : <><Camera className="w-5 h-5" /> Subir su foto</>}
       </button>
+    </div>
+  );
+}
+
+const clp = (n) => "$" + (n || 0).toLocaleString("es-CL");
+
+/** Public pricing: what's free, Plus and Plus+, with the monthly price. */
+function Plans({ onOpen }) {
+  const [c, setC] = useState(null);
+  useEffect(() => { getConfig().then(setC).catch(() => {}); }, []);
+  if (!c) return null;
+  const tiers = [
+    { key: null, name: "Gratis", price: "$0", items: ["Su foto de estudio en un minuto", "Vistas previas de retratos, videos e historias"], dark: false },
+    { key: "plus", name: "Petito Plus", price: `${clp(c.plus_monthly_clp)}/mes`, items: ["Retratos e historias en HD, sin sello", "Videos donde tu mascota te habla", "Mascotas ilimitadas"], dark: false },
+    { key: "pro", name: "Petito Plus+", price: `${clp(c.plus_pro_monthly_clp)}/mes`, items: ["Todo lo de Plus", "Tu mascota te canta y baila en video", c.plus_pro_monthly_videos > 0 ? `${c.plus_pro_monthly_videos} canciones o bailes al mes` : "Canciones y bailes sin límite"], dark: true },
+  ];
+  return (
+    <div className="mt-10" data-testid="landing-plans">
+      <h2 className="font-display font-bold text-lg" style={{ color: "#3A2A20" }}>Planes</h2>
+      <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
+        {tiers.map((t) => (
+          <button key={t.name} onClick={() => onOpen(t.key)} data-testid={`landing-plan-${t.key || "free"}`}
+            className="p-4 rounded-2xl border text-left flex flex-col" style={t.dark ? { background: "linear-gradient(170deg,#3A2416,#241812)", borderColor: "#3A2416" } : { background: "#fff", borderColor: "#EEE3D2" }}>
+            <div className="font-display font-bold" style={{ color: t.dark ? "#FDE68A" : "#3A2A20" }}>{t.name}</div>
+            <div className="mt-0.5 font-display font-bold text-xl" style={{ color: t.dark ? "#FFFBEB" : "#B85C3C" }}>{t.price}</div>
+            <ul className="mt-2 space-y-1 text-xs flex-1" style={{ color: t.dark ? "rgba(254,243,199,0.8)" : "#8A7868" }}>
+              {t.items.map((i) => <li key={i}>· {i}</li>)}
+            </ul>
+            {t.key && <span className="mt-3 text-xs font-bold" style={{ color: t.dark ? "#F5C355" : "#B85C3C" }}>Ver plan →</span>}
+          </button>
+        ))}
+      </div>
+      <p className="mt-2 text-[11px] text-center" style={{ color: "#A7937F" }}>También hay planes anuales con descuento. Se paga con Mercado Pago y puedes cancelar cuando quieras.</p>
     </div>
   );
 }
