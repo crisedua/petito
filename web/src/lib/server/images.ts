@@ -16,10 +16,10 @@ async function decode(raw: Buffer): Promise<Sharp> {
 }
 
 /** Port of storage.save_original: max 1536px, EXIF stripped, JPEG q88 → orig_{i}.jpg */
-export async function saveOriginal(owner: string, index: number, raw: Buffer): Promise<string> {
+export async function saveOriginal(owner: string, index: number, raw: Buffer, fileName?: string): Promise<string> {
   const img = await decode(raw);
   const out = await img.resize(1536, 1536, { fit: "inside", withoutEnlargement: true }).jpeg({ quality: 88 }).toBuffer();
-  const name = `orig_${index}.jpg`;
+  const name = fileName ?? `orig_${index}.jpg`;
   await storage.put(owner, name, out, "image/jpeg");
   return name;
 }

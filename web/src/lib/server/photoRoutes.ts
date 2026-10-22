@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { trackLater } from "./events";
 import { fail, handler, json, readJson } from "./http";
 import { requireUser } from "./auth";
@@ -17,7 +18,10 @@ export const signRoute = (resolve: Resolver) =>
     return json(await signRawUploads(row.id, count ?? 1));
   });
 
-/** POST …/photo → process the single uploaded photo into orig_0.jpg and store it on the row. */
+/**
+ * POST …/photo → process the single uploaded photo and store it on the row. Each new photo gets its
+ * own file name, so its address changes and browsers don't keep showing the cached old one.
+ */
 export const photoRoute = (resolve: Resolver, save: (id: string, file: string) => Promise<void>, feature: "pet" | "memory") =>
   handler(async (req: Request, ctx: Ctx<{ id: string }>) => {
     const user = await requireUser(req);
@@ -26,7 +30,7 @@ export const photoRoute = (resolve: Resolver, save: (id: string, file: string) =
     if (!raw) throw fail(400, "Sube una foto");
     let name: string;
     try {
-      name = await saveOriginal(row.id, 0, raw);
+      name = await saveOriginal(row.id, 0, raw, `photo_${randomBytes(6).toString("hex")}.jpg`);
     } catch (e) {
       console.error("photo processing failed", e);
       throw fail(400, "No pudimos leer esta foto. Prueba con otra (JPG, PNG o foto de iPhone).");
