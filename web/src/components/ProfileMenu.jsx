@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "@/lib/router";
-import { LogOut, Images, LogIn, Users, Smartphone, ShieldCheck } from "lucide-react";
+import { LogOut, Images, LogIn, Users, Smartphone, ShieldCheck, Camera } from "lucide-react";
 import { openInstallSheet, useInstallOffer } from "@/components/app/InstallPrompt";
 import { isMobile } from "@/lib/install";
 import { useAuth } from "@/lib/auth";
@@ -44,8 +44,12 @@ export function ProfileMenu() {
             <div className="font-display font-semibold text-neutral-900 truncate">{user.name || "Tu cuenta"}</div>
             <div className="text-xs text-muted-foreground truncate">{user.email}</div>
           </div>
-          <button onClick={() => { setOpen(false); nav("/mis-creaciones"); }} data-testid="menu-my-creations"
+          <button onClick={() => { setOpen(false); nav("/probar"); }} data-testid="menu-quick-studio"
             className="w-full flex items-center gap-2.5 px-4 py-3 text-sm font-semibold text-neutral-700 hover:bg-neutral-50">
+            <Camera className="w-4 h-4 text-primary" /> Foto de estudio rápida
+          </button>
+          <button onClick={() => { setOpen(false); nav("/mis-creaciones"); }} data-testid="menu-my-creations"
+            className="w-full flex items-center gap-2.5 px-4 py-3 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 border-t border-border">
             <Images className="w-4 h-4 text-primary" /> Mis creaciones
           </button>
           <button onClick={() => { setOpen(false); nav("/amigos"); }} data-testid="menu-friends"

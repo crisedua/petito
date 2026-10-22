@@ -82,7 +82,7 @@ export default function Landing() {
         </motion.p>
 
         <motion.div {...fade(0.2)} className="mt-5">
-          <TryPortrait title="Pruébalo con su foto, ahora" subtitle="Su foto real como retrato de estudio: fondo de color, luz de fotógrafo y su placa con nombre. Gratis, sin cuenta, en un minuto." sample={null} testid="landing-try" />
+          <TryPortrait title="Pruébalo ahora: su foto de estudio en un minuto" subtitle="Fondo de color, luz de fotógrafo y su placa con nombre." testid="landing-try" />
         </motion.div>
         {SHOW_VOICE_PREVIEW && (
           <motion.div {...fade(0.28)}>

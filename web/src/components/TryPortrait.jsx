@@ -95,26 +95,19 @@ export default function TryPortrait({ title = "Mira a tu mascota como obra de ar
 
       {phase === "idle" && (
         <>
-          <div className="flex items-start gap-3">
-            <div className="flex-1 min-w-0">
-              <div className="font-display font-bold text-lg leading-tight" style={{ color: C.ink }}>{title}</div>
-              <div className="text-sm mt-1" style={{ color: C.muted }}>{subtitle}</div>
-            </div>
-            {sample && (
-              <div className="w-[72px] shrink-0 rounded-xl overflow-hidden border-2 border-white shadow-md rotate-3" style={{ aspectRatio: "3 / 4" }}>
-                <img src={sample} alt="Ejemplo de retrato" className="w-full h-full object-cover" />
-              </div>
-            )}
+          <div className="font-display font-bold text-base leading-tight" style={{ color: C.ink }}>{title}</div>
+          {subtitle && <div className="text-xs mt-0.5" style={{ color: C.muted }}>{subtitle}</div>}
+          <div className="mt-3 flex gap-2">
+            <input value={name} onChange={(e) => setName(e.target.value)} maxLength={40} placeholder="Su nombre"
+              className="flex-1 min-w-0 h-12 px-3 rounded-xl border text-base outline-none" style={{ borderColor: C.line, background: C.soft }}
+              data-testid={`${testid}-name`} />
+            <motion.button whileTap={{ scale: 0.97 }} onClick={() => inputRef.current?.click()} data-testid={`${testid}-photo`}
+              className="shrink-0 px-4 h-12 rounded-xl text-white font-display font-bold text-sm flex items-center justify-center gap-1.5"
+              style={{ background: C.accent, boxShadow: "0 10px 22px -10px rgba(194,104,63,0.6)" }}>
+              <Camera className="w-4 h-4" /> Subir su foto
+            </motion.button>
           </div>
-          <input value={name} onChange={(e) => setName(e.target.value)} maxLength={40} placeholder="¿Cómo se llama? (opcional)"
-            className="mt-4 w-full h-11 px-3 rounded-xl border text-base outline-none" style={{ borderColor: C.line, background: C.soft }}
-            data-testid={`${testid}-name`} />
-          <motion.button whileTap={{ scale: 0.97 }} onClick={() => inputRef.current?.click()} data-testid={`${testid}-photo`}
-            className="mt-3 w-full h-14 rounded-2xl text-white font-display font-bold text-lg flex items-center justify-center gap-2"
-            style={{ background: C.accent, boxShadow: "0 14px 30px -10px rgba(194,104,63,0.6)" }}>
-            <Camera className="w-5 h-5" /> Subir su foto
-          </motion.button>
-          <p className="mt-2.5 text-center text-[11px]" style={{ color: "#A7937F" }}>Tu foto es privada y se borra sola. Lo creado por IA siempre va marcado.</p>
+          <p className="mt-2 text-[11px]" style={{ color: "#A7937F" }}>Gratis y sin cuenta. Tu foto es privada y se borra sola.</p>
         </>
       )}
 
