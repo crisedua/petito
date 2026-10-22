@@ -33,7 +33,11 @@ export const GET = handler(async () => {
   }));
   // The most recent subscriptions on the Mercado Pago side, and whether each one has its row here.
   try {
-    const r: any = await mp("GET", "/preapproval/search?limit=15");
+    // Newest first; if Mercado Pago ignores the sort, read the last page instead.
+    let r: any = await mp("GET", "/preapproval/search?sort=date_created:desc&limit=50");
+    const total = Number(r.paging?.total ?? 0);
+    const newestFirst = (r.results ?? []).length < 2 || String(r.results[0].date_created) >= String(r.results[r.results.length - 1].date_created);
+    if (!newestFirst && total > 50) r = await mp("GET", `/preapproval/search?limit=50&offset=${Math.max(0, total - 50)}`);
     const list = (r.results ?? []).sort((a: any, b: any) => String(b.date_created).localeCompare(String(a.date_created))).slice(0, 8);
     const ids = list.map((x: any) => x.id);
     const { data: known } = ids.length ? await db().from("subscriptions").select("mp_id").in("mp_id", ids) : { data: [] as any[] };
