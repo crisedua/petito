@@ -8,6 +8,7 @@ import {
   RefreshCw, Plus, Calendar, Film, Crown, Mic, BookHeart, PawPrint,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import { shareLink, whatsappUrl } from "@/lib/share";
 import {
   getFriends, getFeed, shareOptions, createShare, deleteShare, toggleHeart, getComments, addComment, deleteComment,
   acceptConnection, endConnection, resetFriendCode, mediaUrl,
@@ -48,15 +49,8 @@ export function Avatar({ src, name, size = 40 }) {
 
 const inviteUrl = (code) => `${window.location.origin}/amigos/conectar/${code}`;
 
-async function shareInvite(code, name) {
-  const url = inviteUrl(code);
-  const text = `🐾 ${name ? `${name} te invita` : "Te invito"} a conectar en Petito para compartir las historias de nuestras mascotas`;
-  if (navigator.share) {
-    try { await navigator.share({ title: "Petito", text, url }); return; } catch { return; }
-  }
-  try { await navigator.clipboard.writeText(`${text} 👉 ${url}`); toast.success("Enlace copiado 🐾"); }
-  catch { toast.error("No se pudo copiar el enlace"); }
-}
+const inviteText = (name) => `🐾 ${name ? `${name} te invita` : "Te invito"} a conectar en Petito para compartir las historias de nuestras mascotas`;
+const shareInvite = (code, name) => shareLink({ text: inviteText(name), url: inviteUrl(code) });
 
 export default function Friends() {
   const nav = useNavigate();
@@ -466,6 +460,18 @@ function FriendsTab({ overview, me, reload, setOverview }) {
           className="mt-3 w-full h-12 rounded-2xl font-display font-bold text-white flex items-center justify-center gap-2" style={{ background: C.accent }}>
           <UserPlus className="w-4 h-4" /> Invitar a un amigo
         </button>
+        {overview.friend_code && (
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            <a href={whatsappUrl(inviteText(me?.name), inviteUrl(overview.friend_code))} target="_blank" rel="noopener noreferrer" data-testid="friends-invite-whatsapp"
+              className="h-11 rounded-2xl font-display font-semibold text-sm text-white flex items-center justify-center gap-1.5" style={{ background: "#25D366" }}>
+              WhatsApp
+            </a>
+            <button onClick={async () => { try { await navigator.clipboard.writeText(inviteUrl(overview.friend_code)); toast.success("Enlace copiado 🐾"); } catch { toast.error("No se pudo copiar; selecciónalo arriba"); } }} data-testid="friends-invite-copy"
+              className="h-11 rounded-2xl font-display font-semibold text-sm flex items-center justify-center gap-1.5 bg-white border" style={{ color: C.accent, borderColor: C.card }}>
+              Copiar enlace
+            </button>
+          </div>
+        )}
         <button onClick={newLink} data-testid="friends-invite-reset" className="mt-2 w-full flex items-center justify-center gap-1.5 text-xs font-semibold" style={{ color: C.muted }}>
           <RefreshCw className="w-3.5 h-3.5" /> Crear un enlace nuevo (el anterior deja de funcionar)
         </button>

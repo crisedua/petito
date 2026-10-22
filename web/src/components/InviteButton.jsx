@@ -1,24 +1,9 @@
 "use client";
 import { UserPlus } from "lucide-react";
-import { toast } from "sonner";
+import { shareLink } from "@/lib/share";
 
 export const InviteButton = ({ className = "" }) => {
-  const invite = async () => {
-    const url = window.location.origin + "/";
-    const text = "🐾 Crea la historia de tu mascota con humor chileno en Petito";
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: "Petito", text, url });
-      } catch { /* cancelado */ }
-    } else {
-      try {
-        await navigator.clipboard.writeText(`${text} 👉 ${url}`);
-        toast.success("Enlace copiado 🐾");
-      } catch {
-        toast.error("No se pudo copiar el enlace");
-      }
-    }
-  };
+  const invite = () => shareLink({ text: "🐾 Crea la historia de tu mascota con humor chileno en Petito", url: window.location.origin + "/" });
 
   return (
     <button
