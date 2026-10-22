@@ -100,6 +100,8 @@ export default function Plus() {
   const n = st.allowance?.premium_limit ?? 0;
   const benefits = (t) => (t === "pro" ? proBenefits(n) : PLUS_BENEFITS);
   const canBuy = st.tier !== "pro";
+  // Admins already have Plus+; they still get to see the plans as customers do, without paying.
+  const preview = st.is_admin && !canBuy;
 
   return (
     <div className="mobile-frame" style={{ background: "linear-gradient(170deg,#3A2416,#241812)" }} data-testid="plus-screen">
@@ -158,7 +160,7 @@ export default function Plus() {
           </motion.div>
         )}
 
-        {canBuy && !st.via_admin && (
+        {(canBuy || preview) && (
           <div className={st.active ? "mt-10 pt-8 border-t" : ""} style={{ borderColor: "rgba(255,255,255,0.12)" }}>
             {payHelp && (
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} data-testid="plus-pay-help"
@@ -178,6 +180,11 @@ export default function Plus() {
               </motion.div>
             )}
 
+            {preview && (
+              <div className="mb-5 rounded-2xl p-3 text-[11px] text-amber-100/80" style={{ background: "rgba(245,195,85,0.08)", border: "1px dashed rgba(245,195,85,0.45)" }} data-testid="plus-admin-preview">
+                🛠️ Vista previa de administrador: así ven los planes tus clientes. Tú ya tienes Plus+ por ser admin, así que aquí no se cobra.
+              </div>
+            )}
             {st.tier === "plus" ? (
               <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
                 <h2 className="font-display font-bold text-2xl text-amber-50 leading-tight">Mejora a Petito Plus+</h2>
@@ -210,6 +217,7 @@ export default function Plus() {
 
             <PeriodPicker st={st} tier={tier} period={period} setPeriod={setPeriod} />
 
+            {!preview && (<>
             <div className="mt-6" data-testid="plus-mp-email-block">
               <label className="text-xs font-display font-semibold text-amber-100/85">Correo de tu cuenta de Mercado Pago</label>
               <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" inputMode="email" data-testid="plus-mp-email"
@@ -231,6 +239,7 @@ export default function Plus() {
               {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Crown className="w-5 h-5" /> {st.tier === "plus" ? "Mejorar a Plus+" : tier === "pro" ? "Hazme Plus+" : "Hazme Plus"}</>}
             </button>
             <p className="mt-3 text-center text-[11px] text-amber-100/50">Se renueva automáticamente. Puedes cancelar cuando quieras.</p>
+            </>)}
 
             {st.free_mode && !st.active && (
               <button onClick={devActivate} disabled={busy} data-testid="plus-dev-activate"
