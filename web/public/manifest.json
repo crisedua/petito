@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "short_name": "Petito",
-  "name": "Petito · El universo de tu mascota",
+  "short_name": "Petipo",
+  "name": "Petipo · El universo de tu mascota",
   "description": "Guarda los recuerdos de tu mascota, dale voz en videos, crea retratos e historias y compártelos con tus amigos.",
   "lang": "es-CL",
   "start_url": "/?app=1",
@@ -65,7 +65,7 @@
       ]
     },
     {
-      "name": "Amigos de Petito",
+      "name": "Amigos de Petipo",
       "short_name": "Amigos",
       "url": "/amigos?app=1",
       "icons": [

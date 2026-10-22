@@ -58,7 +58,7 @@ export function ProfileMenu() {
           </button>
           <button onClick={() => { setOpen(false); nav("/amigos"); }} data-testid="menu-friends"
             className="w-full flex items-center gap-2.5 px-4 py-3 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 border-t border-border">
-            <Users className="w-4 h-4 text-primary" /> Amigos de Petito
+            <Users className="w-4 h-4 text-primary" /> Amigos de Petipo
           </button>
           {installOffer && (
             <button onClick={() => { setOpen(false); openInstallSheet(); }} data-testid="menu-install"

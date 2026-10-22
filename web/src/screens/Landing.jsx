@@ -57,7 +57,7 @@ export default function Landing() {
           <div className="w-8 h-8 rounded-full grid place-items-center" style={{ background: "#B85C3C" }}>
             <PawPrint className="w-5 h-5 text-white" />
           </div>
-          Petito
+          Petipo
         </HomeLink>
         <ProfileMenu />
       </div>
@@ -225,8 +225,8 @@ function Plans({ onOpen }) {
   if (!c) return null;
   const tiers = [
     { key: null, name: "Gratis", price: "$0", items: ["Su foto de estudio en un minuto", "Vistas previas de retratos, videos e historias"], dark: false },
-    { key: "plus", name: "Petito Plus", price: `${clp(c.plus_monthly_clp)}/mes`, items: ["Retratos e historias en HD, sin sello", "Videos donde tu mascota te habla", "Mascotas ilimitadas"], dark: false },
-    { key: "pro", name: "Petito Plus+", price: `${clp(c.plus_pro_monthly_clp)}/mes`, items: ["Todo lo de Plus", "Tu mascota te canta y baila en video", c.plus_pro_monthly_videos > 0 ? `${c.plus_pro_monthly_videos} canciones o bailes al mes` : "Canciones y bailes sin límite"], dark: true },
+    { key: "plus", name: "Petipo Plus", price: `${clp(c.plus_monthly_clp)}/mes`, items: ["Retratos e historias en HD, sin sello", "Videos donde tu mascota te habla", "Mascotas ilimitadas"], dark: false },
+    { key: "pro", name: "Petipo Plus+", price: `${clp(c.plus_pro_monthly_clp)}/mes`, items: ["Todo lo de Plus", "Tu mascota te canta y baila en video", c.plus_pro_monthly_videos > 0 ? `${c.plus_pro_monthly_videos} canciones o bailes al mes` : "Canciones y bailes sin límite"], dark: true },
   ];
   return (
     <div className="mt-10" data-testid="landing-plans">

@@ -2,7 +2,7 @@
 import { usePathname } from "next/navigation";
 
 const NUMBER = (process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "56975387007").replace(/\D/g, "");
-const MESSAGE = "¡Hola Petito! 🐾 Tengo una consulta";
+const MESSAGE = "¡Hola Petipo! 🐾 Tengo una consulta";
 
 // Pages with a button bar pinned to the bottom: lift the bubble above it.
 const RAISED = [/^\/(crear|retrato|recuerdo|hablar)$/, /^\/v\//, /^\/album$/];

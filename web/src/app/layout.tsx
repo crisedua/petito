@@ -13,14 +13,14 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: SITE_TITLE,
   description: SITE_DESCRIPTION,
-  applicationName: "Petito",
+  applicationName: "Petipo",
   manifest: "/manifest.json",
   icons: { icon: "/icon-192.png", apple: "/apple-touch-icon.png" },
-  appleWebApp: { capable: true, statusBarStyle: "default", title: "Petito" },
-  // What WhatsApp, Instagram, Facebook, X and iMessage show when someone shares a Petito link.
+  appleWebApp: { capable: true, statusBarStyle: "default", title: "Petipo" },
+  // What WhatsApp, Instagram, Facebook, X and iMessage show when someone shares a Petipo link.
   openGraph: {
     type: "website",
-    siteName: "Petito",
+    siteName: "Petipo",
     locale: "es_CL",
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
@@ -46,7 +46,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           window.addEventListener("beforeinstallprompt", function (e) { e.preventDefault(); window.__petitoBIP = e; window.dispatchEvent(new Event("petito:bip")); });
           window.addEventListener("appinstalled", function () { window.__petitoInstalled = true; window.__petitoBIP = null; });
         `}</Script>
-        <noscript>Necesitas activar JavaScript para usar Petito.</noscript>
+        <noscript>Necesitas activar JavaScript para usar Petipo.</noscript>
         <div className="App">
           <Toaster position="top-center" richColors />
           <AuthProvider>{children}</AuthProvider>

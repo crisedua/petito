@@ -1,5 +1,5 @@
 """
-Amigos de Petito: connections, sharing, hearts, comments, and the privacy rules around them.
+Amigos de Petipo: connections, sharing, hearts, comments, and the privacy rules around them.
 
   PETITO_URL=http://localhost:3000 pytest web/tests/test_social.py
 

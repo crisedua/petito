@@ -44,7 +44,7 @@ export default function StoryView() {
         const blob = await res.blob();
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
-        a.download = `petito-${story.pet_name}-${i + 1}.jpg`;
+        a.download = `petipo-${story.pet_name}-${i + 1}.jpg`;
         document.body.appendChild(a); a.click(); a.remove();
         await new Promise((r) => setTimeout(r, 250));
       } catch { /* skip */ }
@@ -52,7 +52,7 @@ export default function StoryView() {
   };
 
   const shareNative = async () => {
-    const text = `¡Mira la historia de ${story.pet_name} en Petito! 🐾`;
+    const text = `¡Mira la historia de ${story.pet_name} en Petipo! 🐾`;
     await shareLink({ text, url: shareUrl });
   };
 
@@ -72,7 +72,7 @@ export default function StoryView() {
       <div className="flex items-center justify-between px-5 pt-5">
         <HomeLink className="flex items-center gap-2 font-display font-semibold text-primary">
           <div className="w-8 h-8 rounded-full bg-primary grid place-items-center"><PawPrint className="w-5 h-5 text-white" /></div>
-          Petito
+          Petipo
         </HomeLink>
         <InviteButton />
       </div>

@@ -95,7 +95,7 @@ export default function Universe() {
     plusStatus().then((s) => setPlus(s.active ? (s.tier === "pro" ? "Plus+" : "Plus") : false)).catch(() => {});
     friendsSummary().then((s) => setFriendRequests(s.pending)).catch(() => {});
     if (new URLSearchParams(window.location.search).get("plus") === "success") {
-      toast.success("¡Bienvenido a Petito Plus! 👑 Ahora todo es ilimitado.");
+      toast.success("¡Bienvenido a Petipo Plus! 👑 Ahora todo es ilimitado.");
     }
   }, [nav, loadCreations]);
 
@@ -220,7 +220,7 @@ export default function Universe() {
             {friendRequests > 0 && <span className="absolute -top-1.5 -right-1.5 min-w-5 h-5 px-1 rounded-full text-[11px] font-bold grid place-items-center bg-red-500 text-white" data-testid="universe-friends-badge">{friendRequests}</span>}
           </div>
           <div className="flex-1">
-            <div className="font-display font-bold" style={{ color: "#3A2A20" }}>Amigos de Petito</div>
+            <div className="font-display font-bold" style={{ color: "#3A2A20" }}>Amigos de Petipo</div>
             <div className="text-xs mt-0.5" style={{ color: "#8A7868" }}>{friendRequests > 0 ? `${friendRequests} ${friendRequests === 1 ? "dueño quiere" : "dueños quieren"} conectar contigo` : `Comparte las aventuras de ${name} con otros dueños`}</div>
           </div>
           <ArrowRight className="w-5 h-5" style={{ color: "#B85C3C" }} />

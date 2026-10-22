@@ -11,18 +11,18 @@ const PLUS_BENEFITS = [
   { icon: InfinityIcon, text: "Mascotas ilimitadas, cada una con su universo" },
   { icon: ImageIcon, text: "Retratos e historias incluidos, en HD y sin sello" },
   { icon: Mic, text: "Videos donde tu mascota te habla, incluidos" },
-  { icon: Sparkles, text: "Pensamientos de Petito ilimitados en tus recuerdos" },
+  { icon: Sparkles, text: "Pensamientos de Petipo ilimitados en tus recuerdos" },
   { icon: Share2, text: "Comparte el álbum público de tu mascota" },
 ];
 const proBenefits = (n) => [
-  { icon: Crown, text: "Todo lo de Petito Plus" },
+  { icon: Crown, text: "Todo lo de Petipo Plus" },
   { icon: Music, text: "Tu mascota te canta su propia canción" },
   { icon: Clapperboard, text: "Tu mascota baila y se mueve en video" },
   { icon: BookHeart, text: n > 0 ? `${n} videos de canción o movimiento cada mes` : "Canciones y videos en movimiento sin límite" },
 ];
 
 const clp = (n) => "$" + (n || 0).toLocaleString("es-CL");
-const TIER_NAME = { plus: "Petito Plus", pro: "Petito Plus+" };
+const TIER_NAME = { plus: "Petipo Plus", pro: "Petipo Plus+" };
 
 export default function Plus() {
   const nav = useNavigate();
@@ -119,7 +119,7 @@ export default function Plus() {
         <button onClick={() => nav(user ? "/universo" : "/")} data-testid="plus-back" className="w-9 h-9 rounded-full grid place-items-center" style={{ background: "rgba(255,255,255,0.1)" }}>
           <ArrowLeft className="w-4 h-4 text-amber-100" />
         </button>
-        <div className="flex items-center gap-1.5 font-display font-bold text-amber-100"><Crown className="w-5 h-5 text-amber-300" /> Petito Plus</div>
+        <div className="flex items-center gap-1.5 font-display font-bold text-amber-100"><Crown className="w-5 h-5 text-amber-300" /> Petipo Plus</div>
       </div>
 
       <div className="flex-1 px-6 pt-6 pb-10 overflow-y-auto no-scrollbar">
@@ -197,7 +197,7 @@ export default function Plus() {
             )}
             {st.tier === "plus" ? (
               <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-                <h2 className="font-display font-bold text-2xl text-amber-50 leading-tight">Mejora a Petito Plus+</h2>
+                <h2 className="font-display font-bold text-2xl text-amber-50 leading-tight">Mejora a Petipo Plus+</h2>
                 <p className="mt-2 text-sm text-amber-100/70">Que tu mascota te cante y baile. Cancelamos tu plan Plus actual al activar Plus+, para que no pagues dos veces.</p>
               </motion.div>
             ) : (

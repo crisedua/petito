@@ -27,7 +27,7 @@ export const GET = handler(async (req: Request) => {
     .order("created_at", { ascending: false }).limit(3);
   out.latest = await Promise.all((subs ?? []).map(async (s) => {
     let mpState: any = null;
-    // courtesy-/admin-/dev- rows are Petito grants, not Mercado Pago subscriptions.
+    // courtesy-/admin-/dev- rows are Petipo grants, not Mercado Pago subscriptions.
     if (/^(courtesy|admin|dev)-/.test(s.mp_id)) return { plan: s.plan, status: s.status, source: "petito-grant", created_at: s.created_at };
     try {
       const p: any = await mp("GET", `/preapproval/${s.mp_id}`);

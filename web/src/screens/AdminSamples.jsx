@@ -78,7 +78,7 @@ export default function AdminSamples() {
 }
 
 function StyleRow({ s, frames, petId, engine, engines, reload, busyAll, onMissing }) {
-  const engineLabel = (k) => (k === "petito" ? "Petito" : engines.find((e) => e.key === k)?.label ?? k ?? "");
+  const engineLabel = (k) => (k === "petito" ? "Petipo" : engines.find((e) => e.key === k)?.label ?? k ?? "");
   const missingHere = frames.filter((f) => !s.by_frame?.[f.key]).map((f) => ({ style: s.key, frame: f.key }));
   const [frame, setFrame] = useState(s.default_frame);
   const [busy, setBusy] = useState(false);

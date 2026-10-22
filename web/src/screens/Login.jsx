@@ -20,7 +20,7 @@ export default function Login({ returnPath, subtitle }) {
         <div className="w-16 h-16 rounded-2xl bg-primary grid place-items-center mb-5 shadow-lg shadow-primary/30">
           <PawPrint className="w-9 h-9 text-white" />
         </div>
-        <h1 className="font-display font-bold text-3xl text-neutral-900 leading-tight">Bienvenido a Petito</h1>
+        <h1 className="font-display font-bold text-3xl text-neutral-900 leading-tight">Bienvenido a Petipo</h1>
         <p className="mt-3 text-base text-muted-foreground leading-relaxed">
           {subtitle || "Inicia sesión para crear y guardar las historias y retratos de tu regalón 🐾"}
         </p>

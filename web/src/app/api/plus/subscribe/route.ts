@@ -20,7 +20,7 @@ export const POST = handler(async (req: Request) => {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payerEmail)) throw fail(400, "Ingresa un correo válido de tu cuenta de Mercado Pago");
   // Mercado Pago never lets the seller account pay itself: its Confirm button just stays disabled.
   if (payerEmail.toLowerCase() === (await getSellerEmail())) {
-    throw fail(400, "Ese correo es la cuenta de Mercado Pago que recibe los pagos de Petito, y no puede pagarse a sí misma. Usa el correo de otra cuenta de Mercado Pago.");
+    throw fail(400, "Ese correo es la cuenta de Mercado Pago que recibe los pagos de Petipo, y no puede pagarse a sí misma. Usa el correo de otra cuenta de Mercado Pago.");
   }
   const p = PLUS_PLANS[plan];
   const ref = `${user.user_id}:${plan}:${newId()}`;

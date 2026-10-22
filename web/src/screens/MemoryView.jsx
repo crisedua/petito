@@ -131,11 +131,11 @@ export default function MemoryView() {
               </div>
             )}
 
-            {/* Petito reflection (IA) always labeled */}
+            {/* Petipo reflection (IA) always labeled */}
             {m.ai_reflection ? (
               <div className="mt-6 p-4 rounded-2xl border" style={{ background: "#F6EFE2", borderColor: "#EADFCF" }} data-testid="memory-view-reflection">
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="flex items-center gap-1.5 text-xs font-bold" style={{ color: "#B07A4A" }}>💭 Un pensamiento de Petito</span>
+                  <span className="flex items-center gap-1.5 text-xs font-bold" style={{ color: "#B07A4A" }}>💭 Un pensamiento de Petipo</span>
                   <button onClick={hideReflection} data-testid="memory-hide-reflection" className="text-xs" style={{ color: "#A7937F" }}>Ocultar</button>
                 </div>
                 <p className="text-sm font-display leading-relaxed" style={{ color: "#4A3B30" }}>{m.ai_reflection}</p>
@@ -146,7 +146,7 @@ export default function MemoryView() {
                 className="mt-6 w-full py-3.5 rounded-2xl font-display font-semibold text-sm flex items-center justify-center gap-2 border"
                 style={{ background: "#fff", color: "#8A6D4B", borderColor: "#EADFCF" }}>
                 {reflecting ? <><Loader2 className="w-4 h-4 animate-spin" /> Pensando...</>
-                  : <><Sparkles className="w-4 h-4" style={{ color: "#C2683F" }} /> Pedir un pensamiento de Petito</>}
+                  : <><Sparkles className="w-4 h-4" style={{ color: "#C2683F" }} /> Pedir un pensamiento de Petipo</>}
               </button>
             )}
 

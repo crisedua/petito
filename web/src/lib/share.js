@@ -11,18 +11,18 @@ export function prefetchShareImage(imageUrl, fileName) {
   if (!imageUrl || prefetched.has(imageUrl) || typeof window === "undefined" || !isMobile()) return;
   prefetched.set(imageUrl, null);
   fetch(imageUrl).then((r) => (r.ok ? r.blob() : null)).then((blob) => {
-    if (blob && blob.size > 1000) prefetched.set(imageUrl, new File([blob], fileName || "petito.jpg", { type: blob.type || "image/jpeg" }));
+    if (blob && blob.size > 1000) prefetched.set(imageUrl, new File([blob], fileName || "petipo.jpg", { type: blob.type || "image/jpeg" }));
   }).catch(() => {});
 }
 
 /** Share an image file where phones allow it (WhatsApp, Instagram); otherwise share the link. */
-export async function shareImage({ title = "Petito", text, url, imageUrl, fileName }) {
+export async function shareImage({ title = "Petipo", text, url, imageUrl, fileName }) {
   if (imageUrl && isMobile() && navigator.canShare) {
     try {
       let file = prefetched.get(imageUrl);
       if (!file) {
         const blob = await (await fetch(imageUrl)).blob();
-        file = blob.size > 1000 ? new File([blob], fileName || "petito.jpg", { type: blob.type || "image/jpeg" }) : null;
+        file = blob.size > 1000 ? new File([blob], fileName || "petipo.jpg", { type: blob.type || "image/jpeg" }) : null;
       }
       if (file && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title, text: `${text} ${url}` }); return "shared"; }
     } catch (e) { if (e?.name === "AbortError") return "cancelled"; }
@@ -36,7 +36,7 @@ export async function shareImage({ title = "Petito", text, url, imageUrl, fileNa
  * (phones), otherwise copy the link, and as a last resort open WhatsApp. Never fails silently.
  * Returns "shared" | "copied" | "whatsapp" | "cancelled".
  */
-export async function shareLink({ title = "Petito", text, url }) {
+export async function shareLink({ title = "Petipo", text, url }) {
   // The system share sheet is a phone thing; on a computer it is a surprise (AirDrop, Notes...) and often refused.
   if (navigator.share && isMobile()) {
     try {

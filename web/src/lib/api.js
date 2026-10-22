@@ -60,7 +60,7 @@ export const deletePet = (id) => api.delete(`/pets/${id}`).then((r) => r.data);
 export const publicAlbum = (slug) => api.get(`/u/${slug}`).then((r) => r.data);
 export const voiceSample = (voiceId) => api.get(`/voice-sample/${voiceId}`).then((r) => r.data);
 
-// ---- Petito Plus ----
+// ---- Petipo Plus ----
 export const plusStatus = () => api.get("/plus/status").then((r) => r.data);
 export const plusSubscribe = (plan, email, from) => api.post("/plus/subscribe", { plan, email, from }).then((r) => r.data);
 export const plusSync = () => api.post("/plus/sync").then((r) => r.data);
@@ -145,7 +145,7 @@ export const myStories = () => api.get("/me/stories").then((r) => r.data);
 export const myPortraits = () => api.get("/me/portraits").then((r) => r.data);
 export const myVideos = () => api.get("/me/videos").then((r) => r.data);
 
-// ---- talking video ("Petito Habla") ----
+// ---- talking video ("Petipo Habla") ----
 export const createTalkPreview = async (file, meta = {}) => {
   const { data: start } = await api.post("/talk/preview/start", meta);
   await uploadFiles(`/talk/preview/${start.id}`, [file]);
@@ -158,7 +158,7 @@ export const getTalk = (id) => api.get(`/talk/${id}`).then((r) => r.data);
 export const getTalkBySlug = (slug) => api.get(`/talk/slug/${slug}`).then((r) => r.data);
 export const talkCheckout = (id, auto = false) => api.post(`/talk/${id}/checkout`, { auto }).then((r) => r.data);
 
-// ---- Amigos de Petito ----
+// ---- Amigos de Petipo ----
 export const getFriends = () => api.get("/amigos").then((r) => r.data);
 export const friendsSummary = () => api.get("/amigos/summary").then((r) => r.data);
 export const resetFriendCode = () => api.post("/amigos/code").then((r) => r.data);

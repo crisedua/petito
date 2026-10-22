@@ -21,7 +21,7 @@ export const POST = handler(async (req: Request, ctx: Ctx<{ id: string }>) => {
     start.setUTCHours(0, 0, 0, 0);
     const { count } = await db().from("memories").select("id", { count: "exact", head: true })
       .eq("user_id", user.user_id).not("ai_reflection", "is", null).gte("created_at", start.toISOString());
-    if ((count ?? 0) >= 3) throw fail(402, "Llegaste a tus 3 pensamientos de Petito gratis del mes. ¡Hazte Plus para tenerlos sin límite!");
+    if ((count ?? 0) >= 3) throw fail(402, "Llegaste a tus 3 pensamientos de Petipo gratis del mes. ¡Hazte Plus para tenerlos sin límite!");
   }
   const { data: pet } = await db().from("pets").select("name").eq("id", m.pet_id).eq("user_id", user.user_id).maybeSingle();
   const petName = pet?.name ?? "tu mascota";

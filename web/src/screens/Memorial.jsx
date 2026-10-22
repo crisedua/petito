@@ -279,7 +279,7 @@ function StepResult({ portrait, setPortrait, portraitId, slug, cfg, price, capti
     try {
       const res = await fetch(imgUrl); const blob = await res.blob();
       const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
-      a.download = `petito-recuerdo-${portrait?.pet_name || "mascota"}.jpg`;
+      a.download = `petipo-recuerdo-${portrait?.pet_name || "mascota"}.jpg`;
       document.body.appendChild(a); a.click(); a.remove();
     } catch { toast.error("No se pudo descargar"); }
   };
@@ -311,11 +311,11 @@ function StepResult({ portrait, setPortrait, portraitId, slug, cfg, price, capti
         ) : (
           <>
             <div className="mt-5 text-center">
-              <p className="text-sm text-slate-500">Descárgalo en alta calidad, sin marca de agua, con Petito Plus.</p>
+              <p className="text-sm text-slate-500">Descárgalo en alta calidad, sin marca de agua, con Petipo Plus.</p>
             </div>
             <div className="mt-4 bg-white rounded-3xl border border-border p-5" data-testid="memorial-paywall-card">
               <div className="text-center">
-                <div className="font-display font-bold text-xl text-slate-800">Desbloquéalo con Petito Plus</div>
+                <div className="font-display font-bold text-xl text-slate-800">Desbloquéalo con Petipo Plus</div>
                 <div className="text-xs text-slate-400 mt-1">Una membresía para guardar e imprimir todos tus recuerdos</div>
               </div>
               <ul className="mt-4 space-y-2 text-sm text-slate-600">
@@ -330,7 +330,7 @@ function StepResult({ portrait, setPortrait, portraitId, slug, cfg, price, capti
       {!paid && (
         <BottomBar>
           <Button onClick={unlock} disabled={busy} className="w-full h-14 text-base font-display font-semibold rounded-2xl bg-slate-700 hover:bg-slate-800" data-testid="memorial-pay-button">
-            {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Sparkles className="w-5 h-5 mr-2" /> Desbloquéalo con Petito Plus</>}
+            {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Sparkles className="w-5 h-5 mr-2" /> Desbloquéalo con Petipo Plus</>}
           </Button>
         </BottomBar>
       )}

@@ -49,7 +49,7 @@ export default function MyCreations() {
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3" data-testid="videos-grid">
               {videos.map((v) => (
                 <Card key={v.id} onClick={() => nav(`/v/${v.slug}`)} testid={`video-card-${v.id}`}
-                  thumb={mediaUrl(v.thumb_url)} title={v.pet_name || "Video"} subtitle={v.line || "Petito Habla"}
+                  thumb={mediaUrl(v.thumb_url)} title={v.pet_name || "Video"} subtitle={v.line || "Petipo Habla"}
                   paid={v.paid} badge={Mic} />
               ))}
             </div>

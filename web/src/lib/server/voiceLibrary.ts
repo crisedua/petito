@@ -78,7 +78,7 @@ export async function setupLibraryVoices(): Promise<{ voices: LibraryVoice[]; no
     for (const c of cands) {
       try {
         let id = inAccount(c);
-        if (!id) id = (await xi(`/v1/voices/add/${c.public_owner_id}/${c.voice_id}`, { method: "POST", body: JSON.stringify({ new_name: `Petito ${slot.label} – ${c.name}`.slice(0, 80) }) })).voice_id as string;
+        if (!id) id = (await xi(`/v1/voices/add/${c.public_owner_id}/${c.voice_id}`, { method: "POST", body: JSON.stringify({ new_name: `Petipo ${slot.label} – ${c.name}`.slice(0, 80) }) })).voice_id as string;
         picked.push({ id, label: slot.label, accent: c.accent ?? "", gender: slot.gender, name: c.name, preview_url: c.preview_url });
         done = true;
         break;

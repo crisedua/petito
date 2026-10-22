@@ -1,5 +1,5 @@
 /**
- * Find Spanish voices for Petito in ElevenLabs and print the ELEVENLABS_VOICES line to paste into Vercel.
+ * Find Spanish voices for Petipo in ElevenLabs and print the ELEVENLABS_VOICES line to paste into Vercel.
  *
  *   npx tsx scripts/voices.ts mine                 # Spanish voices already in your account
  *   npx tsx scripts/voices.ts search chilean       # shared library: Spanish voices with a Chilean accent

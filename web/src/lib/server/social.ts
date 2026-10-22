@@ -1,5 +1,5 @@
 /**
- * Amigos de Petito: connections between owners and what they share with them.
+ * Amigos de Petipo: connections between owners and what they share with them.
  *
  * Rules: owners only see each other's shares once BOTH chose to connect (an invite link the owner
  * handed out, or a request the owner accepted). Emails are never shown to other owners. Removing a
@@ -29,7 +29,7 @@ export type Connection = { id: string; requester_id: string; addressee_id: strin
 
 type OwnerCard = { id: string; name: string; picture: string | null; pets: { name: string; species: string; photo_url: string | null }[] };
 
-const firstName = (u: { name: string | null }) => (u.name ?? "").trim() || "Dueño de Petito";
+const firstName = (u: { name: string | null }) => (u.name ?? "").trim() || "Dueño de Petipo";
 
 /** Name, picture and pets of each owner (no email). */
 export async function ownerCards(userIds: string[]): Promise<Map<string, OwnerCard>> {
@@ -282,7 +282,7 @@ export async function listComments(me: AppUser, shareId: string) {
   const cards = await ownerCards((data ?? []).map((c) => c.user_id));
   return (data ?? []).map((c) => ({
     id: c.id, body: c.body, created_at: iso(c.created_at),
-    author: { id: c.user_id, name: cards.get(c.user_id)?.name ?? "Dueño de Petito", picture: cards.get(c.user_id)?.picture ?? null },
+    author: { id: c.user_id, name: cards.get(c.user_id)?.name ?? "Dueño de Petipo", picture: cards.get(c.user_id)?.picture ?? null },
     mine: c.user_id === me.user_id,
     can_delete: c.user_id === me.user_id || share.user_id === me.user_id,
   }));
@@ -340,7 +340,7 @@ export async function feed(me: AppUser, before?: string | null, limit = 20) {
     const o = owners.get(r.user_id);
     return {
       id: r.id, kind: r.kind, note: r.note, created_at: iso(r.created_at), mine: r.user_id === me.user_id,
-      owner: { id: r.user_id, name: o?.name ?? "Dueño de Petito", picture: o?.picture ?? null },
+      owner: { id: r.user_id, name: o?.name ?? "Dueño de Petipo", picture: o?.picture ?? null },
       pet: r.pet_id ? petMap.get(r.pet_id) ?? null : null,
       item: items.get(key(r.kind, r.item_id)),
       hearts: hearts.filter((h: any) => h.share_id === r.id).length,
@@ -358,7 +358,7 @@ export async function overview(me: AppUser) {
   const rows = (data ?? []) as Connection[];
   const other = (c: Connection) => (c.requester_id === me.user_id ? c.addressee_id : c.requester_id);
   const cards = await ownerCards(rows.map(other));
-  const card = (c: Connection) => cards.get(other(c)) ?? { id: other(c), name: "Dueño de Petito", picture: null, pets: [] };
+  const card = (c: Connection) => cards.get(other(c)) ?? { id: other(c), name: "Dueño de Petipo", picture: null, pets: [] };
   return {
     friend_code: await friendCode(me),
     friends: rows.filter((c) => c.status === "accepted").map((c) => ({ connection_id: c.id, since: iso(c.accepted_at ?? c.created_at), owner: card(c) })),

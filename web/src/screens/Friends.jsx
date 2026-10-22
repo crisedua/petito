@@ -49,7 +49,7 @@ export function Avatar({ src, name, size = 40 }) {
 
 const inviteUrl = (code) => `${window.location.origin}/amigos/conectar/${code}`;
 
-const inviteText = (name) => `🐾 ${name ? `${name} te invita` : "Te invito"} a conectar en Petito para compartir las historias de nuestras mascotas`;
+const inviteText = (name) => `🐾 ${name ? `${name} te invita` : "Te invito"} a conectar en Petipo para compartir las historias de nuestras mascotas`;
 const shareInvite = (code, name) => shareLink({ text: inviteText(name), url: inviteUrl(code) });
 
 export default function Friends() {
@@ -103,7 +103,7 @@ export default function Friends() {
           <ArrowLeft className="w-4 h-4" style={{ color: C.ink }} />
         </button>
         <div className="flex-1">
-          <h1 className="font-display font-bold text-xl" style={{ color: C.ink }}>Amigos de Petito</h1>
+          <h1 className="font-display font-bold text-xl" style={{ color: C.ink }}>Amigos de Petipo</h1>
           <p className="text-xs" style={{ color: C.muted }}>Comparte con los dueños que tú eliges</p>
         </div>
       </div>
@@ -497,11 +497,11 @@ function FriendsTab({ overview, me, reload, setOverview }) {
       <section data-testid="friends-list">
         <h3 className="font-display font-bold mb-2" style={{ color: C.ink }}>Tus amigos {overview.friends.length > 0 && <span style={{ color: C.muted }}>({overview.friends.length})</span>}</h3>
         {overview.friends.length === 0 ? (
-          <p className="text-sm p-4 rounded-2xl bg-white border text-center" style={{ borderColor: C.card, color: C.muted }}>Aún no tienes amigos en Petito. ¡Invita al primero! 🐶🐱</p>
+          <p className="text-sm p-4 rounded-2xl bg-white border text-center" style={{ borderColor: C.card, color: C.muted }}>Aún no tienes amigos en Petipo. ¡Invita al primero! 🐶🐱</p>
         ) : (
           <div className="space-y-2.5">
             {overview.friends.map((f) => (
-              <PersonRow key={f.connection_id} owner={f.owner} sub={f.owner.pets.length ? f.owner.pets.map((p) => p.name).join(", ") : "Dueño de Petito"}>
+              <PersonRow key={f.connection_id} owner={f.owner} sub={f.owner.pets.length ? f.owner.pets.map((p) => p.name).join(", ") : "Dueño de Petipo"}>
                 {confirmRemove === f.connection_id ? (
                   <>
                     <button onClick={() => act(f.connection_id, () => endConnection(f.connection_id), "Ya no están conectados")} data-testid={`friend-remove-confirm-${f.connection_id}`}

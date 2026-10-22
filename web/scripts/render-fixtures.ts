@@ -12,13 +12,13 @@ const raw = readFileSync(photoPath);
 (async () => {
   const img = await decode(raw);
   for (const theme of Object.keys(THEMES)) {
-    const t = titleSlide("La gran siesta del año", "Max", THEMES[theme].label, "Petito", img, theme);
+    const t = titleSlide("La gran siesta del año", "Max", THEMES[theme].label, "Petipo", img, theme);
     writeFileSync(path.join(out, `${theme}_title.jpg`), await toJpeg(t, 85));
-    const p0 = photoSlide(img, "Hoy me comí la pantufla de mi humano y no me arrepiento de nada.", "¡Modo siesta!", "Max", "Petito", theme, 0);
+    const p0 = photoSlide(img, "Hoy me comí la pantufla de mi humano y no me arrepiento de nada.", "¡Modo siesta!", "Max", "Petipo", theme, 0);
     const p0buf = await toJpeg(p0, 85);
     writeFileSync(path.join(out, `${theme}_photo0.jpg`), p0buf);
-    writeFileSync(path.join(out, `${theme}_photo1.jpg`), await toJpeg(photoSlide(img, "Me pongo regio para la foto, como buen regalón.", "¡Qué regalón!", "Max", "Petito", theme, 1), 85));
-    writeFileSync(path.join(out, `${theme}_closing.jpg`), await toJpeg(closingSlide("Petito", "petito.pro", theme), 85));
+    writeFileSync(path.join(out, `${theme}_photo1.jpg`), await toJpeg(photoSlide(img, "Me pongo regio para la foto, como buen regalón.", "¡Qué regalón!", "Max", "Petipo", theme, 1), 85));
+    writeFileSync(path.join(out, `${theme}_closing.jpg`), await toJpeg(closingSlide("Petipo", "petito.pro", theme), 85));
     if (theme === "mi_ano") writeFileSync(path.join(out, `locked.jpg`), await makeLocked(p0buf));
   }
   writeFileSync(path.join(out, "portrait_preview.jpg"), await portraitPreview(raw));

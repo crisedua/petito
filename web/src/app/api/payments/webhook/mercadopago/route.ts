@@ -25,7 +25,7 @@ export const POST = handler(async (req: Request) => {
   const resId = String(dataId || body?.data?.id || "");
   const topic = eventType || body?.type;
 
-  // ---- Petito Plus subscription events ----
+  // ---- Petipo Plus subscription events ----
   if (topic === "subscription_preapproval" && resId) {
     try {
       const sub = await getPreapproval(resId);

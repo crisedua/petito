@@ -7,7 +7,7 @@ import { isoNow } from "@/lib/server/ids";
 import { env } from "@/lib/server/env";
 import type { Ctx } from "@/lib/server/route";
 
-/** Subscription-only: the clean HD portrait is unlocked solely by Petito Plus. */
+/** Subscription-only: the clean HD portrait is unlocked solely by Petipo Plus. */
 export const POST = handler(async (req: Request, ctx: Ctx<{ id: string }>) => {
   const p = await getPortrait((await ctx.params).id);
   if (p.status === "paid") return json({ mode: env.paymentMode, already_paid: true });

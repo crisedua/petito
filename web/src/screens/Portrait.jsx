@@ -384,8 +384,8 @@ function StepProgress({ portraitId, onReady, onFail }) {
 
 /** Shares the before-and-after image itself where the browser allows it (WhatsApp, Instagram); otherwise the link. */
 export async function shareBeforeAfter(imgUrl, petName, link) {
-  const text = `Mira el antes y después de ${petName || "mi mascota"} en Petito 👑🐾`;
-  return shareImage({ text, url: link, imageUrl: imgUrl, fileName: `petito-${petName || "mascota"}-antes-despues.jpg` });
+  const text = `Mira el antes y después de ${petName || "mi mascota"} en Petipo 👑🐾`;
+  return shareImage({ text, url: link, imageUrl: imgUrl, fileName: `petipo-${petName || "mascota"}-antes-despues.jpg` });
 }
 
 /** After a result, one concrete next thing to make (keeps the momentum going). */
@@ -445,17 +445,17 @@ function StepResult({ portrait, setPortrait, portraitId, slug, cfg, price, nav }
       const blob = await res.blob();
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = `petito-retrato-${portrait?.pet_name || "mascota"}${clean ? "-hd" : ""}.jpg`;
+      a.download = `petipo-retrato-${portrait?.pet_name || "mascota"}${clean ? "-hd" : ""}.jpg`;
       document.body.appendChild(a); a.click(); a.remove();
     } catch { toast.error("No se pudo descargar"); }
   };
 
-  useEffect(() => { prefetchShareImage(mediaUrl(portrait?.compare_url), `petito-${portrait?.pet_name || "mascota"}-antes-despues.jpg`); }, [portrait?.compare_url]); // eslint-disable-line
+  useEffect(() => { prefetchShareImage(mediaUrl(portrait?.compare_url), `petipo-${portrait?.pet_name || "mascota"}-antes-despues.jpg`); }, [portrait?.compare_url]); // eslint-disable-line
   const shareCompare = () => shareBeforeAfter(mediaUrl(portrait?.compare_url), portrait?.pet_name, giftUrl);
   const share = async () => {
     const text = portrait?.gift_enabled
-      ? `Te tengo un regalo de Petito 🎁🐾`
-      : `¡Mira el retrato de realeza de ${portrait?.pet_name || "mi mascota"} en Petito! 👑🐾`;
+      ? `Te tengo un regalo de Petipo 🎁🐾`
+      : `¡Mira el retrato de realeza de ${portrait?.pet_name || "mi mascota"} en Petipo! 👑🐾`;
     await shareLink({ text, url: giftUrl });
   };
 
@@ -502,16 +502,16 @@ function StepResult({ portrait, setPortrait, portraitId, slug, cfg, price, nav }
           <>
             <div className="mt-5 text-center">
               <p className="font-display font-semibold text-lg text-neutral-900">Así quedó tu mascota 👑</p>
-              <p className="text-sm text-muted-foreground mt-1">Descárgala en alta resolución, lista para imprimir, con Petito Plus.</p>
+              <p className="text-sm text-muted-foreground mt-1">Descárgala en alta resolución, lista para imprimir, con Petipo Plus.</p>
             </div>
             <div className="mt-4 bg-white rounded-3xl border border-border p-5 shadow-sm" data-testid="portrait-paywall-card">
               <div className="text-center">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-display font-bold text-stone-900 mb-2" style={{ background: "#F5C355" }}>👑 Petito Plus</div>
-                <div className="font-display font-bold text-xl text-neutral-900">Desbloquéalo con Petito Plus</div>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-display font-bold text-stone-900 mb-2" style={{ background: "#F5C355" }}>👑 Petipo Plus</div>
+                <div className="font-display font-bold text-xl text-neutral-900">Desbloquéalo con Petipo Plus</div>
                 <div className="text-xs text-muted-foreground mt-1">Una sola membresía desbloquea todas tus creaciones</div>
               </div>
               <ul className="mt-4 space-y-2 text-sm text-neutral-700">
-                {["Retrato en alta resolución, sin el sello de Petito", "Marco dorado incluido", "Historias y videos incluidos, sin pago por unidad", portrait?.gift_enabled ? "Enlace de regalo listo para enviar" : "Listo para imprimir o compartir"].map((b) => (
+                {["Retrato en alta resolución, sin el sello de Petipo", "Marco dorado incluido", "Historias y videos incluidos, sin pago por unidad", portrait?.gift_enabled ? "Enlace de regalo listo para enviar" : "Listo para imprimir o compartir"].map((b) => (
                   <li key={b} className="flex items-center gap-2"><Check className="w-4 h-4 text-primary shrink-0" /> {b}</li>
                 ))}
               </ul>
@@ -532,7 +532,7 @@ function StepResult({ portrait, setPortrait, portraitId, slug, cfg, price, nav }
       {!paid && (
         <BottomBar>
           <Button onClick={unlock} disabled={busy} className="w-full h-14 text-base font-display font-semibold rounded-2xl shadow-lg shadow-primary/30" data-testid="portrait-pay-button">
-            {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Crown className="w-5 h-5 mr-2" /> Desbloquéalo con Petito Plus</>}
+            {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Crown className="w-5 h-5 mr-2" /> Desbloquéalo con Petipo Plus</>}
           </Button>
         </BottomBar>
       )}

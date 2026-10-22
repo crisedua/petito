@@ -97,7 +97,7 @@ export const GET = handler(async (req: Request) => {
       if (!env.publicBaseUrl) throw new Error("PUBLIC_BASE_URL missing");
       const r = await fetch(`${env.publicBaseUrl}/api`, { signal: AbortSignal.timeout(10_000) });
       const body = await r.text();
-      if (!body.includes('"app":"Petito"')) throw new Error(`${env.publicBaseUrl} does not answer like this app (still pointing at the old site?)`);
+      if (!body.includes('"app":"Petipo"')) throw new Error(`${env.publicBaseUrl} does not answer like this app (still pointing at the old site?)`);
       return `${env.publicBaseUrl} → this app`;
     }),
   ]);

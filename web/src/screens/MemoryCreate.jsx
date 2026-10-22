@@ -97,21 +97,21 @@ export default function MemoryCreate() {
           <motion.p initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
             className="mt-2 text-sm font-display" style={{ color: "#8A7868" }}>Este momento ya vive en su álbum 🤍</motion.p>
 
-          {/* Petito reflection offer */}
+          {/* Petipo reflection offer */}
           {!reflection ? (
             <motion.div initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }} className="mt-8 w-full">
               <button onClick={askReflection} disabled={reflecting} data-testid="memory-ask-reflection"
                 className="w-full h-13 py-3.5 rounded-2xl font-display font-semibold text-sm flex items-center justify-center gap-2 border"
                 style={{ background: "#fff", color: "#8A6D4B", borderColor: "#EADFCF" }}>
                 {reflecting ? <><Loader2 className="w-4 h-4 animate-spin" /> Pensando...</>
-                  : <><Sparkles className="w-4 h-4" style={{ color: "#C2683F" }} /> ¿Quieres un pensamiento de Petito?</>}
+                  : <><Sparkles className="w-4 h-4" style={{ color: "#C2683F" }} /> ¿Quieres un pensamiento de Petipo?</>}
               </button>
             </motion.div>
           ) : (
             <motion.div initial={reduce ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
               className="mt-8 w-full p-4 rounded-2xl text-left border" style={{ background: "#F6EFE2", borderColor: "#EADFCF" }} data-testid="memory-reflection-text">
               <div className="flex items-center gap-1.5 text-xs font-bold mb-1.5" style={{ color: "#B07A4A" }}>
-                💭 Un pensamiento de Petito
+                💭 Un pensamiento de Petipo
               </div>
               <p className="text-sm font-display leading-relaxed" style={{ color: "#4A3B30" }}>{reflection}</p>
               <div className="mt-1.5 text-[10px]" style={{ color: "#A7937F" }}>Escrito por IA · acompaña tu recuerdo, no es un hecho</div>
