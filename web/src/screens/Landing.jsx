@@ -8,7 +8,6 @@ import { PawPrint, Sparkles, BookHeart, Mic, Camera, Loader2 } from "lucide-reac
 import { ProfileMenu } from "@/components/ProfileMenu";
 import { useAuth } from "@/lib/auth";
 import { createTalkPreview, getPets } from "@/lib/api";
-import { isStandalone } from "@/lib/install";
 import TryPortrait from "@/components/TryPortrait";
 
 
@@ -37,7 +36,8 @@ export default function Landing() {
     getPets().then((p) => {
       setHasPets(p.length > 0);
       // Opened from the home-screen icon: skip the landing and go straight to their pet.
-      if (p.length > 0 && (isStandalone() || new URLSearchParams(window.location.search).get("app") === "1")) nav("/universo", { replace: true });
+      // Signed in with a pet: the universe (menu, Plus, collection) is the home screen, not the landing.
+      if (p.length > 0) nav("/universo", { replace: true });
     }).catch(() => setHasPets(false));
   }, [user]); // eslint-disable-line
 
@@ -76,11 +76,11 @@ export default function Landing() {
           </motion.div>
         )}
 
-        {user && hasPets && (
-          <button onClick={() => nav("/universo")} data-testid="landing-enter-universe"
+        {user && (
+          <button onClick={() => nav(hasPets ? "/universo" : "/bienvenida")} data-testid="landing-enter-universe"
             className="mt-4 w-full h-12 rounded-2xl font-display font-semibold text-sm flex items-center justify-center gap-2"
             style={{ background: "#F0E7D8", color: "#6E5B3E" }}>
-            <PawPrint className="w-4 h-4" /> Entrar a mi universo
+            <PawPrint className="w-4 h-4" /> {hasPets ? "Entrar a mi universo" : "Crea el universo de tu mascota"}
           </button>
         )}
 
