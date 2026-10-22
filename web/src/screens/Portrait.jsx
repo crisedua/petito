@@ -64,6 +64,7 @@ export default function Portrait() {
   };
   const pickFrame = (k) => { setFrame(k); setFrameTouched(true); };
   const [gift, setGift] = useState({ enabled: false, to: "", from: "", message: "" });
+  const [caption, setCaption] = useState("");
   const [portraitId, setPortraitId] = useState(null);
   const [slug, setSlug] = useState(null);
   const [portrait, setPortrait] = useState(null);
@@ -90,7 +91,7 @@ export default function Portrait() {
     setBusy(true);
     try {
       const p = await createPortrait({
-        pet_name: petName, style, frame: frame || undefined,
+        pet_name: petName, style, frame: frame || undefined, caption: caption.trim() || undefined,
         gift_enabled: gift.enabled, gift_to: gift.to, gift_from: gift.from, gift_message: gift.message,
       });
       setPortraitId(p.id); setSlug(p.slug);
@@ -110,7 +111,7 @@ export default function Portrait() {
       )}
       {step === "style" && (
         <StepStyle key="style" cfg={cfg} style={style} setStyle={pickStyle} gift={gift} setGift={setGift}
-          frame={frame} setFrame={pickFrame} samples={samples}
+          frame={frame} setFrame={pickFrame} samples={samples} caption={caption} setCaption={setCaption}
           onBack={() => setStep("photo")} onNext={start} busy={busy} />
       )}
       {step === "progress" && (
@@ -206,7 +207,7 @@ function StepPhoto({ nav, cfg, petName, setPetName, file, setFile, onNext }) {
 }
 
 /* ---------------- Step: style + gift ---------------- */
-function StepStyle({ cfg, style, setStyle, gift, setGift, onBack, onNext, busy, frame, setFrame, samples }) {
+function StepStyle({ cfg, style, setStyle, gift, setGift, onBack, onNext, busy, frame, setFrame, samples, caption, setCaption }) {
   const styleDef = (k) => (cfg.portrait_styles || []).find((s) => s.key === k);
   // Real sample for this style in this frame, if an admin generated one.
   const exactSample = (k, f) => samples?.[k]?.frames?.[f] || null;
@@ -221,7 +222,7 @@ function StepStyle({ cfg, style, setStyle, gift, setGift, onBack, onNext, busy, 
       <Header stepText="Paso 2 de 2 · El estilo" onBack={onBack} />
       <div className="flex-1 px-5 pt-5 pb-40 overflow-y-auto no-scrollbar">
         <h2 className="font-display font-bold text-2xl text-neutral-900">¿Cómo quieres el retrato? 🎨</h2>
-        {[["foto", "Tu foto, mejorada", "Sigue siendo su foto real: solo le agregamos algo."], ["pintura", "Pinturas", "La IA la convierte en una pintura con marco."]].map(([g, title, sub]) => (
+        {[["foto", "Tu foto, mejorada", "Sigue siendo su foto real: solo le agregamos algo."], ["ilustracion", "Ilustraciones", "Un dibujo de tu mascota en papel, con su nombre y una frase."], ["pintura", "Pinturas", "La IA la convierte en una pintura con marco."]].map(([g, title, sub]) => (
         <div key={g} className="mt-5" data-testid={`portrait-group-${g}`}>
           <div className="font-display font-bold text-neutral-900">{title}</div>
           <div className="text-xs text-muted-foreground mb-2">{sub}</div>
@@ -269,6 +270,16 @@ function StepStyle({ cfg, style, setStyle, gift, setGift, onBack, onNext, busy, 
               ))}
             </div>
             <p className="mt-1.5 text-[11px] text-muted-foreground">{cfg.portrait_frames.find((f) => f.key === frame)?.desc}</p>
+          </div>
+        )}
+
+        {style && ["foto", "ilustracion"].includes(styleDef(style)?.group) && (
+          <div className="mt-6 bg-white rounded-2xl border border-border p-4" data-testid="portrait-caption-card">
+            <div className="font-display font-semibold text-neutral-900">Texto en el retrato</div>
+            <p className="text-xs text-muted-foreground mt-0.5 mb-2">
+              {styleDef(style)?.group === "ilustracion" ? "Va bajo el dibujo, junto a su nombre. Ej: “el estirón de las 7”, “jefe de la casa”." : "Va en la placa con su nombre. Si lo dejas vacío, le inventamos un título chileno."}
+            </p>
+            <Input value={caption} onChange={(e) => setCaption(e.target.value.slice(0, 60))} placeholder={styleDef(style)?.group === "ilustracion" ? "Una frase corta (opcional)" : "Ej: Duquesa de Viña (opcional)"} className="h-12 rounded-xl bg-background" data-testid="portrait-caption" />
           </div>
         )}
 

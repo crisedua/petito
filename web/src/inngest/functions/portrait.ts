@@ -6,8 +6,8 @@ import { db, logGeneration } from "@/lib/server/db";
 import * as fal from "@/lib/server/fal";
 import * as storage from "@/lib/server/storage";
 import { imageToB64, imageToDataUri } from "@/lib/server/images";
-import { photoEditPrompt, portraitPrompt, writePetTitle } from "@/lib/server/prompts";
-import { compareImage, namePlate } from "@/lib/render/plate";
+import { photoEditPrompt, portraitPrompt, posterPrompt, writePetTitle } from "@/lib/server/prompts";
+import { compareImage, namePlate, posterCompose } from "@/lib/render/plate";
 import { renderPhotoStyle } from "@/lib/render/photoStyles";
 import { loadImage } from "@/lib/server/images";
 import * as hf from "@/lib/server/higgsfield";
@@ -45,12 +45,14 @@ export const generatePortrait = inngest.createFunction(
       await progress(step, "portraits", id, "40", { progress_step: "Revelando tu foto...", progress_pct: 40 });
     } else {
       await progress(step, "portraits", id, "20", { progress_step: mode === "edit" ? "Preparando tu foto..." : "Preparando el lienzo...", progress_pct: 20 });
-      await progress(step, "portraits", id, "45", { progress_step: mode === "edit" ? "Retocando con cuidado..." : "Pintando a tu mascota...", progress_pct: 45 });
+      await progress(step, "portraits", id, "45", { progress_step: mode === "edit" ? "Retocando con cuidado..." : mode === "poster" ? "Dibujando a tu mascota..." : "Pintando a tu mascota...", progress_pct: 45 });
       const prompt = mode === "edit"
         ? photoEditPrompt("mascota", style.prompt)
-        : portraitPrompt("mascota", p.category === "memorial" ? style.prompt : `${style.prompt}, ${frameFor(p.style, p.frame).prompt}`);
+        : mode === "poster"
+          ? posterPrompt("mascota", style.prompt)
+          : portraitPrompt("mascota", p.category === "memorial" ? style.prompt : `${style.prompt}, ${frameFor(p.style, p.frame).prompt}`);
       const sub: { provider: "fal" | "higgsfield"; id: string; model: string } = await step.run("submit", async () => {
-        let engine = mode === "edit" ? photoEngine() : await defaultEngine();
+        let engine = mode === "edit" || mode === "poster" ? photoEngine() : await defaultEngine();
         if (!engineAvailable(engine)) engine = IMAGE_ENGINES.nano_banana;
         // Extra photos of the same pet help engines that take several references.
         const refs: Buffer[] = [await loadImage(id, photo)];
@@ -75,8 +77,10 @@ export const generatePortrait = inngest.createFunction(
 
     await progress(step, "portraits", id, "80", { progress_step: mode === "paint" ? "Poniéndole el marco..." : "Últimos detalles...", progress_pct: 80 });
     // Photo-based styles get a brass name plate with a funny Chilean title ("Michi, Duquesa de Viña").
+    // A caption the owner typed wins over the invented title.
+    const caption: string = String(p.caption ?? "").trim();
     const title: string = mode === "edit" && p.category !== "memorial"
-      ? await step.run("title", async () => writePetTitle(await imageToB64(id, photo), p.pet_name))
+      ? (caption ? (p.pet_name ? `${p.pet_name}, ${caption}` : caption) : await step.run("title", async () => writePetTitle(await imageToB64(id, photo), p.pet_name)))
       : "";
     await step.run("save", async () => {
       const sharp = (await import("sharp")).default;
@@ -84,6 +88,7 @@ export const generatePortrait = inngest.createFunction(
         ? await sharp(usedProvider === "higgsfield" ? await hf.download(url) : await fal.download(url)).jpeg({ quality: 94 }).toBuffer()
         : await renderPhotoStyle(p.style, await loadImage(id, photo), p.pet_name);
       if (title) clean = await namePlate(clean, title);
+      if (mode === "poster") clean = await posterCompose(clean, p.pet_name, caption);
       const cleanName = `clean_${hex16()}.jpg`;
       const preview = await portraitPreview(clean, BRAND_NAME);
       await storage.put(id, cleanName, clean, "image/jpeg");

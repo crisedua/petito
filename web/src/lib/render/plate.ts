@@ -68,3 +68,35 @@ export async function compareImage(original: Buffer, result: Buffer, brand = "pe
   ctx.fillText(sub, (W - textWidth(ctx, sub, f3)) / 2, H - 22);
   return c.encode("jpeg", 90);
 }
+
+/**
+ * Illustration styles: the AI drawing on cream paper with the pet's name (and a caption) as real text,
+ * like a gallery print. Output 900×1200.
+ */
+export async function posterCompose(image: Buffer, petName: string | null, caption: string | null): Promise<Buffer> {
+  const OW = 900, OH = 1200;
+  const name = (petName ?? "").trim(), cap = (caption ?? "").trim();
+  const img = await decode(await sharp(image).rotate().resize(1600, 1600, { fit: "inside", withoutEnlargement: true }).jpeg({ quality: 94 }).toBuffer());
+  const [c, ctx] = canvas(OW, OH);
+  ctx.fillStyle = "#FBF8F2"; ctx.fillRect(0, 0, OW, OH);
+  const textBlock = name || cap ? (name ? 90 : 0) + (cap ? 60 : 0) + 30 : 0;
+  const margin = 60, areaH = OH - margin * 2 - textBlock, areaW = OW - margin * 2;
+  // Keep the whole drawing (no crop) and hide the AI's background edges by drawing on the same cream.
+  const scale = Math.min(areaW / img.width, areaH / img.height);
+  const dw = img.width * scale, dh = img.height * scale;
+  const dx = (OW - dw) / 2, dy = margin + (areaH - dh) / 2;
+  ctx.save(); ctx.beginPath(); ctx.roundRect(dx, dy, dw, dh, 6); ctx.clip();
+  ctx.drawImage(img, dx, dy, dw, dh);
+  ctx.restore();
+  let y = margin + areaH + 24;
+  if (name) {
+    const f = displayFont(64, 700); ctx.font = f; ctx.fillStyle = "#2B2118";
+    ctx.fillText(name, (OW - textWidth(ctx, name, f)) / 2, y);
+    y += 86;
+  }
+  if (cap) {
+    const f = scriptFont(44); ctx.font = f; ctx.fillStyle = "#8A6D4B";
+    ctx.fillText(cap, (OW - textWidth(ctx, cap, f)) / 2, y);
+  }
+  return c.encode("jpeg", 94);
+}

@@ -9,8 +9,8 @@ export type Theme = { label: string; emoji: string; music: string; bonus_scenes:
  * mode: "paint" = AI repaints the photo (oil painting etc.); "edit" = AI keeps the real photo and only
  * adds background/props (photoreal); "render" = our own renderer, no AI at all.
  */
-export type StyleMode = "paint" | "edit" | "render";
-export type StyleDef = { label: string; emoji: string; desc: string; prompt: string; mode?: StyleMode; group?: "foto" | "pintura" };
+export type StyleMode = "paint" | "edit" | "render" | "poster";
+export type StyleDef = { label: string; emoji: string; desc: string; prompt: string; mode?: StyleMode; group?: "foto" | "pintura" | "ilustracion" };
 export type Option = { key: string; label: string; emoji: string };
 export type TalkScenario = { label: string; emoji: string; hint: string; group?: string };
 export type Voice = { id: string; label: string };
@@ -297,6 +297,42 @@ export const PORTRAIT_STYLES: Record<string, StyleDef> = {
     "desc": "Tu foto real rodeada de flores frescas",
     "prompt": "surround the pet with real-looking fresh flowers (peonies, daisies and eucalyptus) in the foreground and background, soft natural daylight, photorealistic, like a professional spring photoshoot",
     "mode": "edit", "group": "foto"
+  },
+  // ---- Ilustraciones: a drawing of the pet on paper, with its name and a caption as real text ----
+  "linea": {
+    "label": "Dibujo a línea",
+    "emoji": "✏️",
+    "desc": "Un dibujo minimalista a tinta, como lámina de galería",
+    "prompt": "a minimalist single-weight black ink line drawing of this pet, sitting and looking forward, clean confident lines, no shading, no color, lots of empty white space around it, on a pure white background",
+    "mode": "poster", "group": "ilustracion"
+  },
+  "paseo": {
+    "label": "De paseo",
+    "emoji": "🚶",
+    "desc": "Tu mascota caminando, en una ilustración plana y simple",
+    "prompt": "a simple flat illustration of this pet walking in profile from left to right, small on the page, muted natural colors, thin outlines, no background scenery, lots of empty white space, on a pure white background, like a modern art print",
+    "mode": "poster", "group": "ilustracion"
+  },
+  "estiron": {
+    "label": "El estirón",
+    "emoji": "🧘",
+    "desc": "Su estiramiento de la mañana, dibujado a línea",
+    "prompt": "a playful minimalist black ink line drawing of this pet doing a big morning stretch (front legs forward, rear up), a few tiny motion marks, no shading, no color, lots of empty white space, on a pure white background",
+    "mode": "poster", "group": "ilustracion"
+  },
+  "fideos": {
+    "label": "Comiendo fideos",
+    "emoji": "🍜",
+    "desc": "Al estilo de una lámina japonesa, con sus fideos",
+    "prompt": "a charming flat illustration in the style of a vintage Japanese poster: this pet sitting happily eating noodles from a bowl with chopsticks, warm mustard and sage colors, a few bamboo leaves, simple shapes, visible paper texture, the illustration centered with clean margins on a plain cream background",
+    "mode": "poster", "group": "ilustracion"
+  },
+  "poses": {
+    "label": "Sus poses",
+    "emoji": "🐾",
+    "desc": "Nueve bocetos de tu mascota en distintas poses",
+    "prompt": "a sheet of nine small pencil sketches of this same pet in different poses arranged in a loose 3 by 3 grid (sitting, lying down, sleeping, walking, stretching, playing, head tilt, begging, running), light graphite lines, no color, generous spacing, on a pure white background",
+    "mode": "poster", "group": "ilustracion"
   },
   // ---- Pinturas: the AI repaints the photo ----
   "renacentista": {

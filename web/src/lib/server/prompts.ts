@@ -127,6 +127,13 @@ export const photoEditPrompt = (species: string, stylePrompt: string) =>
   `the light; keep dark eyes dark, never brighten them artificially. ` +
   `The result must look like a real photo taken of this same pet. ${PRO_PHOTO} Vertical 3:4 composition, no frame, no text.`;
 
+/** Illustration styles: a drawing of THIS pet, on plain paper, with room left for text we add ourselves. */
+export const posterPrompt = (species: string, stylePrompt: string) =>
+  `Draw this exact ${species} as ${stylePrompt}. Keep its real markings, coat pattern, ear and tail shape and ` +
+  `proportions so it is recognizably the same pet, simplified in the style. Vertical 3:4 composition, the drawing ` +
+  `occupies the upper two thirds and the bottom third stays empty, plain background edge to edge, ` +
+  `absolutely no text, letters, signature, border or frame.`;
+
 const TITLE_FALLBACKS = ["Duquesa de Viña", "Conde de Ñuñoa", "Marqués del Patio", "Reina de la Siesta", "Príncipe de Puerto Varas", "Emperatriz del Sofá", "Barón de Valparaíso", "Señora de Las Condes"];
 /** A short, funny Chilean noble title for the name plate ("Michi, Duquesa de Viña"). Never throws. */
 export async function writePetTitle(photoB64: string, petName: string | null): Promise<string> {
