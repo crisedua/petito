@@ -234,7 +234,7 @@ export default function Universe() {
           </div>
           <ArrowRight className="relative w-5 h-5 text-white shrink-0" />
         </motion.button>
-        <div className="mt-3 space-y-3">
+        <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
           {invitations.map((inv, i) => (
             <motion.button key={inv.key} {...fade(0.05 * i)} whileTap={reduce ? undefined : { scale: 0.98 }}
               onClick={() => nav(inv.to)} data-testid={`universe-invite-${inv.key}`}
@@ -265,7 +265,7 @@ export default function Universe() {
             <p className="text-sm" style={{ color: "#8A7868" }}>La colección de {name} está vacía. Empieza con <b style={{ color: "#B85C3C" }}>{suggestion.title}</b> 🐾</p>
           </button>
         ) : (
-          <div className="mt-3 grid grid-cols-2 gap-3" data-testid="universe-creations">
+          <div className="mt-3 grid grid-cols-2 md:grid-cols-3 gap-3" data-testid="universe-creations">
             {creations.map((c) => {
               const badge = KIND_BADGE[c.kind] || KIND_BADGE.retrato;
               return (

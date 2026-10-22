@@ -56,6 +56,14 @@ body {
   background: #FAF6F0;
   box-shadow: 0 0 60px rgba(0,0,0,0.12);
 }
+/* Tablets and desktops: a wider column, same single-flow screens. Grids add a column at these sizes. */
+@media (min-width: 768px) {
+  .mobile-frame { max-width: 44rem; }
+}
+@media (min-width: 1024px) {
+  .mobile-frame { max-width: 48rem; min-height: 100vh; }
+  body { background: #e9dfd0; }
+}
 
 .paw-pattern {
   background-color: #E05A47;

@@ -115,7 +115,7 @@ export default function PetProfile() {
           })}
         </div>
 
-        <div className="mt-5 grid grid-cols-2 gap-3">
+        <div className="mt-5 grid grid-cols-2 md:grid-cols-3 gap-3">
           <div>
             <label className="flex items-center gap-1 text-sm font-display font-semibold" style={{ color: "#6E5B3E" }}><Cake className="w-4 h-4" /> Cumpleaños</label>
             <input type="date" value={birthday} onChange={(e) => setBirthday(e.target.value)} data-testid="profile-birthday-input"

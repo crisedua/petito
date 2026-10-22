@@ -46,7 +46,7 @@ export default function MyCreations() {
           videos.length === 0 ? (
             <Empty icon={Mic} text="Aún no tienes videos" cta="Hacer que hable" onClick={() => nav("/hablar")} />
           ) : (
-            <div className="grid grid-cols-2 gap-3" data-testid="videos-grid">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3" data-testid="videos-grid">
               {videos.map((v) => (
                 <Card key={v.id} onClick={() => nav(`/v/${v.slug}`)} testid={`video-card-${v.id}`}
                   thumb={mediaUrl(v.thumb_url)} title={v.pet_name || "Video"} subtitle={v.line || "Petito Habla"}
@@ -58,7 +58,7 @@ export default function MyCreations() {
           portraits.length === 0 ? (
             <Empty icon={Crown} text="Aún no tienes retratos" cta="Crear un retrato" onClick={() => nav("/retrato")} />
           ) : (
-            <div className="grid grid-cols-2 gap-3" data-testid="portraits-grid">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3" data-testid="portraits-grid">
               {portraits.map((p) => (
                 <Card key={p.id} onClick={() => nav(`/r/${p.slug}`)} testid={`portrait-card-${p.id}`}
                   thumb={mediaUrl(p.thumb_url)} title={p.pet_name || "Retrato"} subtitle={p.style_label}
@@ -70,7 +70,7 @@ export default function MyCreations() {
           stories.length === 0 ? (
             <Empty icon={Film} text="Aún no tienes historias" cta="Crear una historia" onClick={() => nav("/crear")} />
           ) : (
-            <div className="grid grid-cols-2 gap-3" data-testid="stories-grid">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3" data-testid="stories-grid">
               {stories.map((s) => (
                 <Card key={s.id} onClick={() => nav(`/h/${s.slug}`)} testid={`story-card-${s.id}`}
                   thumb={mediaUrl(s.thumb_url)} title={s.pet_name} subtitle={s.theme_label} paid={s.paid} />

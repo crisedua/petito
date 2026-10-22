@@ -107,7 +107,7 @@ function Header({ onBack, stepText }) {
 }
 
 function BottomBar({ children }) {
-  return <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto p-4 pb-6 bg-gradient-to-t from-[#F4F2EF] via-[#F4F2EF] to-transparent">{children}</div>;
+  return <div className="fixed bottom-0 left-0 right-0 max-w-md md:max-w-[44rem] lg:max-w-[48rem] mx-auto p-4 pb-6 bg-gradient-to-t from-[#F4F2EF] via-[#F4F2EF] to-transparent">{children}</div>;
 }
 
 function StepPhoto({ nav, petName, setPetName, dates, setDates, file, setFile, onNext }) {
@@ -168,7 +168,7 @@ function StepStyle({ cfg, style, setStyle, caption, setCaption, onBack, onNext, 
       <Header stepText="Paso 2 de 2 · El estilo" onBack={onBack} />
       <div className="flex-1 px-5 pt-5 pb-40 overflow-y-auto no-scrollbar">
         <h2 className="font-display font-bold text-2xl text-slate-800">¿Cómo quieres el retrato?</h2>
-        <div className="mt-5 grid grid-cols-1 gap-3">
+        <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-3">
           {(cfg.memorial_styles || []).map((s) => (
             <button key={s.key} onClick={() => setStyle(s.key)} data-testid={`memorial-style-${s.key}`}
               className={`relative w-full flex items-center gap-4 p-3 rounded-2xl border-2 text-left transition-all ${style === s.key ? "border-slate-600 bg-white ring-2 ring-slate-200" : "border-border bg-white"}`}>

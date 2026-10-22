@@ -149,7 +149,7 @@ function Header({ onBack, stepText }) {
 }
 
 function BottomBar({ children }) {
-  return <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto p-4 pb-6 bg-gradient-to-t from-[#FAF6F0] via-[#FAF6F0] to-transparent">{children}</div>;
+  return <div className="fixed bottom-0 left-0 right-0 max-w-md md:max-w-[44rem] lg:max-w-[48rem] mx-auto p-4 pb-6 bg-gradient-to-t from-[#FAF6F0] via-[#FAF6F0] to-transparent">{children}</div>;
 }
 
 /* ---------------- Step: photo + name ---------------- */
@@ -226,7 +226,7 @@ function StepStyle({ cfg, style, setStyle, gift, setGift, onBack, onNext, busy, 
         <div key={g} className="mt-5" data-testid={`portrait-group-${g}`}>
           <div className="font-display font-bold text-neutral-900">{title}</div>
           <div className="text-xs text-muted-foreground mb-2">{sub}</div>
-        <div className="grid grid-cols-1 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {(cfg.portrait_styles || []).filter((s) => (s.group || "pintura") === g).map((s) => (
             <button key={s.key} onClick={() => setStyle(s.key)} data-testid={`portrait-style-${s.key}`}
               className={`relative w-full flex items-center gap-4 p-3 rounded-2xl border-2 text-left transition-all ${style === s.key ? "border-primary bg-primary/10 ring-2 ring-primary/20" : "border-border bg-white"}`}>

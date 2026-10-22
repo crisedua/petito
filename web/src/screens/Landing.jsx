@@ -64,8 +64,8 @@ export default function Landing() {
 
       <div className="flex-1 px-6 pt-4 pb-10 overflow-y-auto no-scrollbar">
         <motion.div {...fade(0)}
-          className="relative rounded-[2rem] overflow-hidden shadow-xl border-4 border-white"
-          style={{ aspectRatio: "4 / 5", maxHeight: 200, margin: "0 auto" }}>
+          className="relative rounded-[2rem] overflow-hidden shadow-xl border-4 border-white h-[200px] md:h-[320px]"
+          style={{ margin: "0 auto" }}>
           <img src={HERO_IMG} alt="Mascota querida" className="absolute inset-0 w-full h-full object-cover" />
           <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(58,32,20,0.55), transparent 55%)" }} />
           <div className="absolute bottom-4 left-4 flex items-center gap-1.5 text-white text-xs font-semibold">
