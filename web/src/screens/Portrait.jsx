@@ -467,13 +467,6 @@ function StepResult({ portrait, setPortrait, portraitId, slug, cfg, price, nav }
         )}
         <div className="relative w-full rounded-3xl overflow-hidden bg-stone-900 border-4 border-white shadow-2xl mx-auto" style={{ aspectRatio: "3 / 4", maxWidth: 360 }} data-testid="portrait-result-image">
           {imgUrl && <img src={imgUrl} alt="Retrato" className="w-full h-full object-cover" />}
-          {portrait?.photo_url && (
-            <button onPointerDown={() => setShowOriginal(true)} onPointerUp={() => setShowOriginal(false)} onPointerLeave={() => setShowOriginal(false)}
-              data-testid="portrait-hold-original"
-              className="absolute bottom-3 left-1/2 -translate-x-1/2 px-3 h-9 rounded-full bg-black/60 text-white text-xs font-semibold backdrop-blur select-none">
-              {showOriginal ? "Tu foto original" : "Mantén presionado: ver la foto original"}
-            </button>
-          )}
         </div>
 
         {portrait?.gift_enabled && portrait?.gift_message && (

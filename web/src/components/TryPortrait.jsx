@@ -151,10 +151,6 @@ export default function TryPortrait({ title = "Mira a tu mascota como obra de ar
           <div className="font-display font-bold text-lg text-center" style={{ color: C.ink }}>¡Así quedó {name.trim() || "tu mascota"}! 👑</div>
           <div className="relative w-full max-w-[300px] mx-auto mt-3 rounded-2xl overflow-hidden bg-stone-900 border-4 border-white shadow-xl" style={{ aspectRatio: "3 / 4" }}>
             <img src={showOriginal && photo ? photo.url : resultUrl} alt="Tu mascota como retrato" className="w-full h-full object-cover" />
-            <button onPointerDown={() => setShowOriginal(true)} onPointerUp={() => setShowOriginal(false)} onPointerLeave={() => setShowOriginal(false)}
-              className="absolute bottom-3 left-1/2 -translate-x-1/2 px-3 h-9 rounded-full bg-black/60 text-white text-xs font-semibold backdrop-blur select-none whitespace-nowrap" data-testid={`${testid}-hold`}>
-              {showOriginal ? "Su foto original" : "Mantén presionado: ver la original"}
-            </button>
           </div>
           {!result.paid && <p className="mt-2 text-center text-[11px]" style={{ color: "#A7937F" }}>Esta es la versión para compartir. En alta resolución, lista para imprimir, con Petito Plus.</p>}
 
