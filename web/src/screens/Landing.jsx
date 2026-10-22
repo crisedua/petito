@@ -4,12 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@/lib/router";
 import { motion, useReducedMotion } from "framer-motion";
 import { toast } from "sonner";
-import { PawPrint, Sparkles, BookHeart, Mic, Camera, Loader2 } from "lucide-react";
+import { PawPrint, ArrowRight, Sparkles, Heart, BookHeart, Mic, Camera, Loader2 } from "lucide-react";
 import { ProfileMenu } from "@/components/ProfileMenu";
 import { useAuth } from "@/lib/auth";
 import { createTalkPreview, getPets } from "@/lib/api";
 import TryPortrait from "@/components/TryPortrait";
 
+const HERO_IMG = "https://images.unsplash.com/photo-1558788353-f76d92427f16?crop=entropy&cs=srgb&fm=jpg&q=85&w=900";
 
 const PREVIEW_LINES = [
   { key: "te_amo", label: "❤️ Te amo" },
@@ -20,9 +21,9 @@ const PREVIEW_LINES = [
 const SHOW_VOICE_PREVIEW = false;
 
 const STEPS = [
-  { icon: Camera, title: "Sube una foto" },
-  { icon: Sparkles, title: "Mírala en un minuto" },
-  { icon: BookHeart, title: "Guárdala y comparte" },
+  { icon: Sparkles, title: "Crea su universo", desc: "Cuéntanos quién es tu mascota y recibe una bienvenida hecha solo para ella." },
+  { icon: Mic, title: "Dale vida", desc: "Imagina lo que te diría, vívelo en aventuras y retratos, todo con su esencia." },
+  { icon: BookHeart, title: "Guarda lo que importa", desc: "Cada momento queda en su álbum, creciendo contigo con el tiempo." },
 ];
 
 export default function Landing() {
@@ -36,10 +37,14 @@ export default function Landing() {
     getPets().then((p) => {
       setHasPets(p.length > 0);
       // Opened from the home-screen icon: skip the landing and go straight to their pet.
-      // Signed in with a pet: the universe (menu, Plus, collection) is the home screen, not the landing.
       if (p.length > 0) nav("/universo", { replace: true });
     }).catch(() => setHasPets(false));
   }, [user]); // eslint-disable-line
+
+  const startUniverse = () => {
+    if (user) nav(hasPets ? "/universo" : "/bienvenida");
+    else nav("/bienvenida"); // RequireAuth shows login, returns here after
+  };
 
   const fade = (d = 0) => reduce
     ? {}
@@ -58,16 +63,22 @@ export default function Landing() {
       </div>
 
       <div className="flex-1 px-6 pt-4 pb-10 overflow-y-auto no-scrollbar">
-        <motion.h1 {...fade(0)}
-          className="font-display font-bold text-[1.75rem] leading-[1.1] tracking-tight" style={{ color: "#3A2A20" }}
-          data-testid="landing-headline">
-          Mira a tu mascota <span style={{ color: "#B85C3C" }}>como nunca la viste.</span>
-        </motion.h1>
-        <motion.p {...fade(0.08)} className="mt-2 text-[0.95rem] leading-snug" style={{ color: "#7A6A5E" }} data-testid="landing-subhead">
-          Con una sola foto: un retrato de realeza, un video donde te habla con su voz y su propia canción.
-        </motion.p>
+        <motion.div {...fade(0)}
+          className="relative rounded-[2rem] overflow-hidden shadow-xl border-4 border-white"
+          style={{ aspectRatio: "4 / 5", maxHeight: 200, margin: "0 auto" }}>
+          <img src={HERO_IMG} alt="Mascota querida" className="absolute inset-0 w-full h-full object-cover" />
+          <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(58,32,20,0.55), transparent 55%)" }} />
+          <div className="absolute bottom-4 left-4 flex items-center gap-1.5 text-white text-xs font-semibold">
+            <Heart className="w-4 h-4" fill="currentColor" /> Su universo, para siempre
+          </div>
+        </motion.div>
 
-        <motion.div {...fade(0.2)} className="mt-5">
+        <motion.h1 {...fade(0.12)}
+          className="mt-5 font-display font-bold text-[1.75rem] leading-[1.1] tracking-tight" style={{ color: "#3A2A20" }}
+          data-testid="landing-headline">
+          Su vida es parte de tu historia. <span style={{ color: "#B85C3C" }}>Hagamos que sea inolvidable.</span>
+        </motion.h1>
+        <motion.div {...fade(0.2)} className="mt-4">
           <TryPortrait title="Pruébalo ahora: su foto de estudio en un minuto" subtitle="Fondo de color, luz de fotógrafo y su placa con nombre." testid="landing-try" />
         </motion.div>
         {SHOW_VOICE_PREVIEW && (
@@ -76,28 +87,51 @@ export default function Landing() {
           </motion.div>
         )}
 
-        {user && (
-          <button onClick={() => nav(hasPets ? "/universo" : "/bienvenida")} data-testid="landing-enter-universe"
+        <motion.p {...fade(0.3)} className="mt-5 text-[0.95rem] leading-snug" style={{ color: "#7A6A5E" }}>
+          Convierte los momentos con tu mascota en historias, recuerdos, aventuras y pequeñas sorpresas llenas de cariño.
+        </motion.p>
+
+        <motion.button {...fade(0.32)} whileTap={reduce ? undefined : { scale: 0.97 }}
+          onClick={startUniverse} data-testid="landing-create-universe"
+          className="mt-4 w-full h-14 rounded-2xl font-display font-bold text-base flex items-center justify-center gap-2 bg-white border-2"
+          style={{ color: "#B85C3C", borderColor: "#E7C9B5" }}>
+          <Sparkles className="w-5 h-5" /> Crea el universo de tu mascota
+        </motion.button>
+
+        <motion.button {...fade(0.36)}
+          onClick={() => document.getElementById("como-funciona")?.scrollIntoView({ behavior: reduce ? "auto" : "smooth" })}
+          data-testid="landing-how-it-works"
+          className="mt-3 w-full h-12 rounded-2xl font-display font-semibold text-sm flex items-center justify-center gap-1.5 bg-white border"
+          style={{ color: "#8A6D4B", borderColor: "#EADFCF" }}>
+          Descubre cómo funciona <ArrowRight className="w-4 h-4" />
+        </motion.button>
+
+        {user && hasPets && (
+          <button onClick={() => nav("/universo")} data-testid="landing-enter-universe"
             className="mt-4 w-full h-12 rounded-2xl font-display font-semibold text-sm flex items-center justify-center gap-2"
             style={{ background: "#F0E7D8", color: "#6E5B3E" }}>
-            <PawPrint className="w-4 h-4" /> {hasPets ? "Entrar a mi universo" : "Crea el universo de tu mascota"}
+            <PawPrint className="w-4 h-4" /> Entrar a mi universo
           </button>
         )}
 
-        <div id="como-funciona" className="mt-10 scroll-mt-4">
-          <div className="grid grid-cols-3 gap-2">
+        <div id="como-funciona" className="mt-12 scroll-mt-4">
+          <h2 className="font-display font-bold text-lg" style={{ color: "#3A2A20" }}>Cómo funciona</h2>
+          <div className="mt-4 space-y-3">
             {STEPS.map((s, i) => (
               <motion.div key={s.title} {...fade(0.05 * i)}
-                className="p-3 rounded-2xl bg-white border text-center" style={{ borderColor: "#EEE3D2" }}
+                className="flex items-start gap-3 p-4 rounded-2xl bg-white border" style={{ borderColor: "#EEE3D2" }}
                 data-testid={`landing-step-${i}`}>
-                <div className="w-9 h-9 mx-auto rounded-xl grid place-items-center" style={{ background: "#F3E9DA", color: "#B85C3C" }}>
-                  <s.icon className="w-4 h-4" />
+                <div className="w-11 h-11 rounded-xl grid place-items-center shrink-0" style={{ background: "#F3E9DA", color: "#B85C3C" }}>
+                  <s.icon className="w-5 h-5" />
                 </div>
-                <div className="mt-2 font-display font-bold text-xs leading-tight" style={{ color: "#3A2A20" }}>{s.title}</div>
+                <div>
+                  <div className="font-display font-bold" style={{ color: "#3A2A20" }}>{s.title}</div>
+                  <div className="text-sm mt-0.5" style={{ color: "#8A7868" }}>{s.desc}</div>
+                </div>
               </motion.div>
             ))}
           </div>
-          <p className="mt-4 text-center text-xs" style={{ color: "#A7937F" }}>
+          <p className="mt-5 text-center text-xs" style={{ color: "#A7937F" }}>
             Lo imaginado por IA siempre va marcado. Tus recuerdos reales son solo tuyos. 🐾
           </p>
         </div>
