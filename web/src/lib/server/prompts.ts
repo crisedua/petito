@@ -134,6 +134,24 @@ export const posterPrompt = (species: string, stylePrompt: string) =>
   `occupies the upper two thirds and the bottom third stays empty, plain background edge to edge, ` +
   `absolutely no text, letters, signature, border or frame.`;
 
+const CAPTION_FALLBACKS = ["El amor tiene cuatro patas", "Mi mejor decisión", "Siempre a tu lado", "La alegría de la casa", "Corazón de la familia", "Pequeño, pero enorme", "Donde está él, está el hogar"];
+/** A short, inspiring line for the studio photo ("Siempre a tu lado"). Never throws. */
+export async function writePetCaption(photoB64: string, petName: string | null): Promise<string> {
+  const fallback = () => CAPTION_FALLBACKS[Math.floor(Math.random() * CAPTION_FALLBACKS.length)];
+  try {
+    const { text } = await runClaude(
+      "Escribes frases cortas y emotivas sobre mascotas, en español de Chile. Respondes SOLO JSON válido.",
+      `Mira la foto de esta mascota${petName ? ` (se llama ${petName})` : ""}. Escribe UNA frase inspiradora y tierna de 3 a 7 palabras ` +
+      `para poner bajo su foto de estudio, como una dedicatoria de su familia. Sin comillas, sin emojis, sin el nombre, sin clichés en inglés. ` +
+      `Ejemplos: "El amor tiene cuatro patas", "Mi mejor decisión", "La alegría de la casa". Responde JSON: {"caption": "<frase>"}`,
+      [photoB64], true);
+    const t = String(extractJson<{ caption?: string }>(text).caption ?? "").trim().replace(/^["“”]|["“”.]$/g, "").slice(0, 44);
+    return t || fallback();
+  } catch {
+    return fallback();
+  }
+}
+
 const TITLE_FALLBACKS = ["Duquesa de Viña", "Conde de Ñuñoa", "Marqués del Patio", "Reina de la Siesta", "Príncipe de Puerto Varas", "Emperatriz del Sofá", "Barón de Valparaíso", "Señora de Las Condes"];
 /** A short, funny Chilean noble title for the name plate ("Michi, Duquesa de Viña"). Never throws. */
 export async function writePetTitle(photoB64: string, petName: string | null): Promise<string> {

@@ -7,15 +7,16 @@ import { bodyFont, displayFont, scriptFont } from "./fonts";
 import { canvas, decode, drawCover, roundRect, textWidth } from "./core";
 
 /** A brass name plate ("Michi, Duquesa de Viña") along the bottom edge of the portrait. */
-export async function namePlate(image: Buffer, title: string): Promise<Buffer> {
+export async function namePlate(image: Buffer, title: string, sub?: string | null): Promise<Buffer> {
   const img = await decode(await sharp(image).rotate().jpeg({ quality: 95 }).toBuffer());
   const w = img.width, h = img.height;
   const [c, ctx] = canvas(w, h);
   ctx.drawImage(img, 0, 0);
-  const size = Math.round(w / 19);
-  const font = displayFont(size, 700);
-  const tw = textWidth(ctx, title, font);
-  const padX = size * 1.1, plateH = size * 2.1;
+  const subText = (sub ?? "").trim();
+  const size = Math.round(w / 19), subSize = Math.round(size * 0.62);
+  const font = displayFont(size, 700), subFont = scriptFont(Math.round(subSize * 1.25));
+  const tw = Math.max(textWidth(ctx, title, font), subText ? textWidth(ctx, subText, subFont) : 0);
+  const padX = size * 1.1, plateH = subText ? size * 2.1 + subSize * 1.35 : size * 2.1;
   const pw = Math.min(w - size * 2, tw + padX * 2);
   const x0 = (w - pw) / 2, y0 = h - plateH - size * 1.2;
   ctx.save();
@@ -27,11 +28,17 @@ export async function namePlate(image: Buffer, title: string): Promise<Buffer> {
   ctx.strokeStyle = "rgba(90,60,10,0.55)"; ctx.lineWidth = Math.max(2, size * 0.08);
   ctx.beginPath(); ctx.roundRect(x0 + size * 0.22, y0 + size * 0.22, pw - size * 0.44, plateH - size * 0.44, size * 0.25); ctx.stroke();
   // engraved look: light highlight under a dark text
-  ctx.font = font;
-  const tx = (w - Math.min(tw, pw - padX * 2)) / 2, ty = y0 + (plateH - size) / 2;
+  const engrave = (text: string, f: string, fs: number, y: number) => {
+    ctx.font = f;
+    const t = textWidth(ctx, text, f);
+    const x = (w - Math.min(t, pw - padX)) / 2;
+    ctx.fillStyle = "rgba(255,245,210,0.55)"; ctx.fillText(text, x, y + Math.max(1, fs * 0.05));
+    ctx.fillStyle = "#3B2708"; ctx.fillText(text, x, y);
+  };
   ctx.save(); ctx.beginPath(); ctx.rect(x0 + padX / 2, y0, pw - padX, plateH); ctx.clip();
-  ctx.fillStyle = "rgba(255,245,210,0.55)"; ctx.fillText(title, tx, ty + Math.max(1, size * 0.05));
-  ctx.fillStyle = "#3B2708"; ctx.fillText(title, tx, ty);
+  const ty = subText ? y0 + size * 0.45 : y0 + (plateH - size) / 2;
+  engrave(title, font, size, ty);
+  if (subText) engrave(subText, subFont, subSize, ty + size * 1.15);
   ctx.restore();
   return c.encode("jpeg", 94);
 }

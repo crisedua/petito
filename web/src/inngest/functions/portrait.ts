@@ -6,7 +6,7 @@ import { db, logGeneration } from "@/lib/server/db";
 import * as fal from "@/lib/server/fal";
 import * as storage from "@/lib/server/storage";
 import { imageToB64, imageToDataUri } from "@/lib/server/images";
-import { photoEditPrompt, portraitPrompt, posterPrompt, writePetTitle } from "@/lib/server/prompts";
+import { photoEditPrompt, portraitPrompt, posterPrompt, writePetCaption, writePetTitle } from "@/lib/server/prompts";
 import { compareImage, namePlate, posterCompose } from "@/lib/render/plate";
 import { renderPhotoStyle } from "@/lib/render/photoStyles";
 import { loadImage } from "@/lib/server/images";
@@ -77,17 +77,27 @@ export const generatePortrait = inngest.createFunction(
 
     await progress(step, "portraits", id, "80", { progress_step: mode === "paint" ? "Poniéndole el marco..." : "Últimos detalles...", progress_pct: 80 });
     // Photo-based styles get a brass name plate with a funny Chilean title ("Michi, Duquesa de Viña").
-    // A caption the owner typed wins over the invented title.
+    // Name plate on photo styles. A caption the owner typed wins; otherwise the studio photo gets an
+    // inspiring line under the name, and the costume styles a funny Chilean noble title.
     const caption: string = String(p.caption ?? "").trim();
-    const title: string = mode === "edit" && p.category !== "memorial"
-      ? (caption ? (p.pet_name ? `${p.pet_name}, ${caption}` : caption) : await step.run("title", async () => writePetTitle(await imageToB64(id, photo), p.pet_name)))
-      : "";
+    const plate: { title: string; sub: string | null } = mode === "edit" && p.category !== "memorial"
+      ? await step.run("plate", async () => {
+          const name = (p.pet_name ?? "").trim();
+          if (caption) return name ? { title: name, sub: caption } : { title: caption, sub: null };
+          if (p.style === "estudio") {
+            const line = await writePetCaption(await imageToB64(id, photo), name || null);
+            return name ? { title: name, sub: line } : { title: line, sub: null };
+          }
+          return { title: await writePetTitle(await imageToB64(id, photo), name || null), sub: null };
+        })
+      : { title: "", sub: null };
+    const title = plate.title;
     await step.run("save", async () => {
       const sharp = (await import("sharp")).default;
       let clean = url
         ? await sharp(usedProvider === "higgsfield" ? await hf.download(url) : await fal.download(url)).jpeg({ quality: 94 }).toBuffer()
         : await renderPhotoStyle(p.style, await loadImage(id, photo), p.pet_name);
-      if (title) clean = await namePlate(clean, title);
+      if (title) clean = await namePlate(clean, title, plate.sub);
       if (mode === "poster") clean = await posterCompose(clean, p.pet_name, caption);
       const cleanName = `clean_${hex16()}.jpg`;
       const preview = await portraitPreview(clean, BRAND_NAME);
