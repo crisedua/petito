@@ -15,7 +15,7 @@ export const GET = handler(async (req: Request) => {
   const out: Record<string, unknown> = {
     payment_mode: env.paymentMode, enabled: mpEnabled(),
     token_kind: !token ? "missing" : token.startsWith("TEST-") ? "TEST (sandbox)" : token.startsWith("APP_USR-") ? "APP_USR (production)" : "unknown",
-    webhook_url: "https://www.petito.pro/api/payments/webhook/mercadopago",
+    webhook_url: "https://www.petipop.pro/api/payments/webhook/mercadopago",
     webhook_secret_set: Boolean(env.mpWebhookSecret),
   };
   try {

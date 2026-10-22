@@ -51,7 +51,7 @@ function stampTile(brand: string, size: number, alphaA: number, alphaB?: number)
 }
 
 /**
- * Free preview of a portrait: the picture itself, at most 900 px, with one small "petito.pro" mark in
+ * Free preview of a portrait: the picture itself, at most 900 px, with one small "petipop.pro" mark in
  * a corner. No tiled stamp: the preview has to look good enough to share. HD and no mark come with Plus.
  */
 export async function portraitPreview(clean: Buffer, brand = "Petipop", maxSide = 900, quality = 82) {

@@ -44,7 +44,7 @@ export async function namePlate(image: Buffer, title: string, sub?: string | nul
 }
 
 /** Original and result side by side (1200×860) with "Antes" / "Después" labels and the brand. */
-export async function compareImage(original: Buffer, result: Buffer, brand = "petito.pro"): Promise<Buffer> {
+export async function compareImage(original: Buffer, result: Buffer, brand = "petipop.pro"): Promise<Buffer> {
   const [a, b] = await Promise.all([original, result].map(async (buf) => decode(await sharp(buf).rotate().resize(900, 900, { fit: "inside", withoutEnlargement: true }).jpeg({ quality: 92 }).toBuffer())));
   const W = 1200, H = 860, gap = 16, top = 40, bottom = 70;
   const pw = (W - gap * 3) / 2, ph = H - top - bottom;

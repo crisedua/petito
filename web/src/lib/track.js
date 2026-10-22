@@ -35,7 +35,7 @@ export function visitSource() {
   if (utm) return { source: utm.toLowerCase().slice(0, 40), medium: q.get("utm_medium") || "", campaign: q.get("utm_campaign") || "" };
   try {
     const host = document.referrer ? new URL(document.referrer).hostname.replace(/^www\./, "") : "";
-    if (host && !host.endsWith("petito.pro") && host !== window.location.hostname) {
+    if (host && !host.endsWith("petipop.pro") && host !== window.location.hostname) {
       const known = [["whatsapp", "whatsapp"], ["wa.me", "whatsapp"], ["instagram", "instagram"], ["facebook", "facebook"], ["fb.", "facebook"], ["tiktok", "tiktok"], ["google", "google"], ["t.co", "x"], ["twitter", "x"], ["x.com", "x"], ["youtube", "youtube"]];
       const k = known.find(([needle]) => host.includes(needle));
       return { source: k ? k[1] : host.slice(0, 40) };

@@ -16,7 +16,7 @@ export type TalkScenario = { label: string; emoji: string; hint: string; group?:
 export type Voice = { id: string; label: string };
 
 export const BRAND_NAME = "Petipop";
-export const BRAND_URL = "petito.pro";
+export const BRAND_URL = "petipop.pro";
 
 export const THEMES: Record<string, Theme> = {
   "mi_ano": {

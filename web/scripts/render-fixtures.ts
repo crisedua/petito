@@ -18,7 +18,7 @@ const raw = readFileSync(photoPath);
     const p0buf = await toJpeg(p0, 85);
     writeFileSync(path.join(out, `${theme}_photo0.jpg`), p0buf);
     writeFileSync(path.join(out, `${theme}_photo1.jpg`), await toJpeg(photoSlide(img, "Me pongo regio para la foto, como buen regalón.", "¡Qué regalón!", "Max", "Petipop", theme, 1), 85));
-    writeFileSync(path.join(out, `${theme}_closing.jpg`), await toJpeg(closingSlide("Petipop", "petito.pro", theme), 85));
+    writeFileSync(path.join(out, `${theme}_closing.jpg`), await toJpeg(closingSlide("Petipop", "petipop.pro", theme), 85));
     if (theme === "mi_ano") writeFileSync(path.join(out, `locked.jpg`), await makeLocked(p0buf));
   }
   writeFileSync(path.join(out, "portrait_preview.jpg"), await portraitPreview(raw));

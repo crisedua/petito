@@ -25,7 +25,7 @@ const write = (c: DanceCatalog) => storage.put(OWNER, FILE, Buffer.from(JSON.str
 
 /** Absolute, public URL of a stored file (Higgsfield downloads the source video from here). */
 export function publicUrl(name: string) {
-  const base = env.publicBaseUrl || (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "https://www.petito.pro");
+  const base = env.publicBaseUrl || (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "https://www.petipop.pro");
   return storage.publicMediaUrl(OWNER, name, base);
 }
 

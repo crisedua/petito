@@ -143,7 +143,7 @@ export function stepsFor(p) {
       return ["Agrega Petipop a tu inicio", <>
         <Step n={1} icon={Share}>Toca el botón <b>Compartir</b> en la barra de direcciones.</Step>
         <Step n={2} icon={PlusSquare}>Elige <b>“Agregar a pantalla de inicio”</b>.</Step>
-        <Step n={3}>Si no aparece, abre <b>petito.pro</b> en <b>Safari</b> y repite los pasos.</Step>
+        <Step n={3}>Si no aparece, abre <b>petipop.pro</b> en <b>Safari</b> y repite los pasos.</Step>
       </>];
     case "ios-inapp":
     case "android-inapp": {
@@ -191,8 +191,8 @@ export function stepsFor(p) {
       </>];
     default:
       return ["Este navegador no permite instalar sitios", <>
-        <Step n={1}>Firefox y otros navegadores no tienen esta opción. Abre <b>petito.pro</b> en <b>Chrome</b>, <b>Edge</b> o <b>Safari</b>:<CopyLink /></Step>
-        <Step n={2}>O hazlo desde tu teléfono: abre <b>petito.pro</b> y toca <b>Agregar</b>.</Step>
+        <Step n={1}>Firefox y otros navegadores no tienen esta opción. Abre <b>petipop.pro</b> en <b>Chrome</b>, <b>Edge</b> o <b>Safari</b>:<CopyLink /></Step>
+        <Step n={2}>O hazlo desde tu teléfono: abre <b>petipop.pro</b> y toca <b>Agregar</b>.</Step>
       </>];
   }
 }
