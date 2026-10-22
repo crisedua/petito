@@ -6,9 +6,9 @@ import { isoNow, newUserId } from "@/lib/server/ids";
 import { grantPlus } from "@/lib/server/plus";
 import { plusUntil, type PlusDuration } from "@/lib/server/adminPlus";
 
-const FILTERS = new Set(["plus", "free", "admin", "suspended"]);
+const FILTERS = new Set(["plus", "pro", "free", "admin", "suspended"]);
 
-/** Users, newest first. `q` searches email/name; `filter` = plus | free | admin | suspended. */
+/** Users, newest first. `q` searches email/name; `filter` = plus | pro | free | admin | suspended. */
 export const GET = handler(async (req: Request) => {
   await requireAdmin(req);
   const url = new URL(req.url);
@@ -22,7 +22,7 @@ export const GET = handler(async (req: Request) => {
   const { data } = await query.order("created_at", { ascending: false }).limit(1000);
   let rows = await adminUserRows(data ?? []);
   if (FILTERS.has(filter)) {
-    rows = rows.filter((r) => (filter === "plus" ? r.is_plus : filter === "free" ? !r.is_plus : filter === "admin" ? r.is_admin : r.suspended));
+    rows = rows.filter((r) => (filter === "plus" ? r.tier === "plus" : filter === "pro" ? r.tier === "pro" : filter === "free" ? !r.is_plus : filter === "admin" ? r.is_admin : r.suspended));
   }
   return json(rows);
 });

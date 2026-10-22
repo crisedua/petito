@@ -1,5 +1,5 @@
 import { db, iso } from "./db";
-import { revokePlus } from "./plus";
+import { planTier, revokePlus } from "./plus";
 import { isAdmin, isOwnerAdmin } from "./auth";
 import { createServiceClient } from "./supabase";
 
@@ -45,6 +45,7 @@ const chunks = <T,>(xs: T[], n: number) => Array.from({ length: Math.ceil(xs.len
 export async function adminUserRows(users: any[]) {
   const counts = new Map<string, { pets: number; creations: number }>();
   const plus = new Map<string, string | null>(); // user_id -> plus_until (null = no end)
+  const pro = new Set<string>(); // users whose active plan is Plus+
   const bump = (uid: string, k: "pets" | "creations") => {
     const c = counts.get(uid) ?? { pets: 0, creations: 0 };
     c[k]++;
@@ -56,19 +57,24 @@ export async function adminUserRows(users: any[]) {
       fetchAll(() => db().from("stories").select("user_id").in("user_id", ids).neq("status", "draft").order("id")),
       fetchAll(() => db().from("portraits").select("user_id").in("user_id", ids).order("id")),
       fetchAll(() => db().from("videos").select("user_id").in("user_id", ids).order("id")),
-      fetchAll(() => db().from("subscriptions").select("user_id, plus_until").in("user_id", ids).eq("membership_active", true).order("mp_id")),
+      fetchAll(() => db().from("subscriptions").select("user_id, plan, plus_until").in("user_id", ids).eq("membership_active", true).order("mp_id")),
     ]);
     pets.forEach((r: any) => bump(r.user_id, "pets"));
     [...stories, ...portraits, ...videos].forEach((r: any) => bump(r.user_id, "creations"));
     const now = Date.now();
     subs.forEach((r: any) => {
-      if (!r.plus_until || new Date(r.plus_until).getTime() > now) plus.set(r.user_id, r.plus_until ? new Date(r.plus_until).toISOString() : null);
+      if (!r.plus_until || new Date(r.plus_until).getTime() > now) {
+        plus.set(r.user_id, r.plus_until ? new Date(r.plus_until).toISOString() : null);
+        if (planTier(r.plan) === "pro") pro.add(r.user_id);
+      }
     });
   }
   return users.map((d) => ({
     user_id: d.user_id, email: d.email, name: d.name, picture: d.picture,
     is_admin: isAdmin(d), owner_admin: isOwnerAdmin(d.email), suspended: Boolean(d.suspended_at),
-    is_plus: plus.has(d.user_id) || isAdmin(d), plus_until: plus.get(d.user_id) ?? null, linked: Boolean(d.auth_user_id),
+    is_plus: plus.has(d.user_id) || isAdmin(d),
+    tier: pro.has(d.user_id) || isAdmin(d) ? "pro" : plus.has(d.user_id) ? "plus" : "none",
+    plus_until: plus.get(d.user_id) ?? null, linked: Boolean(d.auth_user_id),
     pet_count: counts.get(d.user_id)?.pets ?? 0, creation_count: counts.get(d.user_id)?.creations ?? 0, created_at: iso(d.created_at),
   }));
 }

@@ -29,7 +29,7 @@ function ConfirmButton({ label, onConfirm, testid, busy }) {
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString("es-CL", { day: "numeric", month: "short", year: "numeric" }) : "—");
 const SOURCE_LABEL = { mercadopago: "Mercado Pago", courtesy: "Cortesía", admin: "Admin", dev: "Prueba" };
 const DURATIONS = [["month", "1 mes"], ["year", "1 año"], ["lifetime", "Sin término"], ["until", "Hasta fecha"]];
-const FILTERS = [["", "Todos"], ["plus", "Pro"], ["free", "Gratis"], ["admin", "Admins"], ["suspended", "Suspendidos"]];
+const FILTERS = [["", "Todos"], ["plus", "Plus"], ["pro", "Plus+"], ["free", "Gratis"], ["admin", "Admins"], ["suspended", "Suspendidos"]];
 const errMsg = (e, fb) => e?.response?.data?.detail || fb;
 
 function Badge({ children, tone = "neutral" }) {
@@ -139,8 +139,8 @@ function UserDetail({ id, onBack, onChanged }) {
   const save = () => run(() => adminUpdateUser(id, form), "Datos guardados");
   const grant = () => run(() => adminSetPlus(id, true, { duration, until, tier: grantTier }), grantTier === "pro" ? "Plus+ activado" : "Plus activado");
   const revoke = () => run(() => adminSetPlus(id, false), (r) => r.mp_failed?.length
-    ? "Pro quitado, pero Mercado Pago no confirmó la cancelación. Revísalo en Mercado Pago."
-    : r.mp_canceled?.length ? "Pro quitado y suscripción de Mercado Pago cancelada" : "Pro quitado");
+    ? "Plan quitado, pero Mercado Pago no confirmó la cancelación. Revísalo en Mercado Pago."
+    : r.mp_canceled?.length ? "Plan quitado y suscripción de Mercado Pago cancelada" : "Plan quitado");
   const setAdmin = (v) => run(() => adminUpdateUser(id, { is_admin: v }), v ? "Ahora es admin" : "Ya no es admin");
   const setSuspended = (v) => run(() => adminUpdateUser(id, { suspended: v }), v ? "Cuenta suspendida" : "Cuenta reactivada");
   const delPet = (pid) => run(() => adminDeletePet(pid), "Mascota eliminada");
@@ -231,7 +231,7 @@ function UserDetail({ id, onBack, onChanged }) {
         {d.is_plus && (
           <div className="mt-3 flex items-center justify-between">
             <span className="text-[11px] text-muted-foreground">{cur?.source === "mercadopago" ? "También cancela su suscripción en Mercado Pago." : "Vuelve a cuenta gratis."}</span>
-            <ConfirmButton label="Quitar Pro" testid="admin-plus-revoke" busy={busy} onConfirm={revoke} />
+            <ConfirmButton label="Quitar plan" testid="admin-plus-revoke" busy={busy} onConfirm={revoke} />
           </div>
         )}
         {d.plus?.history?.length > 0 && (
@@ -354,7 +354,7 @@ export default function AdminUsers() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <span className="font-display font-semibold text-neutral-900 truncate max-w-[60%]">{u.name || u.email}</span>
-                  {u.is_plus && <Badge tone="plus">PRO</Badge>}
+                  {u.is_plus && <Badge tone="plus">{u.tier === "pro" ? "PLUS+" : "PLUS"}</Badge>}
                   {u.is_admin && <Badge tone="admin">ADMIN</Badge>}
                   {u.suspended && <Badge tone="danger">SUSPENDIDA</Badge>}
                   {!u.linked && <Badge tone="muted">SIN INGRESAR</Badge>}
