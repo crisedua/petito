@@ -65,6 +65,7 @@ export default function Portrait() {
   const pickFrame = (k) => { setFrame(k); setFrameTouched(true); };
   const [gift, setGift] = useState({ enabled: false, to: "", from: "", message: "" });
   const [caption, setCaption] = useState("");
+  const [focus, setFocus] = useState(null); // style group to show alone, or null for all
   const [portraitId, setPortraitId] = useState(null);
   const [slug, setSlug] = useState(null);
   const [portrait, setPortrait] = useState(null);
@@ -78,6 +79,8 @@ export default function Portrait() {
       const keys = (c.portrait_styles || []).map((x) => x.key);
       const pick = keys.includes(wanted) ? wanted : keys.includes("renacentista") ? "renacentista" : keys[0];
       if (pick) { setStyle(pick); setFrame(c.portrait_styles.find((x) => x.key === pick)?.default_frame || "dorado"); }
+      // Arrived through a link to one style (the Halloween suggestion, say): show only its group at first.
+      if (keys.includes(wanted)) setFocus(c.portrait_styles.find((x) => x.key === wanted)?.group || null);
     }).catch(() => toast.error("No se pudo cargar la configuración"));
   }, []);
 
@@ -111,7 +114,7 @@ export default function Portrait() {
       )}
       {step === "style" && (
         <StepStyle key="style" cfg={cfg} style={style} setStyle={pickStyle} gift={gift} setGift={setGift}
-          frame={frame} setFrame={pickFrame} samples={samples} caption={caption} setCaption={setCaption}
+          frame={frame} setFrame={pickFrame} samples={samples} caption={caption} setCaption={setCaption} focus={focus} setFocus={setFocus}
           onBack={() => setStep("photo")} onNext={start} busy={busy} />
       )}
       {step === "progress" && (
@@ -207,7 +210,14 @@ function StepPhoto({ nav, cfg, petName, setPetName, file, setFile, onNext }) {
 }
 
 /* ---------------- Step: style + gift ---------------- */
-function StepStyle({ cfg, style, setStyle, gift, setGift, onBack, onNext, busy, frame, setFrame, samples, caption, setCaption }) {
+const GROUPS = [
+  ["foto", "Tu foto, mejorada", "Sigue siendo su foto real: solo le agregamos algo."],
+  ["ilustracion", "Ilustraciones", "Un dibujo de tu mascota en papel, con su nombre y una frase."],
+  ["halloween", "Halloween 🎃", "Disfraces de temporada, pintados con marco."],
+  ["pintura", "Pinturas", "La IA la convierte en una pintura con marco."],
+];
+
+function StepStyle({ cfg, style, setStyle, gift, setGift, onBack, onNext, busy, frame, setFrame, samples, caption, setCaption, focus, setFocus }) {
   const styleDef = (k) => (cfg.portrait_styles || []).find((s) => s.key === k);
   // Real sample for this style in this frame, if an admin generated one.
   const exactSample = (k, f) => samples?.[k]?.frames?.[f] || null;
@@ -222,7 +232,12 @@ function StepStyle({ cfg, style, setStyle, gift, setGift, onBack, onNext, busy, 
       <Header stepText="Paso 2 de 2 · El estilo" onBack={onBack} />
       <div className="flex-1 px-5 pt-5 pb-40 overflow-y-auto no-scrollbar">
         <h2 className="font-display font-bold text-2xl text-neutral-900">¿Cómo quieres el retrato? 🎨</h2>
-        {[["foto", "Tu foto, mejorada", "Sigue siendo su foto real: solo le agregamos algo."], ["ilustracion", "Ilustraciones", "Un dibujo de tu mascota en papel, con su nombre y una frase."], ["pintura", "Pinturas", "La IA la convierte en una pintura con marco."]].map(([g, title, sub]) => (
+        {focus && (
+          <button onClick={() => setFocus(null)} data-testid="portrait-show-all" className="mt-3 text-sm font-semibold text-primary">
+            Ver todos los estilos
+          </button>
+        )}
+        {GROUPS.filter(([g]) => !focus || g === focus).map(([g, title, sub]) => (
         <div key={g} className="mt-5" data-testid={`portrait-group-${g}`}>
           <div className="font-display font-bold text-neutral-900">{title}</div>
           <div className="text-xs text-muted-foreground mb-2">{sub}</div>
