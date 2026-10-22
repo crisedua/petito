@@ -31,6 +31,18 @@ export const GET = handler(async () => {
     } catch (e: any) { mpState = { error: String(e.message).slice(0, 200) }; }
     return { plan: s.plan, status: s.status, payer_email: mask(s.payer_email), created_at: s.created_at, mp: mpState };
   }));
+  // The most recent subscriptions on the Mercado Pago side, and whether each one has its row here.
+  try {
+    const r: any = await mp("GET", "/preapproval/search?limit=15");
+    const list = (r.results ?? []).sort((a: any, b: any) => String(b.date_created).localeCompare(String(a.date_created))).slice(0, 8);
+    const ids = list.map((x: any) => x.id);
+    const { data: known } = ids.length ? await db().from("subscriptions").select("mp_id").in("mp_id", ids) : { data: [] as any[] };
+    const have = new Set((known ?? []).map((k: any) => k.mp_id));
+    out.mp_recent = list.map((x: any) => ({
+      reason: x.reason, status: x.status, amount: x.auto_recurring?.transaction_amount, created_at: x.date_created,
+      plan: String(x.external_reference ?? "").split(":")[1] ?? null, in_db: have.has(x.id),
+    }));
+  } catch (e: any) { out.mp_recent_error = String(e.message).slice(0, 200); }
   const { data: hooks } = await db().from("events").select("props, created_at").eq("name", "mp_webhook")
     .order("created_at", { ascending: false }).limit(5);
   out.recent_webhooks = (hooks ?? []).map((h: any) => ({ at: h.created_at, topic: h.props?.topic ?? null, signature_ok: h.props?.signature_ok ?? null }));

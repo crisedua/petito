@@ -1,4 +1,5 @@
 import { db } from "./db";
+import { fail } from "./http";
 import { isoNow, newId } from "./ids";
 import { env } from "./env";
 import { cancelPreapproval, getPreapproval, mpEnabled } from "./mercadopago";
@@ -114,9 +115,9 @@ export async function grantPlus(userId: string, plan: PlanKey, prefix: "dev" | "
   const until = length === null ? null
     : typeof length === "object" ? length.until
     : new Date(Date.now() + (length ?? PLUS_PLANS[plan].days) * 86400_000).toISOString();
-  await db().from("subscriptions").delete().eq("user_id", userId).like("mp_id", `${prefix}-%`);
-  await db().from("subscriptions").insert({
-    mp_id: `${prefix}-${newId()}`,
+  const mpId = `${prefix}-${newId()}`;
+  const { error } = await db().from("subscriptions").insert({
+    mp_id: mpId,
     user_id: userId,
     plan,
     external_reference: `${userId}:${plan}:${newId()}`,
@@ -126,12 +127,36 @@ export async function grantPlus(userId: string, plan: PlanKey, prefix: "dev" | "
     courtesy: prefix === "courtesy",
     created_at: isoNow(),
   });
+  if (error) throw planSaveError(plan, error);
+  // Only now that the new grant is saved, drop the older ones it replaces.
+  await db().from("subscriptions").delete().eq("user_id", userId).like("mp_id", `${prefix}-%`).neq("mp_id", mpId);
   return until;
 }
 
+/** A subscription row the database refused (most likely: the Plus+ SQL hasn't been run yet). */
+export function planSaveError(plan: string, error: { message?: string }) {
+  console.error("subscription insert failed", plan, error);
+  return fail(500, planTier(plan) === "pro" && /check|constraint/i.test(String(error.message))
+    ? "La base de datos aún no acepta Plus+. Hay que correr el SQL 0012_plus_plus.sql en Supabase."
+    : "No pudimos guardar la suscripción. Intenta de nuevo en un momento.");
+}
+
 /** Port of `_activate_plus`: update a local subscription from a real Mercado Pago preapproval status. */
-export async function activatePlus(preapprovalId: string, status: string | undefined, nextPaymentDate?: string | null) {
-  const { data: sub } = await db().from("subscriptions").select("plan, user_id, membership_active").eq("mp_id", preapprovalId).maybeSingle();
+export async function activatePlus(preapprovalId: string, status: string | undefined, nextPaymentDate?: string | null, mp?: { external_reference?: string; payer_email?: string } | null) {
+  let { data: sub } = await db().from("subscriptions").select("plan, user_id, membership_active").eq("mp_id", preapprovalId).maybeSingle();
+  if (!sub && mp?.external_reference) {
+    // Paid in Mercado Pago but never saved here: rebuild the row from "user_id:plan:nonce".
+    const [userId, plan] = String(mp.external_reference).split(":");
+    const { data: user } = await db().from("app_users").select("user_id").eq("user_id", userId ?? "").maybeSingle();
+    if (user && plan && plan in PLUS_PLANS) {
+      const { error } = await db().from("subscriptions").insert({
+        mp_id: preapprovalId, user_id: user.user_id, plan, external_reference: mp.external_reference,
+        payer_email: mp.payer_email ?? null, status: "pending", membership_active: false, plus_until: null, created_at: isoNow(),
+      });
+      if (error) { console.error("activatePlus: could not recover subscription", preapprovalId, error); return; }
+      sub = { plan, user_id: user.user_id, membership_active: false };
+    }
+  }
   if (!sub) return;
   const active = status === "authorized";
   const days = (PLUS_PLANS[sub.plan as PlanKey] ?? PLUS_PLANS.monthly).days;
@@ -193,7 +218,7 @@ export async function latestSubscription(userId: string) {
   return data;
 }
 
-const SYNTHETIC = /^(dev|admin|courtesy)-/;
+const SYNTHETIC = /^(dev|admin|courtesy|pending)-/; // Petito grants, and checkout rows not yet linked to Mercado Pago
 export const plusSource = (mpId: string) => (mpId.startsWith("courtesy-") ? "courtesy" : mpId.startsWith("admin-") ? "admin" : mpId.startsWith("dev-") ? "dev" : "mercadopago");
 
 /** What an admin needs to see about someone's Plus: the active row (if any) and the full history. */

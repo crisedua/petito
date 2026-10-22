@@ -27,7 +27,7 @@ export const POST = handler(async (req: Request) => {
   if (topic === "subscription_preapproval" && resId) {
     try {
       const sub = await getPreapproval(resId);
-      await activatePlus(resId, sub.status, sub.next_payment_date);
+      await activatePlus(resId, sub.status, sub.next_payment_date, sub);
     } catch (e) { console.error("webhook preapproval fetch failed", e); }
     return json({ received: true });
   }
@@ -38,7 +38,7 @@ export const POST = handler(async (req: Request) => {
       if (preId) {
         const sub = await getPreapproval(preId);
         if (sub.status === "authorized" && ["approved", "authorized", "processed"].includes(inv.status)) {
-          await activatePlus(preId, "authorized", sub.next_payment_date);
+          await activatePlus(preId, "authorized", sub.next_payment_date, sub);
           await recordRenewalIfAny(preId, { id: String(inv.id ?? resId), amount: Number(inv.transaction_amount ?? 0) });
         }
       }

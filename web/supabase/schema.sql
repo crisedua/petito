@@ -422,3 +422,8 @@ create index if not exists portraits_device_day on portraits (device_id, created
 
 -- ===== 0011_portrait_caption.sql =====
 alter table portraits add column if not exists caption text;
+
+-- ===== 0012_plus_plus.sql =====
+alter table subscriptions drop constraint if exists subscriptions_plan_check;
+alter table subscriptions add constraint subscriptions_plan_check
+  check (plan in ('monthly', 'annual', 'pro_monthly', 'pro_annual'));

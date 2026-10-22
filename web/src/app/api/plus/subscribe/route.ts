@@ -1,8 +1,8 @@
 import { lastCheckoutFeature, trackLater } from "@/lib/server/events";
 import { fail, handler, json, originFrom, readJson } from "@/lib/server/http";
 import { requireUser } from "@/lib/server/auth";
-import { PLUS_PLANS, planTier, plusTier, tierLabel, type PlanKey } from "@/lib/server/plus";
-import { createPreapproval, getSellerEmail, mpEnabled, MpHttpError } from "@/lib/server/mercadopago";
+import { PLUS_PLANS, planSaveError, planTier, plusTier, tierLabel, type PlanKey } from "@/lib/server/plus";
+import { cancelPreapproval, createPreapproval, getSellerEmail, mpEnabled, MpHttpError } from "@/lib/server/mercadopago";
 import { db } from "@/lib/server/db";
 import { isoNow, newId } from "@/lib/server/ids";
 import { env } from "@/lib/server/env";
@@ -24,21 +24,31 @@ export const POST = handler(async (req: Request) => {
   }
   const p = PLUS_PLANS[plan];
   const ref = `${user.user_id}:${plan}:${newId()}`;
+  // Save the row first: if the database refuses it, nobody gets sent to pay for a plan we can't record.
+  const placeholder = `pending-${newId()}`;
+  const { error: saveError } = await db().from("subscriptions").insert({
+    mp_id: placeholder, user_id: user.user_id, plan, external_reference: ref, payer_email: payerEmail,
+    status: "creating", membership_active: false, plus_until: null, created_at: isoNow(),
+  });
+  if (saveError) throw planSaveError(plan, saveError);
   const backUrl = `${(originFrom(req) || env.publicBaseUrl).replace(/\/$/, "")}/plus?pago=success`;
   let mp;
   try {
     mp = await createPreapproval(ref, p.reason, p.amount, p.frequency, payerEmail, backUrl);
   } catch (e) {
+    await db().from("subscriptions").delete().eq("mp_id", placeholder);
     console.error("preapproval create failed", e);
     if (e instanceof MpHttpError && e.status === 400) {
       throw fail(400, "Mercado Pago no aceptó estos datos. Revisa que el correo sea exactamente el de tu cuenta de Mercado Pago.");
     }
     throw fail(502, "No se pudo iniciar la suscripción");
   }
-  await db().from("subscriptions").insert({
-    mp_id: mp.id, user_id: user.user_id, plan, external_reference: ref, payer_email: payerEmail,
-    status: mp.status ?? "pending", membership_active: false, plus_until: null, created_at: isoNow(),
-  });
+  const { error: linkError } = await db().from("subscriptions").update({ mp_id: mp.id, status: mp.status ?? "pending" }).eq("mp_id", placeholder);
+  if (linkError) {
+    try { await cancelPreapproval(mp.id); } catch { /* best effort */ }
+    await db().from("subscriptions").delete().eq("mp_id", placeholder);
+    throw planSaveError(plan, linkError);
+  }
   trackLater("checkout_started", { req, userId: user.user_id, feature: body.from || (await lastCheckoutFeature(user.user_id)) || "plus", props: { plan, amount: p.amount } });
   return json({ init_point: mp.init_point, mp_id: mp.id });
 });

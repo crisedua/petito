@@ -15,6 +15,18 @@ export const GET = handler(async () => {
     "0008 marcos": await probe("portraits", "frame"),
     "0009 videomensaje": await probe("videos", "to_name"),
     "0011 texto en retrato": await probe("portraits", "caption"),
+    "0012 planes Plus+": await plusPlusAccepted(),
   };
   return json({ ok: Object.values(checks).every((v) => v === "ok"), checks });
 });
+
+/** Insert and remove an inactive Plus+ row: the only way to see whether the plan check allows it. */
+async function plusPlusAccepted(): Promise<string> {
+  const { data: u } = await db().from("app_users").select("user_id").limit(1).maybeSingle();
+  if (!u) return "ok";
+  const mp_id = `dev-healthcheck-${Date.now()}`;
+  const { error } = await db().from("subscriptions").insert({ mp_id, user_id: u.user_id, plan: "pro_monthly", status: "healthcheck", membership_active: false });
+  if (error) return `missing: ${error.message.slice(0, 120)}`;
+  await db().from("subscriptions").delete().eq("mp_id", mp_id);
+  return "ok";
+}
