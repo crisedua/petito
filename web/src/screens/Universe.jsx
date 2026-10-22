@@ -132,7 +132,7 @@ export default function Universe() {
     <div className="mobile-frame" style={{ background: "#FBF6EE" }} data-testid="universe-screen">
       <div className="flex items-center justify-between px-5 pt-5">
         <div className="relative">
-          <button onClick={() => pets?.length > 1 && setPickerOpen((o) => !o)} data-testid="universe-pet-picker"
+          <button onClick={() => setPickerOpen((o) => !o)} data-testid="universe-pet-picker"
             className="flex items-center gap-2 px-2 py-1 rounded-full">
             <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-white shadow grid place-items-center" style={{ background: "#E2A878" }}>
               {active.photo_url
@@ -140,19 +140,26 @@ export default function Universe() {
                 : <span className="font-display font-bold text-white text-sm">{(name || "P").charAt(0).toUpperCase()}</span>}
             </div>
             <span className="font-display font-bold" style={{ color: "#3A2A20" }}>{name}</span>
-            {pets?.length > 1 && <ChevronDown className="w-4 h-4" style={{ color: "#8A6D4B" }} />}
+            <ChevronDown className="w-4 h-4" style={{ color: "#8A6D4B" }} />
           </button>
           {pickerOpen && (
             <div className="absolute left-0 mt-2 w-60 bg-white rounded-2xl border shadow-xl z-50 overflow-hidden" style={{ borderColor: "#EADFCF" }} data-testid="universe-pet-list">
+              {pets.length > 1 && <div className="px-3 pt-2.5 pb-1 text-[10px] font-bold uppercase tracking-wide" style={{ color: "#A7937F" }}>Cambiar de mascota</div>}
               {pets.map((p) => (
                 <button key={p.id} onClick={() => switchPet(p)} data-testid={`universe-pet-${p.id}`}
                   className="w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-[#FBF6EE] text-left">
                   <div className="w-8 h-8 rounded-full overflow-hidden" style={{ background: "#F3E9DA" }}>
                     {p.photo_url && <img src={mediaUrl(p.photo_url)} alt={p.name} className="w-full h-full object-cover" />}
                   </div>
-                  <span className="font-display font-semibold text-sm" style={{ color: "#3A2A20" }}>{p.name}</span>
+                  <span className="flex-1 font-display font-semibold text-sm" style={{ color: "#3A2A20" }}>{p.name}</span>
+                  {p.id === active.id && <span className="text-[10px] font-bold" style={{ color: "#B85C3C" }}>Ahora</span>}
                 </button>
               ))}
+              <button onClick={() => { setPickerOpen(false); nav("/perfil"); }} data-testid="universe-edit-pet"
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 border-t hover:bg-[#FBF6EE] text-left" style={{ borderColor: "#EADFCF" }}>
+                <div className="w-8 h-8 rounded-full grid place-items-center" style={{ background: "#F3E9DA", color: "#8A6D4B" }}><Settings className="w-4 h-4" /></div>
+                <span className="font-display font-semibold text-sm" style={{ color: "#3A2A20" }}>Editar a {name} (foto, nombre)</span>
+              </button>
               <button onClick={() => nav("/bienvenida")} data-testid="universe-add-pet"
                 className="w-full flex items-center gap-2.5 px-3 py-2.5 border-t hover:bg-[#FBF6EE] text-left" style={{ borderColor: "#EADFCF" }}>
                 <div className="w-8 h-8 rounded-full grid place-items-center" style={{ background: "#FBEEE4", color: "#B85C3C" }}><PlusIcon className="w-4 h-4" /></div>
