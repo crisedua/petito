@@ -225,7 +225,9 @@ export const generateTalk = inngest.createFunction(
         if (song) {
           const style = SONG_STYLES[v.scenario] ?? SONG_STYLES.pop;
           const b64 = await imageToB64(id, photo, 512);
-          ({ lyrics: text, species, usage } = await writePetSong(b64, v.pet_name, style.feel, await lineContext(v)));
+          const occasionKey = String(v.message ?? "").startsWith("occasion:") ? String(v.message).slice(9) : null;
+          const occasion = occasionKey ? TALK_SCENARIOS[occasionKey]?.hint ?? null : null;
+          ({ lyrics: text, species, usage } = await writePetSong(b64, v.pet_name, style.feel, { ...(await lineContext(v)), occasion }));
           await db().from("videos").update({ line: text, species, progress_step: "Grabando la canción (esto toma un minuto)...", progress_pct: 35 }).eq("id", id);
           const tMusic = Date.now();
           const audio = await composeSong(text, style.styles, SONG_SECONDS * 1000);

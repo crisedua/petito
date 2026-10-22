@@ -1,15 +1,30 @@
 import { toast } from "sonner";
 import { isMobile } from "@/lib/install";
 
+const prefetched = new Map(); // imageUrl -> File | null, filled ahead of the tap
+
+/**
+ * Download a shareable image as soon as it's on screen. iPhone Safari only allows the share sheet right
+ * after a tap, and a download in between can use that up; with the file ready the tap shares at once.
+ */
+export function prefetchShareImage(imageUrl, fileName) {
+  if (!imageUrl || prefetched.has(imageUrl) || typeof window === "undefined" || !isMobile()) return;
+  prefetched.set(imageUrl, null);
+  fetch(imageUrl).then((r) => (r.ok ? r.blob() : null)).then((blob) => {
+    if (blob && blob.size > 1000) prefetched.set(imageUrl, new File([blob], fileName || "petito.jpg", { type: blob.type || "image/jpeg" }));
+  }).catch(() => {});
+}
+
 /** Share an image file where phones allow it (WhatsApp, Instagram); otherwise share the link. */
 export async function shareImage({ title = "Petito", text, url, imageUrl, fileName }) {
   if (imageUrl && isMobile() && navigator.canShare) {
     try {
-      const blob = await (await fetch(imageUrl)).blob();
-      if (blob.size > 1000) {
-        const file = new File([blob], fileName || "petito.jpg", { type: blob.type || "image/jpeg" });
-        if (navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title, text: `${text} ${url}` }); return "shared"; }
+      let file = prefetched.get(imageUrl);
+      if (!file) {
+        const blob = await (await fetch(imageUrl)).blob();
+        file = blob.size > 1000 ? new File([blob], fileName || "petito.jpg", { type: blob.type || "image/jpeg" }) : null;
       }
+      if (file && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title, text: `${text} ${url}` }); return "shared"; }
     } catch (e) { if (e?.name === "AbortError") return "cancelled"; }
   }
   if (imageUrl && !isMobile()) { window.open(imageUrl, "_blank", "noopener"); return "opened"; }

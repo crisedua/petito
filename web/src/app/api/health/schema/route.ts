@@ -21,12 +21,15 @@ export const GET = handler(async () => {
 });
 
 /** Insert and remove an inactive Plus+ row: the only way to see whether the plan check allows it. */
+let plusPlusOk = false;
 async function plusPlusAccepted(): Promise<string> {
+  if (plusPlusOk) return "ok";
   const { data: u } = await db().from("app_users").select("user_id").limit(1).maybeSingle();
   if (!u) return "ok";
   const mp_id = `dev-healthcheck-${Date.now()}`;
   const { error } = await db().from("subscriptions").insert({ mp_id, user_id: u.user_id, plan: "pro_monthly", status: "healthcheck", membership_active: false });
   if (error) return `missing: ${error.message.slice(0, 120)}`;
   await db().from("subscriptions").delete().eq("mp_id", mp_id);
+  plusPlusOk = true;
   return "ok";
 }

@@ -16,7 +16,9 @@ export const POST = handler(async (req: Request) => {
   const eventType = q.get("type");
   const signed = validSignature(req.headers.get("x-signature"), req.headers.get("x-request-id"), dataId);
   // Keep a trace of every notification so /api/health/payments can show whether Mercado Pago reaches us.
-  await track("mp_webhook", { props: { topic: eventType || null, id: dataId ? String(dataId).slice(0, 40) : null, signature_ok: signed } });
+  const recentUnsigned = signed ? null : (await db().from("events").select("id").eq("name", "mp_webhook").eq("props->>signature_ok", "false")
+    .gte("created_at", new Date(Date.now() - 60_000).toISOString()).limit(1).maybeSingle()).data;
+  if (!recentUnsigned) await track("mp_webhook", { props: { topic: eventType || null, id: dataId ? String(dataId).slice(0, 40) : null, signature_ok: signed } });
   if (!signed) throw fail(401, "Firma inválida");
   let body: any = {};
   try { body = await req.json(); } catch { /* MP sometimes sends an empty body */ }

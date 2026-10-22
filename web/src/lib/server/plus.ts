@@ -167,6 +167,14 @@ export function planSaveError(plan: string, error: { message?: string }) {
 export async function activatePlus(preapprovalId: string, status: string | undefined, nextPaymentDate?: string | null, mp?: { external_reference?: string; payer_email?: string } | null) {
   let { data: sub } = await db().from("subscriptions").select("plan, user_id, membership_active").eq("mp_id", preapprovalId).maybeSingle();
   if (!sub && mp?.external_reference) {
+    // Checkout saved its row under a placeholder and hasn't linked the Mercado Pago id yet: link it now.
+    const { data: placeholder } = await db().from("subscriptions").select("mp_id").eq("external_reference", mp.external_reference).like("mp_id", "pending-%").maybeSingle();
+    if (placeholder) {
+      await db().from("subscriptions").update({ mp_id: preapprovalId }).eq("mp_id", placeholder.mp_id);
+      ({ data: sub } = await db().from("subscriptions").select("plan, user_id, membership_active").eq("mp_id", preapprovalId).maybeSingle());
+    }
+  }
+  if (!sub && mp?.external_reference) {
     // Paid in Mercado Pago but never saved here: rebuild the row from "user_id:plan:nonce".
     const [userId, plan] = String(mp.external_reference).split(":");
     const { data: user } = await db().from("app_users").select("user_id").eq("user_id", userId ?? "").maybeSingle();

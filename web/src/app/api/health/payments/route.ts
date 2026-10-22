@@ -1,4 +1,5 @@
 import { handler, json } from "@/lib/server/http";
+import { getCurrentUser, isAdmin } from "@/lib/server/auth";
 import { db } from "@/lib/server/db";
 import { env } from "@/lib/server/env";
 import { mp, mpEnabled } from "@/lib/server/mercadopago";
@@ -6,7 +7,10 @@ import { mp, mpEnabled } from "@/lib/server/mercadopago";
 // Public troubleshooting view of Mercado Pago setup. Emails are masked; no tokens are returned.
 const mask = (e?: string | null) => (e ? e.replace(/^(.{2}).*(@.{3}).*$/, "$1***$2***") : null);
 
-export const GET = handler(async () => {
+export const GET = handler(async (req: Request) => {
+  // Setup checks are public; the lists of subscriptions are business data, shown to admins only.
+  const me = await getCurrentUser(req);
+  const admin = Boolean(me && isAdmin(me));
   const token = env.mpToken;
   const out: Record<string, unknown> = {
     payment_mode: env.paymentMode, enabled: mpEnabled(),
@@ -47,6 +51,11 @@ export const GET = handler(async () => {
       plan: String(x.external_reference ?? "").split(":")[1] ?? null, in_db: have.has(x.id),
     }));
   } catch (e: any) { out.mp_recent_error = String(e.message).slice(0, 200); }
+  if (!admin) {
+    const recent = (out.mp_recent as any[] | undefined) ?? [];
+    out.mp_recent = { checked: recent.length, not_in_db: recent.filter((x) => !x.in_db).length, detail: "Inicia sesión como admin para ver el detalle" };
+    out.latest = { count: Array.isArray(out.latest) ? (out.latest as any[]).length : 0 };
+  }
   const { data: hooks } = await db().from("events").select("props, created_at").eq("name", "mp_webhook")
     .order("created_at", { ascending: false }).limit(5);
   out.recent_webhooks = (hooks ?? []).map((h: any) => ({ at: h.created_at, topic: h.props?.topic ?? null, signature_ok: h.props?.signature_ok ?? null }));

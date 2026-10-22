@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { getPortraitBySlug, mediaUrl } from "@/lib/api";
 import TryPortrait from "@/components/TryPortrait";
 import { shareBeforeAfter } from "@/screens/Portrait";
+import { prefetchShareImage } from "@/lib/share";
 
 export default function PortraitView() {
   const { slug } = useParams();
@@ -20,6 +21,7 @@ export default function PortraitView() {
   useEffect(() => {
     getPortraitBySlug(slug).then((d) => { setP(d); setOpened(!d.gift_enabled); }).catch(() => setErr(true));
   }, [slug]);
+  useEffect(() => { if (p?.compare_url) prefetchShareImage(mediaUrl(p.compare_url), `petito-${p.pet_name || "mascota"}-antes-despues.jpg`); }, [p?.compare_url]); // eslint-disable-line
 
   // Returning from Mercado Pago: poll until the webhook confirms payment.
   useEffect(() => {

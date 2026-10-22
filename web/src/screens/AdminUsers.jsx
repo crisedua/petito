@@ -124,6 +124,7 @@ function UserDetail({ id, onBack, onChanged }) {
     try {
       const x = await adminUserDetail(id);
       setD(x); setForm({ name: x.name || "", email: x.email || "", admin_note: x.admin_note || "" });
+      setGrantTier(x.plus?.tier === "pro" ? "pro" : "plus");
     } catch { toast.error("No se pudo abrir el usuario"); onBack(); }
   };
   useEffect(() => { load(); }, [id]); // eslint-disable-line

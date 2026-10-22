@@ -44,7 +44,8 @@ export const POST = handler(async (req: Request) => {
     throw fail(502, "No se pudo iniciar la suscripción");
   }
   const { error: linkError } = await db().from("subscriptions").update({ mp_id: mp.id, status: mp.status ?? "pending" }).eq("mp_id", placeholder);
-  if (linkError) {
+  const alreadyLinked = linkError ? (await db().from("subscriptions").select("mp_id").eq("mp_id", mp.id).maybeSingle()).data : null;
+  if (linkError && !alreadyLinked) {
     try { await cancelPreapproval(mp.id); } catch { /* best effort */ }
     await db().from("subscriptions").delete().eq("mp_id", placeholder);
     throw planSaveError(plan, linkError);

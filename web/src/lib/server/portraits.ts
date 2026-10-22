@@ -3,6 +3,9 @@ import { fail } from "./http";
 import { mediaPath } from "./storage";
 import { ALL_PORTRAIT_STYLES, BRAND_URL, PORTRAIT_STYLES } from "@/lib/catalogs";
 
+/** When the before-and-after image started being made; older portraits don't have one. */
+const COMPARE_SINCE = "2026-10-21T23:30:00Z";
+
 export type PortraitRow = Record<string, any> & { id: string; share_slug: string; status: string };
 
 export async function getPortrait(id: string): Promise<PortraitRow> {
@@ -31,6 +34,7 @@ export const portraitPublic = (p: PortraitRow) => {
     preview_url: p.preview_file ? mediaPath(p.id, p.preview_file) : null,
     clean_url: paid && p.clean_file ? mediaPath(p.id, p.clean_file) : null,
     // Before-and-after in one shareable image (the HD one only once unlocked). Older portraits have none.
-    compare_url: p.preview_file ? (paid && p.clean_file ? mediaPath(p.id, `compare_${p.clean_file}`) : mediaPath(p.id, "compare.jpg")) : null,
+    compare_url: p.preview_file && p.category !== "memorial" && String(p.created_at ?? "") >= COMPARE_SINCE
+      ? (paid && p.clean_file ? mediaPath(p.id, `compare_${p.clean_file}`) : mediaPath(p.id, "compare.jpg")) : null,
   };
 };

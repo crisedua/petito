@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "@/lib/router";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import { shareLink, shareImage } from "@/lib/share";
+import { shareLink, shareImage, prefetchShareImage } from "@/lib/share";
 import {
   PawPrint, ArrowRight, ArrowLeft, X, Check, ImagePlus, Loader2, Crown,
   Download, Share2, Copy, Gift, Lock, Sparkles,
@@ -289,7 +289,7 @@ function StepStyle({ cfg, style, setStyle, gift, setGift, onBack, onNext, busy, 
           </div>
         )}
 
-        {style && ["foto", "ilustracion"].includes(styleDef(style)?.group) && (
+        {style && ["foto", "ilustracion"].includes(styleDef(style)?.group) && styleDef(style)?.mode !== "render" && (
           <div className="mt-6 bg-white rounded-2xl border border-border p-4" data-testid="portrait-caption-card">
             <div className="font-display font-semibold text-neutral-900">Texto en el retrato</div>
             <p className="text-xs text-muted-foreground mt-0.5 mb-2">
@@ -450,6 +450,7 @@ function StepResult({ portrait, setPortrait, portraitId, slug, cfg, price, nav }
     } catch { toast.error("No se pudo descargar"); }
   };
 
+  useEffect(() => { prefetchShareImage(mediaUrl(portrait?.compare_url), `petito-${portrait?.pet_name || "mascota"}-antes-despues.jpg`); }, [portrait?.compare_url]); // eslint-disable-line
   const shareCompare = () => shareBeforeAfter(mediaUrl(portrait?.compare_url), portrait?.pet_name, giftUrl);
   const share = async () => {
     const text = portrait?.gift_enabled
