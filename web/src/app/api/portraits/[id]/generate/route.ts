@@ -1,13 +1,16 @@
 import { fail, handler, json } from "@/lib/server/http";
 import { db } from "@/lib/server/db";
 import { getPortrait } from "@/lib/server/portraits";
+import { assertJobOwner, assertStartable } from "@/lib/server/jobAccess";
 import { retentionIso } from "@/lib/server/jobPhotos";
 import { env } from "@/lib/server/env";
 import { inngest, EV } from "@/inngest/client";
 import type { Ctx } from "@/lib/server/route";
 
-export const POST = handler(async (_req: Request, ctx: Ctx<{ id: string }>) => {
+export const POST = handler(async (req: Request, ctx: Ctx<{ id: string }>) => {
   const p = await getPortrait((await ctx.params).id);
+  await assertJobOwner(p, req);
+  assertStartable(p);
   const { count } = await db().from("portrait_photos").select("id", { count: "exact", head: true }).eq("portrait_id", p.id);
   if (!count) throw fail(400, "Sube una foto primero");
   await db().from("portraits").update({

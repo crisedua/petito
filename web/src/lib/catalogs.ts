@@ -336,7 +336,7 @@ export const PORTRAIT_STYLES: Record<string, StyleDef> = {
   },
   // ---- Pinturas: the AI repaints the photo ----
   "renacentista": {
-    "mode": "paint", "group": "halloween",
+    "mode": "paint", "group": "pintura",
     "label": "Renacentista",
     "emoji": "🎨",
     "desc": "Óleo clásico, telón oscuro y vestuario de época",
@@ -350,7 +350,7 @@ export const PORTRAIT_STYLES: Record<string, StyleDef> = {
     "prompt": "a refined Victorian aristocratic oil painting portrait, the pet dressed as a noble aristocrat with a velvet cape, delicate lace, pearls and jewels, dignified regal pose, soft classic painted studio background, elegant and stately mood"
   },
   "halloween": {
-    "mode": "paint", "group": "pintura",
+    "mode": "paint", "group": "halloween",
     "label": "Halloween",
     "emoji": "🎃",
     "desc": "Retrato clásico con toque gótico de Halloween",

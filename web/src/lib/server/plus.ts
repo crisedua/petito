@@ -36,6 +36,28 @@ export async function monthlyVideoCount(userId: string, modes: string[]): Promis
 export const PREMIUM_VIDEO_MODES = ["song", "motion"];
 export const TALK_VIDEO_MODES = ["full"];
 
+/**
+ * May this person start a video of this mode now? Songs and motion need Plus+ and fit in its monthly
+ * allowance; talking videos fit in PLUS_MONTHLY_TALKS when set. Throws the 402/429 to show.
+ * Checked when the draft is created and again when it starts, so drafts can't be stockpiled.
+ */
+export async function assertVideoAllowed(userId: string, admin: boolean, mode: string): Promise<Tier> {
+  const tier = await plusTier(userId);
+  if (PREMIUM_VIDEO_MODES.includes(mode)) {
+    if (tier !== "pro") {
+      throw fail(402, `${mode === "song" ? "Las canciones" : "Los videos en movimiento"} son parte de Petito Plus+ 👑${tier === "plus" ? ". Mejora tu plan para crearlos." : ""}`);
+    }
+    const limit = env.plusProMonthlyVideos;
+    if (!admin && limit > 0 && (await monthlyVideoCount(userId, PREMIUM_VIDEO_MODES)) >= limit) {
+      throw fail(429, `Ya usaste tus ${limit} videos de canción o movimiento de este mes. Se renuevan el día 1 🐾`);
+    }
+  } else if (TALK_VIDEO_MODES.includes(mode) && tier !== "none" && !admin && env.plusMonthlyTalks > 0
+    && (await monthlyVideoCount(userId, TALK_VIDEO_MODES)) >= env.plusMonthlyTalks) {
+    throw fail(429, `Ya usaste tus ${env.plusMonthlyTalks} videos que hablan de este mes. Se renuevan el día 1 🐾`);
+  }
+  return tier;
+}
+
 /** Administrators (ADMIN_EMAILS or made admin in the panel) always have Plus, without a subscription. */
 export async function isAdminUser(userId: string): Promise<boolean> {
   const { data } = await db().from("app_users").select("*").eq("user_id", userId).maybeSingle();

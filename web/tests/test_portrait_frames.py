@@ -172,14 +172,27 @@ def test_dedicated_video_message():
     assert 'content="Rocco tiene un mensaje para Abuela Rosa' in html
 
 
-def test_song_videos_are_plus_only_and_generate():
+def _set_plan(tier):
+    """Put the regular test owner on a plan: None (free), "plus" or "pro" (Plus+)."""
     me = requests.get(f"{API}/auth/me", headers=NORM, timeout=20).json()
-    requests.post(f"{API}/admin/users/{me['user_id']}/plus", json={"active": False}, headers=ADMIN, timeout=20)
+    body = {"active": False} if tier is None else {"active": True, "tier": tier}
+    r = requests.post(f"{API}/admin/users/{me['user_id']}/plus", json=body, headers=ADMIN, timeout=20)
+    assert r.status_code == 200, r.text
+
+
+def test_song_videos_are_plus_only_and_generate():
     try:
-        r = requests.post(f"{API}/talk", json={"pet_name": "Rocco", "kind": "song", "song_style": "cumbia"}, headers=NORM, timeout=20)
-        assert r.status_code == 402
+        for tier in (None, "plus"):  # songs need Plus+: free and Plus both hit the paywall
+            _set_plan(tier)
+            r = requests.post(f"{API}/talk", json={"pet_name": "Rocco", "kind": "song", "song_style": "cumbia"}, headers=NORM, timeout=20)
+            assert r.status_code == 402 and "Plus+" in r.json()["detail"], (tier, r.text)
+        _set_plan("pro")
+        _song_generates()
     finally:
-        requests.post(f"{API}/admin/users/{me['user_id']}/plus", json={"active": True}, headers=ADMIN, timeout=20)
+        _set_plan("plus")
+
+
+def _song_generates():
     cfg = requests.get(f"{API}/config", timeout=20).json()
     assert [s["key"] for s in cfg["song_styles"]] == ["cumbia", "balada", "pop", "reggaeton", "cueca"]
     v = requests.post(f"{API}/talk", json={"pet_name": "Rocco", "kind": "song", "song_style": "cumbia", "to_name": "mamá", "pet_id": ROCCO}, headers=NORM, timeout=20).json()
@@ -197,12 +210,17 @@ def test_song_videos_are_plus_only_and_generate():
 
 
 def test_motion_videos_are_plus_only_and_generate_clean():
-    me = requests.get(f"{API}/auth/me", headers=NORM, timeout=20).json()
-    requests.post(f"{API}/admin/users/{me['user_id']}/plus", json={"active": False}, headers=ADMIN, timeout=20)
     try:
-        assert requests.post(f"{API}/talk", json={"pet_name": "Rocco", "kind": "motion", "scene": "playa"}, headers=NORM, timeout=20).status_code == 402
+        for tier in (None, "plus"):
+            _set_plan(tier)
+            assert requests.post(f"{API}/talk", json={"pet_name": "Rocco", "kind": "motion", "scene": "playa"}, headers=NORM, timeout=20).status_code == 402, tier
+        _set_plan("pro")
+        _motion_generates()
     finally:
-        requests.post(f"{API}/admin/users/{me['user_id']}/plus", json={"active": True}, headers=ADMIN, timeout=20)
+        _set_plan("plus")
+
+
+def _motion_generates():
     scenes = requests.get(f"{API}/config", timeout=20).json()["motion_scenes"]
     assert [s["key"] for s in scenes] == ["viral", "cumbia", "reggaeton", "kpop", "salsa", "playa", "regalo", "nieve", "superheroe"]
     assert [s["dance"] for s in scenes][:5] == [True] * 5 and [s["dance"] for s in scenes][5:] == [False] * 4
@@ -235,9 +253,13 @@ def test_admin_dance_library_generates_and_dance_uses_it():
     assert requests.get(f"{BASE}{row['url']}", timeout=20).headers["content-type"].startswith("video/")
     assert requests.post(f"{API}/admin/dances", json={"key": "playa"}, headers=ADMIN, timeout=20).status_code == 400  # not a dance
 
-    v = requests.post(f"{API}/talk", json={"pet_name": "Rocco", "kind": "motion", "scene": "cumbia", "pet_id": ROCCO}, headers=NORM, timeout=20).json()
-    requests.post(f"{API}/talk/{v['id']}/photo", files={"files": ("p.jpg", jpeg(), "image/jpeg")}, headers=NORM, timeout=60)
-    requests.post(f"{API}/talk/{v['id']}/generate", headers=NORM, timeout=20)
+    _set_plan("pro")
+    try:
+        v = requests.post(f"{API}/talk", json={"pet_name": "Rocco", "kind": "motion", "scene": "cumbia", "pet_id": ROCCO}, headers=NORM, timeout=20).json()
+        requests.post(f"{API}/talk/{v['id']}/photo", files={"files": ("p.jpg", jpeg(), "image/jpeg")}, headers=NORM, timeout=60)
+        requests.post(f"{API}/talk/{v['id']}/generate", headers=NORM, timeout=20)
+    finally:
+        _set_plan("plus")
     for _ in range(80):
         t = requests.get(f"{API}/talk/{v['id']}", headers=NORM, timeout=20).json()
         if t["status"] in ("paid", "failed"):
@@ -247,3 +269,35 @@ def test_admin_dance_library_generates_and_dance_uses_it():
     vids = requests.get(f"{API}/health/videos", timeout=20).json()["videos"]
     mine = next(x for x in vids if x["ref"] == v["id"][:6])
     assert any("genjutsu" in s for s in mine["steps"]), mine["steps"]  # went through motion transfer
+
+
+def test_video_jobs_are_owner_only_and_start_once():
+    v = requests.post(f"{API}/talk", json={"pet_name": "Rocco", "pet_id": ROCCO}, headers=NORM, timeout=20).json()
+    # Someone else can't upload to it or start it.
+    assert requests.post(f"{API}/talk/{v['id']}/photo", files={"files": ("p.jpg", jpeg(), "image/jpeg")}, headers=ADMIN, timeout=60).status_code == 404
+    assert requests.post(f"{API}/talk/{v['id']}/generate", headers=ADMIN, timeout=20).status_code == 404
+    assert requests.post(f"{API}/talk/{v['id']}/photo", files={"files": ("p.jpg", jpeg(), "image/jpeg")}, headers=NORM, timeout=60).status_code == 200
+    assert requests.post(f"{API}/talk/{v['id']}/generate", headers=NORM, timeout=20).status_code == 200
+    # A second start of the same job is refused (no paying twice for one click).
+    assert requests.post(f"{API}/talk/{v['id']}/generate", headers=NORM, timeout=20).status_code == 409
+
+
+def test_free_try_portrait_without_account_then_claim():
+    dev = H()
+    r = requests.post(f"{API}/portraits/try", json={"pet_name": "Toby"}, headers=dev, timeout=20)
+    assert r.status_code == 200, r.text
+    p = r.json()
+    assert requests.post(f"{API}/portraits/{p['id']}/photo", files={"files": ("p.jpg", jpeg(), "image/jpeg")}, headers=dev, timeout=60).status_code == 200
+    # Another device can't start it; the device that made it can, once.
+    assert requests.post(f"{API}/portraits/{p['id']}/generate", headers=H(), timeout=20).status_code == 404
+    assert requests.post(f"{API}/portraits/{p['id']}/generate", headers=dev, timeout=20).status_code == 200
+    assert requests.post(f"{API}/portraits/{p['id']}/generate", headers=dev, timeout=20).status_code == 409
+    for _ in range(60):
+        d = requests.get(f"{API}/portraits/{p['id']}", timeout=20).json()
+        if d["status"] in ("preview_ready", "paid", "failed"):
+            break
+        time.sleep(1)
+    assert d["status"] == "preview_ready", d.get("error")
+    # Signing in on that device claims it.
+    claim = requests.post(f"{API}/portraits/{p['id']}/claim", json={}, headers={**NORM, "X-Device-Id": dev["X-Device-Id"]}, timeout=20)
+    assert claim.status_code == 200, claim.text
