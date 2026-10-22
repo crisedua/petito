@@ -154,7 +154,7 @@ function StepPhoto({ nav, cfg, petName, setPetName, file, setFile, onNext }) {
       </div>
       <BottomBar>
         <Button onClick={onNext} className="w-full h-14 text-base font-display font-semibold rounded-2xl" data-testid="talk-photo-next">
-          Elegir la voz <ArrowRight className="w-5 h-5 ml-1" />
+          Siguiente <ArrowRight className="w-5 h-5 ml-1" />
         </Button>
       </BottomBar>
     </Screen>
