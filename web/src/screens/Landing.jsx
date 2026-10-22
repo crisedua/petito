@@ -8,8 +8,7 @@ import { PawPrint, Sparkles, BookHeart, Mic, Camera, Loader2 } from "lucide-reac
 import { ProfileMenu } from "@/components/ProfileMenu";
 import { useAuth } from "@/lib/auth";
 import { createTalkPreview, getPets } from "@/lib/api";
-import { openInstallSheet, useInstallOffer } from "@/components/app/InstallPrompt";
-import { isMobile, isStandalone } from "@/lib/install";
+import { isStandalone } from "@/lib/install";
 import TryPortrait from "@/components/TryPortrait";
 
 
@@ -32,7 +31,6 @@ export default function Landing() {
   const { user } = useAuth();
   const reduce = useReducedMotion();
   const [hasPets, setHasPets] = useState(false);
-  const installOffer = useInstallOffer();
 
   useEffect(() => {
     if (!user) { setHasPets(false); return; }
@@ -60,18 +58,6 @@ export default function Landing() {
       </div>
 
       <div className="flex-1 px-6 pt-4 pb-10 overflow-y-auto no-scrollbar">
-        {installOffer && (
-          <button onClick={openInstallSheet} data-testid="landing-install"
-            className="mb-4 w-full flex items-center gap-3 p-3 rounded-2xl border text-left shadow-sm" style={{ background: "#fff", borderColor: "#EEE3D2" }}>
-            <img src="/apple-touch-icon.png" alt="" className="w-10 h-10 rounded-xl shrink-0" />
-            <div className="flex-1 min-w-0">
-              <div className="font-display font-bold text-sm" style={{ color: "#3A2A20" }}>{isMobile() ? "Agrega Petito a tu teléfono" : "Instala Petito en tu computador"}</div>
-              <div className="text-xs mt-0.5" style={{ color: "#8A7868" }}>{isMobile() ? "Un ícono en tu inicio, como una app." : "En su propia ventana, como una app."} Sin descargar nada.</div>
-            </div>
-            <span className="px-3 h-9 rounded-full text-xs font-display font-bold text-white grid place-items-center shrink-0" style={{ background: "#B85C3C" }}>Agregar</span>
-          </button>
-        )}
-
         <motion.h1 {...fade(0)}
           className="font-display font-bold text-[1.75rem] leading-[1.1] tracking-tight" style={{ color: "#3A2A20" }}
           data-testid="landing-headline">
