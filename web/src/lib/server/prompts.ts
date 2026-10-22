@@ -134,40 +134,24 @@ export const posterPrompt = (species: string, stylePrompt: string) =>
   `occupies the upper two thirds and the bottom third stays empty, plain background edge to edge, ` +
   `absolutely no text, letters, signature, border or frame.`;
 
-const CAPTION_FALLBACKS = ["El amor tiene cuatro patas", "Mi mejor decisión", "Siempre a tu lado", "La alegría de la casa", "Corazón de la familia", "Pequeño, pero enorme", "Donde está él, está el hogar"];
-/** A short, inspiring line for the studio photo ("Siempre a tu lado"). Never throws. */
+const CAPTION_FALLBACKS = ["El amor tiene cuatro patas", "Mi mejor decisión", "Siempre a tu lado", "La alegría de la casa", "Corazón de la familia", "Dueño de la casa, sin pagar arriendo", "Experto en siestas", "Pide pancito con la mirada", "Pequeño, pero enorme"];
+/**
+ * The line on the name plate: short, in Chilean Spanish, emotional or funny depending on what the photo
+ * shows. Never about gender, never the pet's name (the plate shows it apart). Never throws.
+ */
 export async function writePetCaption(photoB64: string, petName: string | null): Promise<string> {
   const fallback = () => CAPTION_FALLBACKS[Math.floor(Math.random() * CAPTION_FALLBACKS.length)];
   try {
     const { text } = await runClaude(
-      "Escribes frases cortas y emotivas sobre mascotas, en español de Chile. Respondes SOLO JSON válido.",
-      `Mira la foto de esta mascota${petName ? ` (se llama ${petName})` : ""}. Escribe UNA frase inspiradora y tierna de 3 a 7 palabras ` +
-      `para poner bajo su foto de estudio, como una dedicatoria de su familia. Sin comillas, sin emojis, sin el nombre, sin clichés en inglés. ` +
-      `Ejemplos: "El amor tiene cuatro patas", "Mi mejor decisión", "La alegría de la casa". Responde JSON: {"caption": "<frase>"}`,
+      "Escribes frases cortas sobre mascotas, en español de Chile, con cariño y humor suave. Respondes SOLO JSON válido.",
+      `Mira la foto de esta mascota${petName ? ` (se llama ${petName})` : ""}. Escribe UNA frase de 3 a 7 palabras para grabar bajo su foto: ` +
+      `si su cara o pose da risa, chistosa (ej: "Experto en siestas", "Pide pancito con la mirada", "Jefe de la casa"); ` +
+      `si es tierna o serena, emotiva (ej: "El amor tiene cuatro patas", "Siempre a tu lado"). ` +
+      `No menciones género (nada de duque/duquesa, rey/reina, él/ella), no uses el nombre, sin comillas ni emojis, sin inglés. ` +
+      `Responde JSON: {"caption": "<frase>"}`,
       [photoB64], true);
     const t = String(extractJson<{ caption?: string }>(text).caption ?? "").trim().replace(/^["“”]|["“”.]$/g, "").slice(0, 44);
     return t || fallback();
-  } catch {
-    return fallback();
-  }
-}
-
-const TITLE_FALLBACKS = ["Duquesa de Viña", "Conde de Ñuñoa", "Marqués del Patio", "Reina de la Siesta", "Príncipe de Puerto Varas", "Emperatriz del Sofá", "Barón de Valparaíso", "Señora de Las Condes"];
-/** A short, funny Chilean noble title for the name plate ("Michi, Duquesa de Viña"). Never throws. */
-export async function writePetTitle(photoB64: string, petName: string | null): Promise<string> {
-  const name = (petName ?? "").trim();
-  const fallback = () => `${name ? `${name}, ` : ""}${TITLE_FALLBACKS[Math.floor(Math.random() * TITLE_FALLBACKS.length)]}`;
-  try {
-    const { text } = await runClaude(
-      "Eres un comediante chileno. Respondes SOLO JSON válido.",
-      `Mira la foto de esta mascota${name ? ` (se llama ${name})` : ""}. Inventa UN título nobiliario chistoso y cariñoso, ` +
-      `en español de Chile, de 2 a 5 palabras, con un lugar o costumbre chilena (Viña, Ñuñoa, el sofá, la siesta, el pancito, ` +
-      `la once, Puerto Varas, el patio). Sin el nombre de la mascota. Concuerda el género con cómo se ve (duque/duquesa, conde/condesa, rey/reina). ` +
-      `Ejemplos: "Duquesa de Viña", "Conde del Pancito", "Reina de la Once". Responde JSON: {"title": "<título>"}`,
-      [photoB64], true);
-    const t = String(extractJson<{ title?: string }>(text).title ?? "").trim().replace(/^["“”]|["“”]$/g, "").slice(0, 36);
-    if (!t) return fallback();
-    return name ? `${name}, ${t}` : t;
   } catch {
     return fallback();
   }

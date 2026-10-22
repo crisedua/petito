@@ -6,7 +6,7 @@ import { db, logGeneration } from "@/lib/server/db";
 import * as fal from "@/lib/server/fal";
 import * as storage from "@/lib/server/storage";
 import { imageToB64, imageToDataUri } from "@/lib/server/images";
-import { photoEditPrompt, portraitPrompt, posterPrompt, writePetCaption, writePetTitle } from "@/lib/server/prompts";
+import { photoEditPrompt, portraitPrompt, posterPrompt, writePetCaption } from "@/lib/server/prompts";
 import { compareImage, namePlate, posterCompose } from "@/lib/render/plate";
 import { renderPhotoStyle } from "@/lib/render/photoStyles";
 import { loadImage } from "@/lib/server/images";
@@ -77,18 +77,14 @@ export const generatePortrait = inngest.createFunction(
 
     await progress(step, "portraits", id, "80", { progress_step: mode === "paint" ? "Poniéndole el marco..." : "Últimos detalles...", progress_pct: 80 });
     // Photo-based styles get a brass name plate with a funny Chilean title ("Michi, Duquesa de Viña").
-    // Name plate on photo styles. A caption the owner typed wins; otherwise the studio photo gets an
-    // inspiring line under the name, and the costume styles a funny Chilean noble title.
+    // Name plate on photo styles: the name, and under it the owner's caption or a line written from the
+    // photo (funny or emotional, never about gender).
     const caption: string = String(p.caption ?? "").trim();
     const plate: { title: string; sub: string | null } = mode === "edit" && p.category !== "memorial"
       ? await step.run("plate", async () => {
           const name = (p.pet_name ?? "").trim();
-          if (caption) return name ? { title: name, sub: caption } : { title: caption, sub: null };
-          if (p.style === "estudio") {
-            const line = await writePetCaption(await imageToB64(id, photo), name || null);
-            return name ? { title: name, sub: line } : { title: line, sub: null };
-          }
-          return { title: await writePetTitle(await imageToB64(id, photo), name || null), sub: null };
+          const line = caption || await writePetCaption(await imageToB64(id, photo), name || null);
+          return name ? { title: name, sub: line } : { title: line, sub: null };
         })
       : { title: "", sub: null };
     const title = plate.title;
