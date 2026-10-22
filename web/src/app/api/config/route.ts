@@ -1,7 +1,7 @@
 import { defaultVoiceId, ensureVoices, voices } from "@/lib/server/elevenlabs";
 import { handler, json } from "@/lib/server/http";
 import { env } from "@/lib/server/env";
-import { BRAND_NAME, BRAND_URL, MEMORIAL_STYLES, PORTRAIT_STYLES, TALK_MESSAGE_MAX, TALK_SCENARIOS, TALK_SCENARIO_GROUPS, THEMES, TRAITS, PORTRAIT_FRAMES, STYLE_DEFAULT_FRAME, SONG_STYLES, SONG_SECONDS, MOTION_SCENES } from "@/lib/catalogs";
+import { BRAND_NAME, BRAND_URL, MEMORIAL_STYLES, PORTRAIT_STYLES, TALK_BACKGROUND_MAX, TALK_MESSAGE_MAX, TALK_SCENARIOS, TALK_SCENARIO_GROUPS, THEMES, TRAITS, PORTRAIT_FRAMES, STYLE_DEFAULT_FRAME, SONG_STYLES, SONG_SECONDS, MOTION_SCENES } from "@/lib/catalogs";
 
 export const GET = handler(async () => {
   await ensureVoices();
@@ -29,6 +29,7 @@ export const GET = handler(async () => {
     talk_scenarios: Object.entries(TALK_SCENARIOS).map(([key, v]) => ({ key, label: v.label, emoji: v.emoji, group: v.group ?? "dedicar" })),
     talk_scenario_groups: TALK_SCENARIO_GROUPS,
     talk_message_max: TALK_MESSAGE_MAX,
+    talk_background_max: TALK_BACKGROUND_MAX,
     song_styles: Object.entries(SONG_STYLES).map(([key, v]) => ({ key, label: v.label, emoji: v.emoji })),
     song_seconds: SONG_SECONDS,
     motion_scenes: Object.entries(MOTION_SCENES).map(([key, v]) => ({ key, label: v.label, emoji: v.emoji, dance: Boolean(v.choreo) })),

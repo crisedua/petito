@@ -10,7 +10,8 @@ import { danceSourceUrl } from "@/lib/server/dances";
 import * as eleven from "@/lib/server/elevenvideo";
 import * as storage from "@/lib/server/storage";
 import { imageToB64, loadImage } from "@/lib/server/images";
-import { describePet, writePetLine, writePetSong, writeTalkVideoPrompt, type TalkVoice } from "@/lib/server/prompts";
+import { backgroundSwapPrompt, describePet, writePetLine, writePetSong, writeTalkVideoPrompt, type TalkVoice } from "@/lib/server/prompts";
+import { photoEngine, submitEditWith } from "@/lib/server/imageEngines";
 import { cachedLibraryVoices } from "@/lib/server/voiceLibrary";
 import { composeSong, SONG_COST_USD, SONG_MODEL } from "@/lib/server/elevenmusic";
 import { llmCost, llmModel } from "@/lib/server/llm";
@@ -216,6 +217,28 @@ export const generateTalk = inngest.createFunction(
       return { ok: true };
     }
 
+    // "Cambiar el fondo": the same pet photographed in the place the owner asked for becomes the video's
+    // frame (and so the first frame the video prompt describes). If the edit fails, keep the photo as is.
+    let frame = photo;
+    if (v.background && v.mode === "full") {
+      const engine = photoEngine();
+      const t0 = Date.now();
+      try {
+        const editId: string = await step.run("background-submit", async () => {
+          await db().from("videos").update({ progress_step: "Cambiando el fondo...", progress_pct: 10 }).eq("id", id);
+          return (await submitEditWith(engine, [await loadImage(id, photo)], backgroundSwapPrompt(v.background), "9:16")).id;
+        });
+        const url = await awaitFal(step, "background", engine.model, editId, 20);
+        frame = await step.run("background-save", async () => {
+          await storage.put(id, "background.jpg", await fal.download(url), "image/jpeg");
+          await logGeneration({ ownerId: id, step: "talk_background", model: engine.model, images: 1, costUsd: engine.costUsd, durationMs: Date.now() - t0 });
+          return "background.jpg";
+        });
+      } catch (e) {
+        console.warn(`talk ${id}: background change failed, keeping the photo as is`, e);
+      }
+    }
+
     // The voice (line + speech) and the watermarked frame don't depend on each other: run them together.
     await Promise.all([
       step.run("line-and-voice", async () => {
@@ -260,7 +283,7 @@ export const generateTalk = inngest.createFunction(
         await logGeneration({ ownerId: id, step: "talk_voice", model: env.talkVoiceModel, durationMs: voiceMs });
       }),
       step.run("source", async () => {
-        const src = await talkSource(await loadImage(id, photo), !plus, long ? 720 : 480, BRAND_NAME);
+        const src = await talkSource(await loadImage(id, frame), !plus, long ? 720 : 480, BRAND_NAME);
         await storage.put(id, "source.jpg", src, "image/jpeg");
       }),
     ]);
@@ -340,7 +363,9 @@ export const talkClean = inngest.createFunction(
     if (!photo || !hasAudio) return { error: "Faltan recursos para la versión HD" };
     await step.run("source-hd", async () => {
       await db().from("videos").update({ progress_step: "Creando tu versión HD...", progress_pct: 50 }).eq("id", id);
-      const src = await talkSource(await loadImage(id, photo), false, 1080, BRAND_NAME, 95);
+      // Same frame as the preview: the new background if the owner asked for one.
+      const frame = (await storage.exists(id, "background.jpg")) ? "background.jpg" : photo;
+      const src = await talkSource(await loadImage(id, frame), false, 1080, BRAND_NAME, 95);
       await storage.put(id, "source_hd.jpg", src, "image/jpeg");
     });
     const name = `clean_${hex16()}.mp4`;

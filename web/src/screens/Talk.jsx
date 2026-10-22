@@ -34,6 +34,7 @@ export default function Talk() {
   });
   const [message, setMessage] = useState("");
   const [toName, setToName] = useState("");
+  const [background, setBackground] = useState(null); // null keeps the photo as is; a string is the new place
   const [kind, setKind] = useState(() => {
     try { const k = new URLSearchParams(window.location.search).get("kind"); return ["talk", "song", "motion"].includes(k) ? k : "talk"; } catch { return "talk"; }
   }); // "talk" | "song" | "motion"
@@ -53,7 +54,7 @@ export default function Talk() {
     if (!file) return toast.error("Sube una foto");
     setBusy(true);
     try {
-      const t = await createTalk({ pet_name: petName, voice_id: voiceId, scenario, message: message.trim() || undefined, to_name: toName.trim() || undefined, kind, song_style: songStyle, scene });
+      const t = await createTalk({ pet_name: petName, voice_id: voiceId, scenario, message: message.trim() || undefined, to_name: toName.trim() || undefined, kind, song_style: songStyle, scene, background: (kind === "talk" && background?.trim()) || undefined });
       setTalkId(t.id); setSlug(t.slug);
       await uploadTalkPhoto(t.id, file.file);
       await generateTalk(t.id);
@@ -72,6 +73,7 @@ export default function Talk() {
       )}
       {step === "mensaje" && (
         <StepMessage key="mensaje" cfg={cfg} scenario={scenario} setScenario={setScenario} message={message} setMessage={setMessage} toName={toName} setToName={setToName}
+          background={background} setBackground={setBackground}
           kind={kind} setKind={setKind} songStyle={songStyle} setSongStyle={setSongStyle} scene={scene} setScene={setScene} busy={busy}
           onBack={() => setStep("photo")} onNext={() => (kind === "talk" ? setStep("voice") : start())} />
       )}
@@ -161,7 +163,9 @@ function StepPhoto({ nav, cfg, petName, setPetName, file, setFile, onNext }) {
   );
 }
 
-function StepMessage({ cfg, scenario, setScenario, message, setMessage, toName, setToName, kind, setKind, songStyle, setSongStyle, scene, setScene, busy, onBack, onNext }) {
+const PLACES = ["🏖️ En la playa", "🌳 En un parque", "❄️ En la nieve", "🎉 En una fiesta", "🛋️ En un living acogedor", "🚀 En el espacio"];
+
+function StepMessage({ cfg, scenario, setScenario, message, setMessage, toName, setToName, background, setBackground, kind, setKind, songStyle, setSongStyle, scene, setScene, busy, onBack, onNext }) {
   const [own, setOwn] = useState(Boolean(message)); // the owner types the line, or Petito writes it from an occasion
   const max = cfg.talk_message_max || 160;
   const scenarios = cfg.talk_scenarios || [];
@@ -258,9 +262,44 @@ function StepMessage({ cfg, scenario, setScenario, message, setMessage, toName, 
           className="h-12 rounded-2xl bg-white" />
         </>)}
 
+        {!song && !motion && (<>
+        <label className="block mt-7 text-sm font-semibold text-neutral-700 mb-2">El fondo</label>
+        <div className="grid grid-cols-2 gap-2" data-testid="talk-background-mode">
+          {[[false, "📷 Dejar la foto tal cual", "Tu mascota habla donde está"], [true, "🎨 Cambiar el fondo", "La ponemos en otro lugar"]].map(([change, title, sub]) => {
+            const on = (background !== null) === change;
+            return (
+              <button key={title} onClick={() => setBackground(change ? background ?? "" : null)} data-testid={change ? "talk-background-change" : "talk-background-keep"}
+                className={`p-3 rounded-2xl border-2 text-left transition-all ${on ? "border-primary bg-primary/10" : "border-border bg-white"}`}>
+                <div className={`font-display font-bold text-sm ${on ? "text-primary" : "text-neutral-800"}`}>{title}</div>
+                <div className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{sub}</div>
+              </button>
+            );
+          })}
+        </div>
+        {background !== null && (
+          <div className="mt-3" data-testid="talk-background-place">
+            <Input value={background} onChange={(e) => setBackground(e.target.value.slice(0, cfg.talk_background_max || 120))} autoFocus
+              placeholder="¿Dónde? Ej: en la playa al atardecer" data-testid="talk-background-input" className="h-12 rounded-2xl bg-white" />
+            <div className="mt-2 flex flex-wrap gap-2">
+              {PLACES.map((p) => {
+                const place = p.slice(p.indexOf(" ") + 1).toLowerCase();
+                return (
+                  <button key={p} onClick={() => setBackground(place)} data-testid={`talk-background-${place.replaceAll(" ", "-")}`}
+                    className={`px-3 py-2 rounded-full border-2 font-display font-semibold text-xs transition-all ${background === place ? "border-primary bg-primary/10 text-primary" : "border-border bg-white text-neutral-700"}`}>
+                    {p}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">Tu mascota se queda igualita; solo cambia lo que hay detrás.</p>
+          </div>
+        )}
+        </>)}
+
       </div>
       <BottomBar>
-        <Button onClick={() => (!song && !motion && own && !message.trim() ? toast.error("Escribe el mensaje que dirá tu mascota") : onNext())} disabled={busy} className="w-full h-14 text-base font-display font-semibold rounded-2xl" data-testid="talk-message-next">
+        <Button onClick={() => (!song && !motion && own && !message.trim() ? toast.error("Escribe el mensaje que dirá tu mascota")
+          : !song && !motion && background !== null && !background.trim() ? toast.error("Escribe dónde quieres que aparezca tu mascota") : onNext())} disabled={busy} className="w-full h-14 text-base font-display font-semibold rounded-2xl" data-testid="talk-message-next">
           {busy ? <><Loader2 className="w-5 h-5 animate-spin mr-2" /> Preparando...</> : song ? <>🎤 Crear su canción</> : motion ? <>🎬 Crear el video</> : <>Elegir la voz <ArrowRight className="w-5 h-5 ml-1" /></>}
         </Button>
       </BottomBar>

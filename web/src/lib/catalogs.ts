@@ -491,6 +491,8 @@ export const TALK_SCENARIO_GROUPS: { key: string; label: string }[] = [
   { key: "dedicar", label: "Para dedicar" },
 ];
 export const TALK_MESSAGE_MAX = 160;
+/** "Cambiar el fondo": how long the owner's description of the new place can be. */
+export const TALK_BACKGROUND_MAX = 120;
 
 /** "Tu mascota te canta": music styles. `styles` go to ElevenLabs Music, `feel` guides the lyric writer. */
 export type SongStyle = { label: string; emoji: string; styles: string[]; feel: string };

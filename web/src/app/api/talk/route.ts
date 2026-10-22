@@ -5,7 +5,7 @@ import { db } from "@/lib/server/db";
 import { validatePetId } from "@/lib/server/domain";
 import { isoNow, newId, newSlug } from "@/lib/server/ids";
 import { env } from "@/lib/server/env";
-import { MOTION_SCENES, SONG_STYLES, TALK_MESSAGE_MAX, TALK_SCENARIOS } from "@/lib/catalogs";
+import { MOTION_SCENES, SONG_STYLES, TALK_BACKGROUND_MAX, TALK_MESSAGE_MAX, TALK_SCENARIOS } from "@/lib/catalogs";
 import { assertVideoAllowed } from "@/lib/server/plus";
 import { trackLater } from "@/lib/server/events";
 import { missingColumn } from "@/lib/server/admin";
@@ -13,7 +13,7 @@ import { missingColumn } from "@/lib/server/admin";
 export const POST = handler(async (req: Request) => {
   const user = await requireUser(req);
   await ensureVoices();
-  const b = await readJson<{ pet_name?: string; voice_id?: string; pet_id?: string; scenario?: string; message?: string; to_name?: string; kind?: string; song_style?: string; scene?: string }>(req);
+  const b = await readJson<{ pet_name?: string; voice_id?: string; pet_id?: string; scenario?: string; message?: string; to_name?: string; kind?: string; song_style?: string; scene?: string; background?: string }>(req);
   const song = b.kind === "song";
   const motion = b.kind === "motion";
   try {
@@ -36,12 +36,18 @@ export const POST = handler(async (req: Request) => {
       : (b.message ?? "").trim().slice(0, TALK_MESSAGE_MAX) || null,
     voice_id: validVoice(b.voice_id), media_base: originFrom(req), created_at: isoNow(),
     to_name: (b.to_name ?? "").trim().slice(0, 40) || null,
+    // "Cambiar el fondo" (Habla only): where the pet should appear. Empty keeps the photo as is.
+    background: !song && !motion ? (b.background ?? "").trim().slice(0, TALK_BACKGROUND_MAX) || null : null,
   };
   let { error } = await db().from("videos").insert(v);
-  // Before the 0009 SQL runs there is no to_name column: save without it.
+  // Before the 0009/0013 SQL runs there is no to_name/background column: save without them.
   if (error && missingColumn(error)) {
-    const { to_name: _t, ...rest } = v;
+    const { background: _b, ...rest } = v;
     ({ error } = await db().from("videos").insert(rest));
+    if (error && missingColumn(error)) {
+      const { to_name: _t, ...older } = rest;
+      ({ error } = await db().from("videos").insert(older));
+    }
   }
   if (error) throw error;
   return json({ id: v.id, slug: v.share_slug });

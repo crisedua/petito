@@ -127,6 +127,14 @@ export const photoEditPrompt = (species: string, stylePrompt: string) =>
   `the light; keep dark eyes dark, never brighten them artificially. ` +
   `The result must look like a real photo taken of this same pet. ${PRO_PHOTO} Vertical 3:4 composition, no frame, no text.`;
 
+/** "Cambiar el fondo" for a talking video: the same photo of the same pet, only the place behind it changes. */
+export const backgroundSwapPrompt = (place: string) =>
+  `This is a real photograph of a pet. Keep the animal exactly as it is: its face, expression, fur, colors, ` +
+  `markings, proportions, pose, any collar, tag or clothing, and its position and size in the frame, looking at the camera. ` +
+  `Replace only the background and the surface it is on with this place: ${place}. Match the light, shadows and ` +
+  `perspective so the pet looks naturally photographed there, with a slightly soft background. Fully photorealistic, ` +
+  `not a painting or illustration. Vertical 9:16 composition, no humans, no other animals, no text.`;
+
 /** Illustration styles: a drawing of THIS pet, on plain paper, with room left for text we add ourselves. */
 export const posterPrompt = (species: string, stylePrompt: string) =>
   `Draw this exact ${species} as ${stylePrompt}. Keep its real markings, coat pattern, ear and tail shape and ` +

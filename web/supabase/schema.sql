@@ -427,3 +427,6 @@ alter table portraits add column if not exists caption text;
 alter table subscriptions drop constraint if exists subscriptions_plan_check;
 alter table subscriptions add constraint subscriptions_plan_check
   check (plan in ('monthly', 'annual', 'pro_monthly', 'pro_annual'));
+
+-- ===== 0013_talk_background.sql =====
+alter table videos add column if not exists background text;
