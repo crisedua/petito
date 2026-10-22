@@ -114,6 +114,7 @@ export default function TalkView() {
     );
   }
 
+  const full = t.mode !== "preview_free"; // talk, song and motion videos all get the share hub / paywall
   const paidHd = t.paid && t.clean_ready;
   const finalizing = t.paid && !t.clean_ready;
 
@@ -169,7 +170,7 @@ export default function TalkView() {
         )}
 
         {/* Full, paid HD */}
-        {t.mode === "full" && paidHd && (
+        {full && paidHd && (
           <div className="mt-6 grid gap-3" data-testid="talk-paid-hub">
             <Button onClick={download} className="h-14 rounded-2xl font-semibold" data-testid="talk-download-hd"><Download className="w-5 h-5 mr-2" /> Descargar en HD</Button>
             <div className="grid grid-cols-2 gap-3">
@@ -181,7 +182,7 @@ export default function TalkView() {
         )}
 
         {/* Full, not paid -> paywall */}
-        {t.mode === "full" && !t.paid && (
+        {full && !t.paid && (
           <>
             <div className="mt-5 text-center">
               <p className="font-display font-semibold text-lg text-neutral-900">¡Quedó buenísimo! 🎬</p>
@@ -204,7 +205,7 @@ export default function TalkView() {
         )}
       </div>
 
-      {t.mode === "full" && !t.paid && (
+      {full && !t.paid && (
         <div className="fixed bottom-0 left-0 right-0 max-w-md md:max-w-[44rem] lg:max-w-[48rem] mx-auto p-4 pb-6 bg-gradient-to-t from-[#FAF6F0] via-[#FAF6F0] to-transparent">
           <Button onClick={pay} disabled={busy} className="w-full h-14 text-base font-display font-semibold rounded-2xl shadow-lg shadow-primary/30" data-testid="talk-pay-button">
             {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Sparkles className="w-5 h-5 mr-2" /> Desbloquéalo con Petito Plus</>}
