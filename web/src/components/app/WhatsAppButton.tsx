@@ -25,7 +25,7 @@ export function WhatsAppButton() {
       className="fixed z-40 w-14 h-14 rounded-full grid place-items-center shadow-lg shadow-black/20 transition-transform hover:scale-105 active:scale-95"
       style={{
         backgroundColor: "#25D366",
-        right: "max(16px, calc(50vw - 14rem + 16px))",
+        right: "max(16px, env(safe-area-inset-right, 0px))",
         bottom: `calc(env(safe-area-inset-bottom, 0px) + ${raised ? 112 : 20}px)`,
       }}
     >
