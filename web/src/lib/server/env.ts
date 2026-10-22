@@ -24,8 +24,8 @@ export const env = {
   plusMonthlyClp: int("PLUS_MONTHLY_CLP", 3900),
   plusAnnualClp: int("PLUS_ANNUAL_CLP", 29900),
   // Plus+: everything in Plus, plus songs and motion/dance videos (they cost 3-5x a talking video).
-  plusProMonthlyClp: int("PLUS_PRO_MONTHLY_CLP", 9990),
-  plusProAnnualClp: int("PLUS_PRO_ANNUAL_CLP", 99900),
+  plusProMonthlyClp: int("PLUS_PRO_MONTHLY_CLP", 7990),
+  plusProAnnualClp: int("PLUS_PRO_ANNUAL_CLP", 79900),
   // Monthly allowances (0 = no limit). Plus+ songs + motion videos; talking videos for both tiers.
   plusProMonthlyVideos: int("PLUS_PRO_MONTHLY_VIDEOS", 5),
   plusMonthlyTalks: int("PLUS_MONTHLY_TALKS", 0),
