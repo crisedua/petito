@@ -78,7 +78,7 @@ export async function polaroid(buf: Buffer, petName: string | null, caption?: st
   return c.encode("jpeg", 92);
 }
 
-/** The pet on the cover of "PETIPO" magazine, with its name as the headline. */
+/** The pet on the cover of "PETIPOP" magazine, with its name as the headline. */
 export async function magazineCover(buf: Buffer, petName: string | null): Promise<Buffer> {
   const img = await photo(buf);
   const [c, ctx] = canvas(OW, OH);
@@ -91,7 +91,7 @@ export async function magazineCover(buf: Buffer, petName: string | null): Promis
   // masthead
   ctx.fillStyle = "#FFFFFF";
   const mast = displayFont(150, 700); ctx.font = mast;
-  ctx.fillText("PETIPO", (OW - textWidth(ctx, "PETIPO", mast)) / 2, 40);
+  ctx.fillText("PETIPOP", (OW - textWidth(ctx, "PETIPOP", mast)) / 2, 40);
   ctx.fillStyle = "rgba(255,255,255,0.85)";
   const small = bodyFont(24, 700); ctx.font = small;
   const d = new Date();

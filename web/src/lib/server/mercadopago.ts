@@ -22,7 +22,7 @@ export async function mp<T = any>(method: string, path: string, body?: unknown):
   return res.json() as Promise<T>;
 }
 
-/** Petipo Plus recurring subscription (preapproval without a plan). */
+/** Petipop Plus recurring subscription (preapproval without a plan). */
 export async function createPreapproval(ref: string, reason: string, amount: number, frequency: number, payerEmail: string, backUrl: string) {
   const d = await mp("POST", "/preapproval", {
     reason,

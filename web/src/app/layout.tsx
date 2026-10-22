@@ -13,20 +13,20 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: SITE_TITLE,
   description: SITE_DESCRIPTION,
-  applicationName: "Petipo",
+  applicationName: "Petipop",
   manifest: "/manifest.json",
   icons: { icon: "/icon-192.png", apple: "/apple-touch-icon.png" },
-  appleWebApp: { capable: true, statusBarStyle: "default", title: "Petipo" },
-  // What WhatsApp, Instagram, Facebook, X and iMessage show when someone shares a Petipo link.
+  appleWebApp: { capable: true, statusBarStyle: "default", title: "Petipop" },
+  // What WhatsApp, Instagram, Facebook, X and iMessage show when someone shares a Petipop link.
   openGraph: {
     type: "website",
-    siteName: "Petipo",
+    siteName: "Petipop",
     locale: "es_CL",
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
     images: [OG_IMAGE],
   },
-  twitter: { card: "summary_large_image", title: SITE_TITLE, description: SITE_DESCRIPTION, images: ["/og-image.jpg"] },
+  twitter: { card: "summary_large_image", title: SITE_TITLE, description: SITE_DESCRIPTION, images: ["/og-image.jpg?v=petipop"] },
 };
 
 export const viewport: Viewport = {
@@ -46,7 +46,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           window.addEventListener("beforeinstallprompt", function (e) { e.preventDefault(); window.__petitoBIP = e; window.dispatchEvent(new Event("petito:bip")); });
           window.addEventListener("appinstalled", function () { window.__petitoInstalled = true; window.__petitoBIP = null; });
         `}</Script>
-        <noscript>Necesitas activar JavaScript para usar Petipo.</noscript>
+        <noscript>Necesitas activar JavaScript para usar Petipop.</noscript>
         <div className="App">
           <Toaster position="top-center" richColors />
           <AuthProvider>{children}</AuthProvider>

@@ -59,7 +59,7 @@ export function isStandalone() {
   return Boolean(window.__petitoInstalled) || window.matchMedia?.("(display-mode: standalone)").matches || window.navigator.standalone === true;
 }
 
-/** True when Chrome/Edge report Petipo is already installed on this device (manifest related_applications). */
+/** True when Chrome/Edge report Petipop is already installed on this device (manifest related_applications). */
 export async function checkInstalled() {
   if (isStandalone()) return true;
   try {

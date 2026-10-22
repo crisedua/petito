@@ -54,7 +54,7 @@ function stampTile(brand: string, size: number, alphaA: number, alphaB?: number)
  * Free preview of a portrait: the picture itself, at most 900 px, with one small "petito.pro" mark in
  * a corner. No tiled stamp: the preview has to look good enough to share. HD and no mark come with Plus.
  */
-export async function portraitPreview(clean: Buffer, brand = "Petipo", maxSide = 900, quality = 82) {
+export async function portraitPreview(clean: Buffer, brand = "Petipop", maxSide = 900, quality = 82) {
   const small = await sharp(clean).resize(maxSide, maxSide, { fit: "inside", withoutEnlargement: true }).jpeg({ quality: 95 }).toBuffer();
   const img = await decode(small);
   const w = img.width, h = img.height;
@@ -73,10 +73,10 @@ export async function portraitPreview(clean: Buffer, brand = "Petipo", maxSide =
 }
 
 /**
- * Cover-crop to 9:16 at `outWidth` and (for the free preview) bake in the Petipo watermark, so the
+ * Cover-crop to 9:16 at `outWidth` and (for the free preview) bake in the Petipop watermark, so the
  * generated video carries it without any video post-processing.
  */
-export async function talkSource(photo: Buffer, watermark: boolean, outWidth = 720, brand = "Petipo", quality = 90) {
+export async function talkSource(photo: Buffer, watermark: boolean, outWidth = 720, brand = "Petipop", quality = 90) {
   const outH = Math.round((outWidth * 16) / 9);
   const cropped = await sharp(photo).resize(outWidth, outH, { fit: "cover", position: "centre" }).jpeg({ quality: 95 }).toBuffer();
   if (!watermark) return sharp(cropped).jpeg({ quality }).toBuffer();

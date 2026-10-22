@@ -1,5 +1,6 @@
 "use client";
 import { HomeLink } from "@/components/HomeLink";
+import { Logo } from "@/components/Logo";
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "@/lib/router";
 import { motion } from "framer-motion";
@@ -38,7 +39,7 @@ export default function TalkView() {
     return () => clearTimeout(timer);
   }, [slug]);
 
-  // Auto-unlock for Petipo Plus members (no per-item payment)
+  // Auto-unlock for Petipop Plus members (no per-item payment)
   const autoTried = useRef(false);
   useEffect(() => {
     if (!t?.id || t.paid || t.mode !== "full" || autoTried.current) return;
@@ -50,7 +51,7 @@ export default function TalkView() {
     <div className="mobile-frame items-center justify-center text-center px-8" data-testid="talk-view-error">
       <PawPrint className="w-12 h-12 text-primary mb-4" />
       <h2 className="font-display font-bold text-xl text-neutral-900">No encontramos este video</h2>
-      <Button onClick={() => nav("/")} className="mt-6 rounded-2xl">Ir a Petipo</Button>
+      <Button onClick={() => nav("/")} className="mt-6 rounded-2xl">Ir a Petipop</Button>
     </div>
   );
   if (!t) return <div className="mobile-frame items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
@@ -68,7 +69,7 @@ export default function TalkView() {
   };
 
   const share = async () => {
-    const text = t.motion ? `¡Mira a ${t.pet_name || "mi mascota"} en acción! 🎬🐾` : t.song ? `${t.to_name ? t.to_name + ", " : ""}${t.pet_name || "mi mascota"} te canta una canción 🎤🐾` : t.to_name ? `${t.to_name}, ${t.pet_name || "mi mascota"} te mandó un videomensaje 💌🐾` : `¡Mira a ${t.pet_name || "mi mascota"} hablando en Petipo! 🐾🗣️`;
+    const text = t.motion ? `¡Mira a ${t.pet_name || "mi mascota"} en acción! 🎬🐾` : t.song ? `${t.to_name ? t.to_name + ", " : ""}${t.pet_name || "mi mascota"} te canta una canción 🎤🐾` : t.to_name ? `${t.to_name}, ${t.pet_name || "mi mascota"} te mandó un videomensaje 💌🐾` : `¡Mira a ${t.pet_name || "mi mascota"} hablando en Petipop! 🐾🗣️`;
     await shareLink({ text, url: shareUrl });
   };
 
@@ -78,7 +79,7 @@ export default function TalkView() {
       const blob = await res.blob();
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = `petipo-${t.pet_name || "mascota"}.mp4`;
+      a.download = `petipop-${t.pet_name || "mascota"}.mp4`;
       document.body.appendChild(a); a.click(); a.remove();
     } catch { toast.error("No se pudo descargar"); }
   };
@@ -121,10 +122,7 @@ export default function TalkView() {
   return (
     <div className="mobile-frame" data-testid="talk-view-screen">
       <div className="flex items-center justify-between px-5 pt-5">
-        <HomeLink className="flex items-center gap-2 font-display font-semibold text-primary">
-          <div className="w-8 h-8 rounded-full bg-primary grid place-items-center"><PawPrint className="w-5 h-5 text-white" /></div>
-          Petipo
-        </HomeLink>
+        <HomeLink className="flex items-center gap-2 font-display font-semibold text-primary"><Logo /></HomeLink>
         <InviteButton />
       </div>
 
@@ -186,12 +184,12 @@ export default function TalkView() {
           <>
             <div className="mt-5 text-center">
               <p className="font-display font-semibold text-lg text-neutral-900">¡Quedó buenísimo! 🎬</p>
-              <p className="text-sm text-muted-foreground mt-1">Descárgalo en alta calidad, sin marca de agua, con Petipo Plus.</p>
+              <p className="text-sm text-muted-foreground mt-1">Descárgalo en alta calidad, sin marca de agua, con Petipop Plus.</p>
             </div>
             <div className="mt-4 bg-white rounded-3xl border border-border p-5 shadow-sm" data-testid="talk-paywall-card">
               <div className="text-center">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-display font-bold text-stone-900 mb-2" style={{ background: "#F5C355" }}>👑 Petipo Plus</div>
-                <div className="font-display font-bold text-xl text-neutral-900">Desbloquéalo con Petipo Plus</div>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-display font-bold text-stone-900 mb-2" style={{ background: "#F5C355" }}>👑 Petipop Plus</div>
+                <div className="font-display font-bold text-xl text-neutral-900">Desbloquéalo con Petipop Plus</div>
                 <div className="text-xs text-muted-foreground mt-1">Una sola membresía desbloquea todas tus creaciones</div>
               </div>
               <ul className="mt-4 space-y-2 text-sm text-neutral-700">
@@ -208,7 +206,7 @@ export default function TalkView() {
       {full && !t.paid && (
         <div className="fixed bottom-0 left-0 right-0 max-w-md md:max-w-[44rem] lg:max-w-[48rem] mx-auto p-4 pb-6 bg-gradient-to-t from-[#FAF6F0] via-[#FAF6F0] to-transparent">
           <Button onClick={pay} disabled={busy} className="w-full h-14 text-base font-display font-semibold rounded-2xl shadow-lg shadow-primary/30" data-testid="talk-pay-button">
-            {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Sparkles className="w-5 h-5 mr-2" /> Desbloquéalo con Petipo Plus</>}
+            {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Sparkles className="w-5 h-5 mr-2" /> Desbloquéalo con Petipop Plus</>}
           </Button>
         </div>
       )}

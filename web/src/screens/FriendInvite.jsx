@@ -1,5 +1,6 @@
 "use client";
 import { HomeLink } from "@/components/HomeLink";
+import { Logo } from "@/components/Logo";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "@/lib/router";
 import { motion } from "framer-motion";
@@ -41,7 +42,7 @@ export default function FriendInvite() {
         <div>
           <Heart className="w-10 h-10 mx-auto" style={{ color: "#D9BBAE" }} />
           <p className="mt-3 font-display font-semibold" style={{ color: C.muted }}>{error}</p>
-          <button onClick={() => nav("/")} className="mt-5 px-5 h-11 rounded-2xl font-display font-semibold text-white" style={{ background: C.accent }}>Ir a Petipo</button>
+          <button onClick={() => nav("/")} className="mt-5 px-5 h-11 rounded-2xl font-display font-semibold text-white" style={{ background: C.accent }}>Ir a Petipop</button>
         </div>
       </div>
     );
@@ -52,10 +53,7 @@ export default function FriendInvite() {
   const petNames = o.pets.map((p) => p.name);
   return (
     <div className="mobile-frame" style={{ background: C.bg }} data-testid="invite-screen">
-      <HomeLink className="flex items-center gap-2 px-5 pt-5 font-display font-semibold" style={{ color: C.accent }}>
-        <div className="w-8 h-8 rounded-full grid place-items-center" style={{ background: C.accent }}><PawPrint className="w-5 h-5 text-white" /></div>
-        Petipo
-      </HomeLink>
+      <HomeLink className="flex items-center gap-2 px-5 pt-5 font-display font-semibold" style={{ color: C.accent }}><Logo /></HomeLink>
       <div className="flex-1 px-6 pt-10 pb-28 flex flex-col items-center text-center">
         <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
           <Avatar src={o.picture} name={o.name} size={96} />

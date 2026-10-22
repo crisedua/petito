@@ -59,7 +59,7 @@ export function InstallPrompt() {
     initInstall();
     const open = () => start();
     window.addEventListener("petito:install", open);
-    const done = () => { setBanner(false); setSheet(null); toast.success("¡Listo! Petipo quedó instalado 🐾"); };
+    const done = () => { setBanner(false); setSheet(null); toast.success("¡Listo! Petipop quedó instalado 🐾"); };
     window.addEventListener("appinstalled", done);
     return () => { window.removeEventListener("petito:install", open); window.removeEventListener("appinstalled", done); };
   }, []); // eslint-disable-line
@@ -84,7 +84,7 @@ export function InstallPrompt() {
             <div className="pointer-events-auto w-full max-w-[26rem] flex items-center gap-3 p-3 rounded-2xl bg-white border shadow-xl" style={{ borderColor: C.line }} data-testid="install-banner">
               <img src="/apple-touch-icon.png" alt="" className="w-11 h-11 rounded-xl shrink-0" />
               <div className="flex-1 min-w-0">
-                <div className="font-display font-bold text-sm" style={{ color: C.ink }}>Lleva Petipo en tu teléfono</div>
+                <div className="font-display font-bold text-sm" style={{ color: C.ink }}>Lleva Petipop en tu teléfono</div>
                 <div className="text-[11px] leading-snug" style={{ color: C.muted }}>Ábrelo desde tu inicio como una app, sin descargar nada.</div>
               </div>
               <button onClick={start} data-testid="install-banner-add" className="px-3 h-9 rounded-full text-xs font-display font-bold text-white shrink-0" style={{ background: C.accent }}>Agregar</button>
@@ -134,13 +134,13 @@ function CopyLink() {
 export function stepsFor(p) {
   switch (p) {
     case "ios-safari":
-      return ["Agrega Petipo a tu inicio", <>
+      return ["Agrega Petipop a tu inicio", <>
         <Step n={1} icon={Share}>Toca el botón <b>Compartir</b>. Si no lo ves, toca <b>⋯</b> abajo y luego Compartir.</Step>
         <Step n={2} icon={PlusSquare}>Desliza hacia abajo y elige <b>“Agregar a inicio”</b>.</Step>
         <Step n={3}>Toca <b>Agregar</b> arriba a la derecha. ¡Listo! 🐾</Step>
       </>];
     case "ios-other":
-      return ["Agrega Petipo a tu inicio", <>
+      return ["Agrega Petipop a tu inicio", <>
         <Step n={1} icon={Share}>Toca el botón <b>Compartir</b> en la barra de direcciones.</Step>
         <Step n={2} icon={PlusSquare}>Elige <b>“Agregar a pantalla de inicio”</b>.</Step>
         <Step n={3}>Si no aparece, abre <b>petito.pro</b> en <b>Safari</b> y repite los pasos.</Step>
@@ -151,43 +151,43 @@ export function stepsFor(p) {
       return ["Primero ábrelo en tu navegador", <>
         <Step n={1} icon={ios ? MoreHorizontal : MoreVertical}>Estás dentro de otra app (Instagram, WhatsApp…). Toca el menú <b>{ios ? "⋯" : "⋮"}</b> y elige <b>“Abrir en {ios ? "Safari" : "Chrome"}”</b> o <b>“Abrir en el navegador”</b>.</Step>
         <Step n={2}>O copia el enlace y pégalo en {ios ? "Safari" : "Chrome"}:<CopyLink /></Step>
-        <Step n={3}>Ahí toca <b>Agregar</b> en el aviso de Petipo (o en el menú de tu perfil).</Step>
+        <Step n={3}>Ahí toca <b>Agregar</b> en el aviso de Petipop (o en el menú de tu perfil).</Step>
       </>];
     }
     case "android-samsung":
-      return ["Agrega Petipo a tu inicio", <>
+      return ["Agrega Petipop a tu inicio", <>
         <Step n={1} icon={Menu}>Toca el menú <b>☰</b> abajo a la derecha.</Step>
         <Step n={2} icon={PlusSquare}>Elige <b>“Agregar página a”</b> y luego <b>“Pantalla de inicio”</b>.</Step>
         <Step n={3}>Confirma con <b>Agregar</b>. ¡Listo! 🐾</Step>
       </>];
     case "android-firefox":
-      return ["Agrega Petipo a tu inicio", <>
+      return ["Agrega Petipop a tu inicio", <>
         <Step n={1} icon={MoreVertical}>Toca el menú <b>⋮</b>.</Step>
         <Step n={2} icon={Smartphone}>Elige <b>“Agregar a pantalla de inicio”</b> o <b>“Instalar”</b>.</Step>
         <Step n={3}>Confirma con <b>Agregar</b>. ¡Listo! 🐾</Step>
       </>];
     case "android":
     case "android-other":
-      return ["Agrega Petipo a tu inicio", <>
+      return ["Agrega Petipop a tu inicio", <>
         <Step n={1} icon={MoreVertical}>Toca el menú <b>⋮</b> arriba a la derecha.</Step>
         <Step n={2} icon={Smartphone}>Elige <b>“Agregar a la pantalla principal”</b> o <b>“Instalar app”</b>.</Step>
         <Step n={3}>Confirma con <b>Instalar</b> o <b>Agregar</b>. ¡Listo! 🐾</Step>
       </>];
     case "desktop-chrome":
-      return ["Instala Petipo en tu computador", <>
+      return ["Instala Petipop en tu computador", <>
         <Step n={1} icon={MonitorDown}>Toca el ícono de <b>instalar</b> al final de la barra de direcciones.</Step>
         <Step n={2} icon={MoreVertical}>Si no está, abre el menú <b>⋮</b> → <b>“Transmitir, guardar y compartir”</b> → <b>“Instalar página como app”</b>.</Step>
-        <Step n={3}>Confirma con <b>Instalar</b>. Petipo se abre en su propia ventana.</Step>
+        <Step n={3}>Confirma con <b>Instalar</b>. Petipop se abre en su propia ventana.</Step>
       </>];
     case "desktop-edge":
-      return ["Instala Petipo en tu computador", <>
+      return ["Instala Petipop en tu computador", <>
         <Step n={1} icon={MoreHorizontal}>Abre el menú <b>⋯</b> → <b>Aplicaciones</b>.</Step>
         <Step n={2} icon={Download}>Elige <b>“Instalar este sitio como una aplicación”</b> y confirma.</Step>
       </>];
     case "desktop-safari":
-      return ["Agrega Petipo a tu Dock", <>
+      return ["Agrega Petipop a tu Dock", <>
         <Step n={1}>En la barra de menú, abre <b>Archivo</b> → <b>“Agregar al Dock”</b>.</Step>
-        <Step n={2}>Confirma con <b>Agregar</b>. Petipo queda en tu Dock como una app.</Step>
+        <Step n={2}>Confirma con <b>Agregar</b>. Petipop queda en tu Dock como una app.</Step>
       </>];
     default:
       return ["Este navegador no permite instalar sitios", <>
@@ -200,7 +200,7 @@ export function stepsFor(p) {
 function InstallSheet({ mode, onClose }) {
   const p = platform();
   const [title, steps] = mode === "installed"
-    ? ["Petipo ya está instalado", <Step key="i" n={1}>Búscalo en tu pantalla de inicio{isMobile() ? "" : ", tu Dock o tu lista de apps"} con el ícono de la patita 🐾. Si lo borraste, recarga esta página y vuelve a intentarlo.</Step>]
+    ? ["Petipop ya está instalado", <Step key="i" n={1}>Búscalo en tu pantalla de inicio{isMobile() ? "" : ", tu Dock o tu lista de apps"} con el ícono de la patita 🐾. Si lo borraste, recarga esta página y vuelve a intentarlo.</Step>]
     : stepsFor(p);
 
   return (
@@ -214,7 +214,7 @@ function InstallSheet({ mode, onClose }) {
           <img src="/apple-touch-icon.png" alt="" className="w-14 h-14 rounded-2xl shadow" />
           <div>
             <h2 className="font-display font-bold text-lg" style={{ color: C.ink }}>{title}</h2>
-            <p className="text-xs" style={{ color: C.muted }}>{isMobile() ? "Un ícono en tu teléfono que abre Petipo en pantalla completa." : "Petipo en su propia ventana, como una app."}</p>
+            <p className="text-xs" style={{ color: C.muted }}>{isMobile() ? "Un ícono en tu teléfono que abre Petipop en pantalla completa." : "Petipop en su propia ventana, como una app."}</p>
           </div>
         </div>
         <ol className="mt-5 space-y-4" data-testid={`install-steps-${mode === "installed" ? "installed" : p}`}>{steps}</ol>

@@ -1,5 +1,6 @@
 "use client";
 import { HomeLink } from "@/components/HomeLink";
+import { Logo } from "@/components/Logo";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@/lib/router";
 import { motion, useReducedMotion } from "framer-motion";
@@ -53,12 +54,7 @@ export default function Landing() {
   return (
     <div className="mobile-frame" style={{ background: "#FBF6EE" }} data-testid="landing-screen">
       <div className="flex items-center justify-between px-5 pt-5">
-        <HomeLink className="flex items-center gap-2 font-display font-semibold" style={{ color: "#B85C3C" }}>
-          <div className="w-8 h-8 rounded-full grid place-items-center" style={{ background: "#B85C3C" }}>
-            <PawPrint className="w-5 h-5 text-white" />
-          </div>
-          Petipo
-        </HomeLink>
+        <HomeLink className="flex items-center gap-2 font-display font-semibold" style={{ color: "#B85C3C" }}><Logo /></HomeLink>
         <ProfileMenu />
       </div>
 
@@ -225,8 +221,8 @@ function Plans({ onOpen }) {
   if (!c) return null;
   const tiers = [
     { key: null, name: "Gratis", price: "$0", items: ["Su foto de estudio en un minuto", "Vistas previas de retratos, videos e historias"], dark: false },
-    { key: "plus", name: "Petipo Plus", price: `${clp(c.plus_monthly_clp)}/mes`, items: ["Retratos e historias en HD, sin sello", "Videos donde tu mascota te habla", "Mascotas ilimitadas"], dark: false },
-    { key: "pro", name: "Petipo Plus+", price: `${clp(c.plus_pro_monthly_clp)}/mes`, items: ["Todo lo de Plus", "Tu mascota te canta y baila en video", c.plus_pro_monthly_videos > 0 ? `${c.plus_pro_monthly_videos} canciones o bailes al mes` : "Canciones y bailes sin límite"], dark: true },
+    { key: "plus", name: "Petipop Plus", price: `${clp(c.plus_monthly_clp)}/mes`, items: ["Retratos e historias en HD, sin sello", "Videos donde tu mascota te habla", "Mascotas ilimitadas"], dark: false },
+    { key: "pro", name: "Petipop Plus+", price: `${clp(c.plus_pro_monthly_clp)}/mes`, items: ["Todo lo de Plus", "Tu mascota te canta y baila en video", c.plus_pro_monthly_videos > 0 ? `${c.plus_pro_monthly_videos} canciones o bailes al mes` : "Canciones y bailes sin límite"], dark: true },
   ];
   return (
     <div className="mt-10" data-testid="landing-plans">

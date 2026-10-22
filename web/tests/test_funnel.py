@@ -113,6 +113,6 @@ def test_signed_in_portrait_paywall_counts_only_real_taps():
 
 def test_site_wide_preview_text():
     html = requests.get(f"{BASE}/", timeout=60).text
-    assert 'content="Petipo · El universo de tu mascota"' in html
+    assert 'content="Petipop · El universo de tu mascota"' in html
     assert re.search(r'<meta property="og:image" content="https?://[^"]+/og-image\.jpg"', html)
     assert "Tu mascota cuenta su historia" not in html

@@ -1,8 +1,9 @@
 "use client";
-import { PawPrint, LogIn, ArrowLeft } from "lucide-react";
+import { LogIn, ArrowLeft } from "lucide-react";
 import { useNavigate } from "@/lib/router";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
+import { Logo } from "@/components/Logo";
 
 // Friendly welcome screen with the "Entrar con Google" button.
 export default function Login({ returnPath, subtitle }) {
@@ -17,10 +18,8 @@ export default function Login({ returnPath, subtitle }) {
         </button>
       </div>
       <div className="flex-1 flex flex-col items-center justify-center px-8 text-center">
-        <div className="w-16 h-16 rounded-2xl bg-primary grid place-items-center mb-5 shadow-lg shadow-primary/30">
-          <PawPrint className="w-9 h-9 text-white" />
-        </div>
-        <h1 className="font-display font-bold text-3xl text-neutral-900 leading-tight">Bienvenido a Petipo</h1>
+        <Logo full className="w-64 h-auto mb-6" />
+        <h1 className="font-display font-bold text-3xl text-neutral-900 leading-tight">Bienvenido a Petipop</h1>
         <p className="mt-3 text-base text-muted-foreground leading-relaxed">
           {subtitle || "Inicia sesión para crear y guardar las historias y retratos de tu regalón 🐾"}
         </p>

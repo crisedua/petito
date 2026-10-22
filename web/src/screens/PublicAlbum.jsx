@@ -1,5 +1,6 @@
 "use client";
 import { HomeLink } from "@/components/HomeLink";
+import { Logo } from "@/components/Logo";
 import { useEffect, useState } from "react";
 import { useParams } from "@/lib/router";
 import { motion } from "framer-motion";
@@ -48,10 +49,7 @@ export default function PublicAlbum() {
 
   return (
     <div className="mobile-frame" style={{ background: "#FBF6EE" }} data-testid="public-album-screen">
-      <HomeLink className="flex items-center gap-2 px-5 pt-5 font-display font-semibold" style={{ color: "#B85C3C" }}>
-        <div className="w-8 h-8 rounded-full grid place-items-center" style={{ background: "#B85C3C" }}><PawPrint className="w-5 h-5 text-white" /></div>
-        Petipo
-      </HomeLink>
+      <HomeLink className="flex items-center gap-2 px-5 pt-5 font-display font-semibold" style={{ color: "#B85C3C" }}><Logo /></HomeLink>
 
       <div className="flex-1 px-6 pt-5 pb-12 overflow-y-auto no-scrollbar">
         <div className="text-center">
@@ -109,7 +107,7 @@ export default function PublicAlbum() {
           ))}
         </div>
 
-        <p className="mt-10 text-center text-xs" style={{ color: "#B3A48F" }}>Hecho con cariño en Petipo 🐾</p>
+        <p className="mt-10 text-center text-xs" style={{ color: "#B3A48F" }}>Hecho con cariño en Petipop 🐾</p>
       </div>
     </div>
   );

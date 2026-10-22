@@ -6,16 +6,16 @@ import { cancelPreapproval, getPreapproval, mpEnabled } from "./mercadopago";
 import { lastCheckoutFeature, track } from "./events";
 
 export const PLUS_PLANS = {
-  monthly: { tier: "plus", reason: "Petipo Plus mensual", amount: env.plusMonthlyClp, frequency: 1, days: 31 },
-  annual: { tier: "plus", reason: "Petipo Plus anual", amount: env.plusAnnualClp, frequency: 12, days: 366 },
-  pro_monthly: { tier: "pro", reason: "Petipo Plus+ mensual", amount: env.plusProMonthlyClp, frequency: 1, days: 31 },
-  pro_annual: { tier: "pro", reason: "Petipo Plus+ anual", amount: env.plusProAnnualClp, frequency: 12, days: 366 },
+  monthly: { tier: "plus", reason: "Petipop Plus mensual", amount: env.plusMonthlyClp, frequency: 1, days: 31 },
+  annual: { tier: "plus", reason: "Petipop Plus anual", amount: env.plusAnnualClp, frequency: 12, days: 366 },
+  pro_monthly: { tier: "pro", reason: "Petipop Plus+ mensual", amount: env.plusProMonthlyClp, frequency: 1, days: 31 },
+  pro_annual: { tier: "pro", reason: "Petipop Plus+ anual", amount: env.plusProAnnualClp, frequency: 12, days: 366 },
 } as const;
 export type PlanKey = keyof typeof PLUS_PLANS;
 /** "plus" = Plus (talking videos, portraits, stories); "pro" = Plus+ (also songs and motion videos). */
 export type Tier = "none" | "plus" | "pro";
 export const planTier = (plan?: string | null): "plus" | "pro" => (PLUS_PLANS as Record<string, { tier: "plus" | "pro" }>)[plan ?? ""]?.tier ?? "plus";
-export const tierLabel = (t: Tier) => (t === "pro" ? "Petipo Plus+" : t === "plus" ? "Petipo Plus" : "Gratis");
+export const tierLabel = (t: Tier) => (t === "pro" ? "Petipop Plus+" : t === "plus" ? "Petipop Plus" : "Gratis");
 
 /** First instant of the current month in Chile, when monthly allowances start over. */
 export function monthStartIso(): string {
@@ -45,7 +45,7 @@ export async function assertVideoAllowed(userId: string, admin: boolean, mode: s
   const tier = await plusTier(userId);
   if (PREMIUM_VIDEO_MODES.includes(mode)) {
     if (tier !== "pro") {
-      throw fail(402, `${mode === "song" ? "Las canciones" : "Los videos en movimiento"} son parte de Petipo Plus+ 👑${tier === "plus" ? ". Mejora tu plan para crearlos." : ""}`);
+      throw fail(402, `${mode === "song" ? "Las canciones" : "Los videos en movimiento"} son parte de Petipop Plus+ 👑${tier === "plus" ? ". Mejora tu plan para crearlos." : ""}`);
     }
     const limit = env.plusProMonthlyVideos;
     if (!admin && limit > 0 && (await monthlyVideoCount(userId, PREMIUM_VIDEO_MODES)) >= limit) {
@@ -92,7 +92,7 @@ async function activePlans(userId: string): Promise<string[]> {
   for (const s of data ?? []) {
     if (!s.plus_until || new Date(s.plus_until).toISOString() >= now) { active.push(s.plan); continue; }
     // Expired on our side. A Mercado Pago subscription may still be live there (a renewal webhook we
-    // missed), so ask before taking Plus away; Petipo grants simply end.
+    // missed), so ask before taking Plus away; Petipop grants simply end.
     if (!SYNTHETIC.test(s.mp_id) && mpEnabled()) {
       try {
         const fresh: any = await getPreapproval(s.mp_id);
@@ -248,7 +248,7 @@ export async function latestSubscription(userId: string) {
   return data;
 }
 
-const SYNTHETIC = /^(dev|admin|courtesy|pending)-/; // Petipo grants, and checkout rows not yet linked to Mercado Pago
+const SYNTHETIC = /^(dev|admin|courtesy|pending)-/; // Petipop grants, and checkout rows not yet linked to Mercado Pago
 export const plusSource = (mpId: string) => (mpId.startsWith("courtesy-") ? "courtesy" : mpId.startsWith("admin-") ? "admin" : mpId.startsWith("dev-") ? "dev" : "mercadopago");
 
 /** What an admin needs to see about someone's Plus: the active row (if any) and the full history. */

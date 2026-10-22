@@ -60,7 +60,7 @@ export default function Talk() {
       await generateTalk(t.id);
       setStep("progress");
     } catch (e) {
-      if (e?.response?.status === 402) { toast.info(e.response.data?.detail || "Esta función es parte de Petipo Plus+"); nav("/plus?from=video&tier=pro"); return; }
+      if (e?.response?.status === 402) { toast.info(e.response.data?.detail || "Esta función es parte de Petipop Plus+"); nav("/plus?from=video&tier=pro"); return; }
       toast.error(e?.response?.data?.detail || "No se pudo iniciar");
     } finally { setBusy(false); }
   };
@@ -166,7 +166,7 @@ function StepPhoto({ nav, cfg, petName, setPetName, file, setFile, onNext }) {
 const PLACES = ["🏖️ En la playa", "🌳 En un parque", "❄️ En la nieve", "🎉 En una fiesta", "🛋️ En un living acogedor", "🚀 En el espacio"];
 
 function StepMessage({ cfg, scenario, setScenario, message, setMessage, toName, setToName, background, setBackground, kind, setKind, songStyle, setSongStyle, scene, setScene, busy, onBack, onNext }) {
-  const [own, setOwn] = useState(Boolean(message)); // the owner types the line, or Petipo writes it from an occasion
+  const [own, setOwn] = useState(Boolean(message)); // the owner types the line, or Petipop writes it from an occasion
   const max = cfg.talk_message_max || 160;
   const scenarios = cfg.talk_scenarios || [];
   const song = kind === "song", motion = kind === "motion";
@@ -186,7 +186,7 @@ function StepMessage({ cfg, scenario, setScenario, message, setMessage, toName, 
         {motion ? (
           <>
             <h2 className="mt-5 font-display font-bold text-2xl text-neutral-900">Tu mascota en acción 🎬</h2>
-            <p className="text-sm text-muted-foreground mt-1">Un video corto de tu mascota real, con su misma cara y pelaje, haciendo algo que nunca hizo. Solo Petipo Plus+.</p>
+            <p className="text-sm text-muted-foreground mt-1">Un video corto de tu mascota real, con su misma cara y pelaje, haciendo algo que nunca hizo. Solo Petipop Plus+.</p>
             {[["Bailes", "Una coreografía real, bailada por tu mascota", true], ["Escenas", "Tu mascota en un lugar o situación", false]].map(([title, sub, dance]) => (
               <div key={title}>
                 <label className="block mt-5 text-sm font-semibold text-neutral-700">{title}</label>
@@ -205,7 +205,7 @@ function StepMessage({ cfg, scenario, setScenario, message, setMessage, toName, 
         ) : song ? (
           <>
             <h2 className="mt-5 font-display font-bold text-2xl text-neutral-900">Su propia canción 🎶</h2>
-            <p className="text-sm text-muted-foreground mt-1">Escribimos una canción original sobre tu mascota, con su nombre, su personalidad y un recuerdo de ustedes, y la canta en video. Solo Petipo Plus+.</p>
+            <p className="text-sm text-muted-foreground mt-1">Escribimos una canción original sobre tu mascota, con su nombre, su personalidad y un recuerdo de ustedes, y la canta en video. Solo Petipop Plus+.</p>
             <label className="block mt-5 text-sm font-semibold text-neutral-700 mb-2">Estilo musical</label>
             <div className="flex flex-wrap gap-2" data-testid="talk-song-styles">
               {(cfg.song_styles || []).map((s) => (
@@ -219,7 +219,7 @@ function StepMessage({ cfg, scenario, setScenario, message, setMessage, toName, 
         ) : (<>
         <h2 className="mt-5 font-display font-bold text-2xl text-neutral-900">¿Qué va a decir? 💬</h2>
         <div className="mt-3 grid grid-cols-2 gap-2" data-testid="talk-message-mode">
-          {[[true, "✍️ Lo escribo yo", "Dice tu mensaje, palabra por palabra"], [false, "✨ Que Petipo lo invente", "Elige una ocasión y lo escribimos"]].map(([mine, title, sub]) => (
+          {[[true, "✍️ Lo escribo yo", "Dice tu mensaje, palabra por palabra"], [false, "✨ Que Petipop lo invente", "Elige una ocasión y lo escribimos"]].map(([mine, title, sub]) => (
             <button key={title} onClick={() => { setOwn(mine); if (!mine) setMessage(""); }} data-testid={mine ? "talk-mode-own" : "talk-mode-ai"}
               className={`p-3 rounded-2xl border-2 text-left transition-all ${own === mine ? "border-primary bg-primary/10" : "border-border bg-white"}`}>
               <div className={`font-display font-bold text-sm ${own === mine ? "text-primary" : "text-neutral-800"}`}>{title}</div>

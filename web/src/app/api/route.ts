@@ -1,1 +1,1 @@
-export const GET = () => Response.json({ app: "Petipo", status: "ok" });
+export const GET = () => Response.json({ app: "Petipop", status: "ok" });

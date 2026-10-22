@@ -202,7 +202,7 @@ function UserDetail({ id, onBack, onChanged }) {
           className="mt-2 w-full h-10 rounded-xl bg-primary text-white text-sm font-bold disabled:opacity-40">Guardar cambios</button>
       </Section>
 
-      <Section title="Plan (Petipo Plus / Plus+)" testid="admin-user-plus">
+      <Section title="Plan (Petipop Plus / Plus+)" testid="admin-user-plus">
         <div className="text-sm" data-testid="admin-plus-status">
           {cur ? (
             <>

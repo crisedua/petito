@@ -15,7 +15,7 @@ export type Option = { key: string; label: string; emoji: string };
 export type TalkScenario = { label: string; emoji: string; hint: string; group?: string };
 export type Voice = { id: string; label: string };
 
-export const BRAND_NAME = "Petipo";
+export const BRAND_NAME = "Petipop";
 export const BRAND_URL = "petito.pro";
 
 export const THEMES: Record<string, Theme> = {
@@ -254,7 +254,7 @@ export const PORTRAIT_STYLES: Record<string, StyleDef> = {
   "revista": {
     "label": "Portada de revista",
     "emoji": "📰",
-    "desc": "Tu mascota en la portada de la revista Petipo",
+    "desc": "Tu mascota en la portada de la revista Petipop",
     "prompt": "", "mode": "render", "group": "foto"
   },
   "antigua": {

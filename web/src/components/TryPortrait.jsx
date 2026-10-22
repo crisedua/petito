@@ -82,7 +82,7 @@ export default function TryPortrait({ title = "Mira a tu mascota como obra de ar
 
   const share = async () => {
     const url = `${window.location.origin}/r/${job.slug}`;
-    const text = `¡Mira cómo quedó ${name.trim() || "mi mascota"} en Petipo! 👑🐾`;
+    const text = `¡Mira cómo quedó ${name.trim() || "mi mascota"} en Petipop! 👑🐾`;
     await shareLink({ text, url });
   };
 
@@ -152,7 +152,7 @@ export default function TryPortrait({ title = "Mira a tu mascota como obra de ar
           <div className="relative w-full max-w-[300px] mx-auto mt-3 rounded-2xl overflow-hidden bg-stone-900 border-4 border-white shadow-xl" style={{ aspectRatio: "3 / 4" }}>
             <img src={showOriginal && photo ? photo.url : resultUrl} alt="Tu mascota como retrato" className="w-full h-full object-cover" />
           </div>
-          {!result.paid && <p className="mt-2 text-center text-[11px]" style={{ color: "#A7937F" }}>Esta es la versión para compartir. En alta resolución, lista para imprimir, con Petipo Plus.</p>}
+          {!result.paid && <p className="mt-2 text-center text-[11px]" style={{ color: "#A7937F" }}>Esta es la versión para compartir. En alta resolución, lista para imprimir, con Petipop Plus.</p>}
 
           <motion.button whileTap={{ scale: 0.97 }} onClick={() => keep("/universo")} disabled={busy} data-testid={`${testid}-keep`}
             className="mt-4 w-full h-14 rounded-2xl text-white font-display font-bold text-base flex items-center justify-center gap-2"

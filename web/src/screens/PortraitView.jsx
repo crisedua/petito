@@ -1,5 +1,6 @@
 "use client";
 import { HomeLink } from "@/components/HomeLink";
+import { Logo } from "@/components/Logo";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "@/lib/router";
 import { motion, AnimatePresence } from "framer-motion";
@@ -21,7 +22,7 @@ export default function PortraitView() {
   useEffect(() => {
     getPortraitBySlug(slug).then((d) => { setP(d); setOpened(!d.gift_enabled); }).catch(() => setErr(true));
   }, [slug]);
-  useEffect(() => { if (p?.compare_url) prefetchShareImage(mediaUrl(p.compare_url), `petipo-${p.pet_name || "mascota"}-antes-despues.jpg`); }, [p?.compare_url]); // eslint-disable-line
+  useEffect(() => { if (p?.compare_url) prefetchShareImage(mediaUrl(p.compare_url), `petipop-${p.pet_name || "mascota"}-antes-despues.jpg`); }, [p?.compare_url]); // eslint-disable-line
 
   // Returning from Mercado Pago: poll until the webhook confirms payment.
   useEffect(() => {
@@ -47,7 +48,7 @@ export default function PortraitView() {
       <PawPrint className="w-12 h-12 text-primary mb-4" />
       <h2 className="font-display font-bold text-xl text-neutral-900">No encontramos este retrato</h2>
       <p className="text-sm text-muted-foreground mt-2">El enlace puede haber expirado.</p>
-      <Button onClick={() => nav("/")} className="mt-6 rounded-2xl">Ir a Petipo</Button>
+      <Button onClick={() => nav("/")} className="mt-6 rounded-2xl">Ir a Petipop</Button>
     </div>
   );
 
@@ -61,7 +62,7 @@ export default function PortraitView() {
       const blob = await res.blob();
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = `petipo-retrato-${p.pet_name || "mascota"}.jpg`;
+      a.download = `petipop-retrato-${p.pet_name || "mascota"}.jpg`;
       document.body.appendChild(a); a.click(); a.remove();
     } catch { /* ignore */ }
   };
@@ -75,7 +76,7 @@ export default function PortraitView() {
             <motion.div animate={{ rotate: [-6, 6, -6] }} transition={{ repeat: Infinity, duration: 2.4 }}>
               <Gift className="w-24 h-24 text-white drop-shadow-lg" />
             </motion.div>
-            <h1 className="mt-6 font-display font-bold text-3xl text-white leading-tight">Tienes un regalo de Petipo 🎁</h1>
+            <h1 className="mt-6 font-display font-bold text-3xl text-white leading-tight">Tienes un regalo de Petipop 🎁</h1>
             {p.gift_from && <p className="mt-2 text-white/90">De parte de <b>{p.gift_from}</b></p>}
             <Button onClick={() => setOpened(true)} className="mt-8 h-14 px-8 rounded-2xl text-base font-display font-semibold bg-white text-primary hover:bg-white/90" data-testid="portrait-open-gift">
               Abrir mi regalo <ArrowRight className="w-5 h-5 ml-1" />
@@ -83,10 +84,7 @@ export default function PortraitView() {
           </motion.div>
         ) : (
           <motion.div key="reveal" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex-1 flex flex-col">
-            <HomeLink className="flex items-center gap-2 px-5 pt-5 font-display font-semibold text-primary">
-              <div className="w-8 h-8 rounded-full bg-primary grid place-items-center"><PawPrint className="w-5 h-5 text-white" /></div>
-              Petipo
-            </HomeLink>
+            <HomeLink className="flex items-center gap-2 px-5 pt-5 font-display font-semibold text-primary"><Logo /></HomeLink>
             <div className="flex-1 px-5 pt-3 pb-8 overflow-y-auto no-scrollbar">
               {p.gift_enabled && p.gift_to && (
                 <p className="text-center font-script text-2xl text-primary mb-1" data-testid="portrait-view-dedication">
@@ -134,7 +132,7 @@ export default function PortraitView() {
                   <>
                     <Heart className="w-8 h-8 text-slate-500 mx-auto" />
                     <p className="mt-2 font-display font-semibold text-neutral-900">Un recuerdo para siempre</p>
-                    <p className="text-sm text-muted-foreground">Crea el retrato recuerdo de tu mascota en Petipo.</p>
+                    <p className="text-sm text-muted-foreground">Crea el retrato recuerdo de tu mascota en Petipop.</p>
                     <Button onClick={() => nav("/recuerdo")} className="mt-4 rounded-2xl font-semibold bg-slate-700 hover:bg-slate-800" data-testid="portrait-view-cta">
                       Crear un retrato recuerdo <ArrowRight className="w-4 h-4 ml-1" />
                     </Button>

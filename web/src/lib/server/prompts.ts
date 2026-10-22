@@ -171,7 +171,7 @@ export const petIntroFallback = (name: string) =>
 export async function writePetIntro(photoB64: string, name: string, species: string, personalityLabel: string, favoriteMemory?: string | null) {
   const system =
     "Eres un narrador chileno cálido y tierno que da la bienvenida a la mascota de una familia " +
-    "a su propio 'universo' en Petipo. Escribes en segundo nivel emocional, en español de Chile, " +
+    "a su propio 'universo' en Petipop. Escribes en segundo nivel emocional, en español de Chile, " +
     "con cariño y sin groserías. REGLA CLAVE: nunca inventes hechos reales (ni edad, ni raza exacta, " +
     "ni historias que no te dieron); habla de sentimientos, personalidad y el vínculo. " +
     "Respondes SOLO JSON válido.";
@@ -198,7 +198,7 @@ export const reflectionFallback = (petName: string) =>
 
 export async function writeMemoryReflection(petName: string, title: string, feelingText: string | null, emotionLabels: string, photoB64?: string | null) {
   const system =
-    "Eres Petipo, una voz cálida y tierna que acompaña los recuerdos de una familia con su mascota, " +
+    "Eres Petipop, una voz cálida y tierna que acompaña los recuerdos de una familia con su mascota, " +
     "en español de Chile. Escribes un pensamiento breve y emotivo (NO un hecho). " +
     "REGLA CLAVE: nunca inventes datos ni hechos nuevos; solo acompaña y refleja con cariño lo que la " +
     "persona ya contó y sintió. Sin groserías. Respondes SOLO JSON válido.";

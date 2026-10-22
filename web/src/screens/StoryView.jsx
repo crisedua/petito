@@ -1,5 +1,6 @@
 "use client";
 import { HomeLink } from "@/components/HomeLink";
+import { Logo } from "@/components/Logo";
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "@/lib/router";
 import { toast } from "sonner";
@@ -44,7 +45,7 @@ export default function StoryView() {
         const blob = await res.blob();
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
-        a.download = `petipo-${story.pet_name}-${i + 1}.jpg`;
+        a.download = `petipop-${story.pet_name}-${i + 1}.jpg`;
         document.body.appendChild(a); a.click(); a.remove();
         await new Promise((r) => setTimeout(r, 250));
       } catch { /* skip */ }
@@ -52,7 +53,7 @@ export default function StoryView() {
   };
 
   const shareNative = async () => {
-    const text = `¡Mira la historia de ${story.pet_name} en Petipo! 🐾`;
+    const text = `¡Mira la historia de ${story.pet_name} en Petipop! 🐾`;
     await shareLink({ text, url: shareUrl });
   };
 
@@ -70,10 +71,7 @@ export default function StoryView() {
   return (
     <div className="mobile-frame" data-testid="story-view-screen">
       <div className="flex items-center justify-between px-5 pt-5">
-        <HomeLink className="flex items-center gap-2 font-display font-semibold text-primary">
-          <div className="w-8 h-8 rounded-full bg-primary grid place-items-center"><PawPrint className="w-5 h-5 text-white" /></div>
-          Petipo
-        </HomeLink>
+        <HomeLink className="flex items-center gap-2 font-display font-semibold text-primary"><Logo /></HomeLink>
         <InviteButton />
       </div>
       <div className="flex-1 px-5 pt-4 pb-32 overflow-y-auto no-scrollbar">

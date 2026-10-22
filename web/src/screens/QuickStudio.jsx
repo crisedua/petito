@@ -1,5 +1,6 @@
 "use client";
 import { HomeLink } from "@/components/HomeLink";
+import { Logo } from "@/components/Logo";
 import { PawPrint } from "lucide-react";
 import TryPortrait from "@/components/TryPortrait";
 import { ProfileMenu } from "@/components/ProfileMenu";
@@ -9,10 +10,7 @@ export default function QuickStudio() {
   return (
     <div className="mobile-frame" style={{ background: "#FBF6EE" }} data-testid="quick-studio-screen">
       <div className="flex items-center justify-between px-5 pt-5">
-        <HomeLink className="flex items-center gap-2 font-display font-semibold" style={{ color: "#B85C3C" }}>
-          <div className="w-8 h-8 rounded-full grid place-items-center" style={{ background: "#B85C3C" }}><PawPrint className="w-5 h-5 text-white" /></div>
-          Petipo
-        </HomeLink>
+        <HomeLink className="flex items-center gap-2 font-display font-semibold" style={{ color: "#B85C3C" }}><Logo /></HomeLink>
         <ProfileMenu />
       </div>
       <div className="flex-1 px-6 pt-6 pb-10 overflow-y-auto no-scrollbar">

@@ -7,7 +7,7 @@ import { isoNow } from "@/lib/server/ids";
 import { env } from "@/lib/server/env";
 import type { Ctx } from "@/lib/server/route";
 
-/** Subscription-only: the clean story is unlocked solely by Petipo Plus. */
+/** Subscription-only: the clean story is unlocked solely by Petipop Plus. */
 export const POST = handler(async (req: Request, ctx: Ctx<{ id: string }>) => {
   const s = await getStory((await ctx.params).id);
   if (s.status === "paid") return json({ mode: env.paymentMode, already_paid: true });
