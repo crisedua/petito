@@ -129,7 +129,7 @@ function StepPhoto({ nav, petName, setPetName, dates, setDates, file, setFile, o
           onChange={(e) => { pick(e.target.files); e.target.value = ""; }} data-testid="memorial-photo-input" />
 
         {file ? (
-          <div className="mt-5 relative w-full rounded-3xl overflow-hidden bg-stone-200 border-4 border-white shadow-md" style={{ aspectRatio: "3 / 4" }} data-testid="memorial-photo-preview">
+          <div className="mt-5 relative w-full max-w-[360px] mx-auto rounded-3xl overflow-hidden bg-stone-200 border-4 border-white shadow-md" style={{ aspectRatio: "3 / 4" }} data-testid="memorial-photo-preview">
             <img src={file.url} alt="" aria-hidden className="absolute inset-0 w-full h-full object-cover blur-xl scale-110 opacity-60" />
             <img src={file.url} alt="" className="relative w-full h-full object-contain" />
             <button onClick={() => setFile(null)} className="absolute top-3 right-3 w-9 h-9 rounded-full bg-black/60 text-white grid place-items-center" data-testid="memorial-photo-remove">

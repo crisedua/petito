@@ -107,8 +107,8 @@ export default function Onboarding() {
               <p className="mt-1.5 text-sm" style={{ color: "#8A7868" }}>Empecemos por lo esencial: su nombre y una linda foto.</p>
 
               <button onClick={() => inputRef.current?.click()} data-testid="onboarding-photo-button"
-                className="mt-6 w-full rounded-3xl overflow-hidden border-4 border-white shadow-lg grid place-items-center"
-                style={{ aspectRatio: "1 / 1", maxHeight: 240, background: "#F3E9DA" }}>
+                className="mt-6 w-full max-w-[240px] mx-auto rounded-3xl overflow-hidden border-4 border-white shadow-lg grid place-items-center"
+                style={{ aspectRatio: "1 / 1", background: "#F3E9DA" }}>
                 {photoUrl
                   ? <img src={photoUrl} alt="Tu mascota" className="w-full h-full object-cover" />
                   : <div className="flex flex-col items-center gap-2" style={{ color: "#B85C3C" }}>

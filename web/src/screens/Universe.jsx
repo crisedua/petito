@@ -182,8 +182,8 @@ export default function Universe() {
       </div>
 
       <div className="flex-1 px-6 pt-3 pb-10 overflow-y-auto no-scrollbar">
-        <motion.div {...fade(0)} className="relative rounded-[2rem] overflow-hidden border-4 border-white shadow-xl"
-          style={{ aspectRatio: "4 / 3", maxHeight: 280, background: "linear-gradient(135deg, #F3D9B8, #E2A878)" }}>
+        <motion.div {...fade(0)} className="relative w-full h-[260px] md:h-[360px] rounded-[2rem] overflow-hidden border-4 border-white shadow-xl"
+          style={{ background: "linear-gradient(135deg, #F3D9B8, #E2A878)" }}>
           <div className="absolute inset-0 grid place-items-center" aria-hidden>
             <span className="font-script text-white/80" style={{ fontSize: 110, lineHeight: 1 }}>{(name || "P").charAt(0).toUpperCase()}</span>
           </div>
