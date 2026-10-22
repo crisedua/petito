@@ -17,6 +17,12 @@ export const HF_GENJUTSU_MODEL = process.env.HIGGSFIELD_GENJUTSU_MODEL ?? "higgs
 /** Genjutsu's price isn't on its API page; "from 0.025/s" is the Light list price. Admin-panel estimate only. */
 export const HF_GENJUTSU_COST_PER_SEC = Number(process.env.HIGGSFIELD_GENJUTSU_COST_PER_SEC ?? "0.05");
 
+/** "Habla": image-to-video with native audio, so the pet speaks its line with lip-sync from the first frame. */
+export const HF_TALK_MODEL = process.env.HIGGSFIELD_TALK_MODEL ?? "bytedance/seedance-2.0/image-to-video";
+/** Higgsfield doesn't publish this price in its API docs: admin-panel estimate only. */
+export const HF_TALK_COST_PER_SEC = Number(process.env.HIGGSFIELD_TALK_COST_PER_SEC ?? "0.2");
+export const TALK_VIDEO_SECONDS = Math.max(4, Math.min(15, Number(process.env.TALK_VIDEO_SECONDS ?? "8")));
+
 /** A problem retrying won't fix: missing/refused key, no balance, rejected input. */
 export class PermanentHiggsfieldError extends Error {}
 
@@ -86,6 +92,19 @@ export async function submitMotion(images: Buffer[], scenePrompt: string, second
   }, true);
   if (!r.request_id) throw new Error("Higgsfield did not return a request_id");
   return r.request_id;
+}
+
+/**
+ * The pet's photo (9:16) as the first frame + a directed prompt that includes the spoken line. Seedance
+ * takes `generate_audio`; Kling 3.0 takes `sound`. Returns request_id.
+ */
+export async function submitTalkVideo(frameJpeg: Buffer, prompt: string, seconds = TALK_VIDEO_SECONDS): Promise<string> {
+  if (env.mockAi) return `mock-hf-${randomUUID()}`;
+  const image_url = await uploadImage(frameJpeg);
+  const input = HF_TALK_MODEL.startsWith("kling-video")
+    ? { image_url, prompt: prompt.slice(0, 2500), duration: seconds, sound: "on" }
+    : { image_url, prompt, duration: seconds, resolution: "720p", generate_audio: true };
+  return submitRaw(HF_TALK_MODEL, input);
 }
 
 /** Submit any Higgsfield model with a prepared input. Returns request_id. */

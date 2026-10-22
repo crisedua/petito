@@ -244,6 +244,56 @@ export async function writePetSong(photoB64: string, petName: string | null, fee
 }
 
 
+/** The owner's reference prompt, written for one specific dog. Every talking video adapts it to its own pet. */
+const TALK_VIDEO_EXAMPLE = `Use the uploaded photo as the first frame. Keep the dog exactly as it appears: same Yorkshire terrier, tan and black coat, long fringe falling over the eyes, blue collar with a blue bone-shaped tag, same white bedding and plain white wall. Photorealistic, soft natural light, vertical 9:16, 8 seconds.
+
+0 to 2s: The dog looks straight into the camera, takes a quick breath and leans slightly forward.
+2 to 4s: The dog shouts with attitude, mouth moving in clear lip-sync, in Chilean Spanish: "¡Chúpalo, Alexítico!" The stress in "Alexítico" falls on "xí". Voice: raspy, confident adult male, like a tropical cumbia singer hyping a stadium crowd. Loud, punchy, playful.
+4 to 7s: The dog holds a smug look at the camera, tilts its head and licks its nose.
+7 to 8s: A crowd cheers in the distance.
+
+Camera: slow push-in toward the dog's face, slight handheld feel. Comedy tone.
+
+No on-screen text, no subtitles, no captions, no humans, no other animals. Do not change the dog's appearance.`;
+
+export type TalkVoice = { gender: "male" | "female"; accent: "chilean" | "neutral" };
+
+/**
+ * The prompt for a talking video: the example above, rewritten for the pet in this photo (its species,
+ * breed, coat, accessories and background as they appear), the exact line to say, a voice that matches
+ * the chosen one, and a tone that matches the occasion. Never throws: falls back to a filled template.
+ */
+export async function writeTalkVideoPrompt(photoB64: string, o: { line: string; petName?: string | null; toName?: string | null; voice: TalkVoice; occasion?: string | null; seconds: number }): Promise<string> {
+  const lang = o.voice.accent === "chilean" ? "Chilean Spanish" : "neutral Latin American Spanish";
+  const voice = `${o.voice.gender === "female" ? "adult female" : "adult male"} voice with a ${o.voice.accent === "chilean" ? "Chilean" : "neutral Latin American"} accent`;
+  const names = [o.petName, o.toName].filter(Boolean).join(", ");
+  try {
+    const { text } = await runClaude(
+      "You write prompts for an image-to-video model that generates video with native audio, so a pet in a photo speaks a line with lip-sync. You respond ONLY with valid JSON.",
+      `Here is a reference prompt that was written for one specific dog:\n<<<\n${TALK_VIDEO_EXAMPLE}\n>>>\n\n` +
+      `Write a new prompt with exactly the same structure and level of detail for the pet in the attached photo, which will be the video's first frame.\n` +
+      `1. First paragraph: "Use the uploaded photo as the first frame. Keep the <animal> exactly as it appears:" then precisely what you SEE: species, likely breed, coat colors and pattern, distinctive features (ears, eyes, fur, markings), any collar, tag or clothing, and the background and surface as they appear. Never invent anything that isn't in the photo. End with "Photorealistic, soft natural light, vertical 9:16, ${o.seconds} seconds."\n` +
+      `2. A timeline in seconds that covers 0 to ${o.seconds}s: a short lead-in where the pet looks into the camera; then the pet says EXACTLY this line, mouth moving in clear lip-sync, in ${lang}: "${o.line}". Do not change, translate or shorten the line, and give that segment enough time to say all of it at a natural pace (about 2.5 words per second). ` +
+      `For proper names or unusual words in the line${names ? ` (for example ${names})` : ""}, add which syllable carries the stress, like the reference does. ` +
+      `Describe the voice: ${voice}, with a character that fits the line and occasion (the reference's "tropical cumbia singer" is for a cheeky shout; a tender line needs a soft, warm voice). ` +
+      `Then a reaction that fits (smug look, head tilt, nose lick for a funny line; slow blink, soft tail wag for a tender one), and one fitting ambient sound in the last second.\n` +
+      `3. A camera line that fits the tone, ending with "Comedy tone.", "Warm, tender tone." or "Festive tone."${o.occasion ? ` The occasion is: ${o.occasion}.` : ""}\n` +
+      `4. Last line exactly: "No on-screen text, no subtitles, no captions, no humans, no other animals. Do not change the <animal>'s appearance."\n` +
+      `Write in English except the spoken line. Respond JSON: {"prompt": "<the full prompt>"}`,
+      [photoB64]);
+    const p = String(extractJson<{ prompt?: string }>(text).prompt ?? "").trim();
+    if (p.length > 200 && p.includes(o.line.slice(0, 12))) return p;
+  } catch (e) {
+    console.error("writeTalkVideoPrompt failed, using the template", e);
+  }
+  const identity = await describePet(photoB64);
+  const speak = Math.min(o.seconds - 2, Math.max(2, Math.ceil(o.line.split(/\s+/).length / 2.5)));
+  return `Use the uploaded photo as the first frame. Keep the pet exactly as it appears${identity ? `: ${identity}` : ""}, with the same background. Photorealistic, soft natural light, vertical 9:16, ${o.seconds} seconds.\n\n` +
+    `0 to 1s: The pet looks straight into the camera.\n1 to ${1 + speak}s: The pet speaks, mouth moving in clear lip-sync, in ${lang}: "${o.line}" Voice: ${voice}, expressive and natural.\n` +
+    `${1 + speak} to ${o.seconds}s: The pet keeps looking at the camera, tilts its head and blinks.\n\nCamera: slow push-in toward the pet's face.\n\n` +
+    `No on-screen text, no subtitles, no captions, no humans, no other animals. Do not change the pet's appearance.`;
+}
+
 /** One short English line of what makes this pet recognizable (breed, coat, markings), for video prompts. */
 export async function describePet(photoB64: string): Promise<string> {
   try {

@@ -10,7 +10,8 @@ import { danceSourceUrl } from "@/lib/server/dances";
 import * as eleven from "@/lib/server/elevenvideo";
 import * as storage from "@/lib/server/storage";
 import { imageToB64, loadImage } from "@/lib/server/images";
-import { describePet, writePetLine, writePetSong } from "@/lib/server/prompts";
+import { describePet, writePetLine, writePetSong, writeTalkVideoPrompt, type TalkVoice } from "@/lib/server/prompts";
+import { cachedLibraryVoices } from "@/lib/server/voiceLibrary";
 import { composeSong, SONG_COST_USD, SONG_MODEL } from "@/lib/server/elevenmusic";
 import { llmCost, llmModel } from "@/lib/server/llm";
 import { ensureVoices, generateNarration, validVoice } from "@/lib/server/elevenlabs";
@@ -39,6 +40,17 @@ async function petReferencePhotos(petId: string | null | undefined): Promise<Buf
 }
 
 /** Who the message is for, the pet's personality and one real memory, so the line is unmistakably this pet's. */
+/** Gender and accent of the chosen voice, so the video model speaks with a matching voice. */
+async function voiceStyle(voiceId?: string | null): Promise<TalkVoice> {
+  await ensureVoices().catch(() => null);
+  const lv = (cachedLibraryVoices() ?? []).find((x) => x.id === validVoice(voiceId));
+  const label = lv?.label ?? "";
+  return {
+    gender: lv?.gender === "female" || /Chilena|Latina/.test(label) ? "female" : "male",
+    accent: /chile/i.test(`${lv?.accent ?? ""} ${label}`) ? "chilean" : "neutral",
+  };
+}
+
 async function lineContext(v: any) {
   const ctx: { toName?: string | null; personality?: string[]; memory?: string | null } = { toName: v.to_name ?? null };
   if (!v.pet_id) return ctx;
@@ -120,6 +132,9 @@ export const generateTalk = inngest.createFunction(
     if (!photo) throw new Error("No hay foto");
     const long = v.mode === "full" || v.mode === "song";
     const song = v.mode === "song";
+    // "Habla" for Plus members: Higgsfield makes the whole clip from the photo + a directed prompt, with
+    // the pet speaking in its own generated voice. Free previews keep the cheaper lip-sync (watermarked).
+    const directed = v.mode === "full" && plus && hf.higgsfieldEnabled();
 
     // "Que se mueva": the real pet in a short scene (Kling reference-to-video). Plus-only, so the clip
     // is delivered clean right away (no watermarked preview).
@@ -225,10 +240,15 @@ export const generateTalk = inngest.createFunction(
         } else {
           const hint = v.scenario ? TALK_SCENARIOS[v.scenario]?.hint : null;
           const b64 = await imageToB64(id, photo, 512);
-          ({ line: text, species, usage } = await writePetLine(b64, v.pet_name, long ? "long" : "mini", hint, await lineContext(v)));
+          // The directed video speaks inside ~8 s with a lead-in and a reaction: a shorter line fits.
+          ({ line: text, species, usage } = await writePetLine(b64, v.pet_name, directed ? "short" : long ? "long" : "mini", hint, await lineContext(v)));
         }
-        await db().from("videos").update({ line: text, species, progress_step: "Buscando la voz perfecta...", progress_pct: 40 }).eq("id", id);
+        await db().from("videos").update({ line: text, species, progress_step: directed ? "Preparando la escena..." : "Buscando la voz perfecta...", progress_pct: 40 }).eq("id", id);
         const lineMs = Date.now() - tLine;
+        if (directed) {
+          await logGeneration({ ownerId: id, step: "talk_line", model: v.message ? "owner-message" : llmModel(true), usage, costUsd: usage ? llmCost(usage, true) : 0, durationMs: lineMs });
+          return; // the video model speaks the line itself
+        }
         await ensureVoices();
         const tVoice = Date.now();
         const audio = await generateNarration(text, validVoice(v.voice_id), 1.0, env.talkVoiceModel);
@@ -243,9 +263,60 @@ export const generateTalk = inngest.createFunction(
       }),
     ]);
 
-    const gen = await lipsyncToStorage(step, "lipsync", id, "source.jpg", "preview.mp4", false, 60);
+    let gen: { model: string; ms: number; cost?: number } | null = null;
+    if (directed) {
+      const t0 = Date.now();
+      const WAIT = "Grabando a tu mascota hablando (1 a 3 minutos)...";
+      const sub: { id?: string; error?: string; seconds?: number } = await step.run("talk-hf-submit", async () => {
+        await db().from("videos").update({ progress_step: "Dirigiendo la escena...", progress_pct: 45 }).eq("id", id);
+        const { data: row } = await db().from("videos").select("line").eq("id", id).single();
+        const line = String(row?.line ?? "").trim();
+        // Room for the whole line at ~2.5 words/s plus the lead-in and the reaction (a long typed message runs longer).
+        const seconds = Math.min(15, Math.max(hf.TALK_VIDEO_SECONDS, Math.ceil(line.split(/\s+/).length / 2.5) + 4));
+        const prompt = await writeTalkVideoPrompt(await imageToB64(id, "source.jpg", 768), {
+          line, petName: v.pet_name, toName: v.to_name ?? null,
+          voice: await voiceStyle(v.voice_id), occasion: !v.message && v.scenario ? TALK_SCENARIOS[v.scenario]?.label ?? null : null,
+          seconds,
+        });
+        await storage.put(id, "video_prompt.txt", Buffer.from(prompt), "application/octet-stream"); // for support/debugging
+        await db().from("videos").update({ progress_step: WAIT, progress_pct: 50 }).eq("id", id);
+        try {
+          return { id: await hf.submitTalkVideo(await loadImage(id, "source.jpg"), prompt, seconds), seconds };
+        } catch (e) {
+          if (e instanceof hf.PermanentHiggsfieldError) return { error: e.message };
+          throw e;
+        }
+      });
+      let url = "";
+      let failure: string | null = sub.error ?? null;
+      if (sub.id) {
+        const tick = creepingProgress("videos", id, WAIT, 50, 95);
+        for (let i = 0; i < 72 && !url && !failure; i++) {
+          const st: hf.HfState = await step.run(`talk-hf-status-${i}`, async () => { await tick(i * 5); return hf.status(sub.id!); });
+          if (st.state === "COMPLETED") url = st.url!;
+          else if (st.state === "FAILED") failure = st.error ?? "falló";
+          else await step.sleep(`talk-hf-wait-${i}`, "5s");
+        }
+        if (!url && !failure) failure = "tardó demasiado";
+      }
+      if (url) {
+        await step.run("talk-hf-save", async () => storage.put(id, "preview.mp4", await hf.download(url), "video/mp4"));
+        gen = { model: `higgsfield/${hf.HF_TALK_MODEL}`, ms: Date.now() - t0, cost: hf.HF_TALK_COST_PER_SEC * (sub.seconds ?? hf.TALK_VIDEO_SECONDS) };
+      } else {
+        // Higgsfield refused, blocked or lost it: make the classic lip-sync video instead of failing.
+        console.warn(`talk ${id}: Higgsfield ${failure} — falling back to lip-sync`);
+        await step.run("talk-fallback-voice", async () => {
+          await db().from("videos").update({ progress_step: "Probando con otro estudio...", progress_pct: 55 }).eq("id", id);
+          const { data: row } = await db().from("videos").select("line").eq("id", id).single();
+          await ensureVoices();
+          await storage.put(id, "audio.mp3", await generateNarration(String(row?.line ?? ""), validVoice(v.voice_id), 1.0, env.talkVoiceModel), "audio/mpeg");
+        });
+      }
+    }
+    if (!gen) gen = await lipsyncToStorage(step, "lipsync", id, "source.jpg", "preview.mp4", false, 60);
+    const used = gen;
     await step.run("done", async () => {
-      await logGeneration({ ownerId: id, step: "talk_video", model: gen.model, costUsd: env.talkVideoCostPerSec * (song ? SONG_SECONDS : long ? 5 : 3), durationMs: gen.ms });
+      await logGeneration({ ownerId: id, step: "talk_video", model: used.model, costUsd: used.cost ?? env.talkVideoCostPerSec * (song ? SONG_SECONDS : long ? 5 : 3), durationMs: used.ms });
       await db().from("videos").update(plus
         ? { status: "paid", paid_at: new Date().toISOString(), preview_file: "preview.mp4", clean_file: "preview.mp4", progress_pct: 100, progress_step: "¡Listo!" }
         : { status: "preview_ready", preview_file: "preview.mp4", progress_pct: 100, progress_step: "¡Listo!" }).eq("id", id);
