@@ -16,6 +16,7 @@ export const GET = handler(async () => {
     "0009 videomensaje": await probe("videos", "to_name"),
     "0011 texto en retrato": await probe("portraits", "caption"),
     "0012 planes Plus+": await plusPlusAccepted(),
+    "0013 fondo en Habla": await probe("videos", "background"),
   };
   return json({ ok: Object.values(checks).every((v) => v === "ok"), checks });
 });
