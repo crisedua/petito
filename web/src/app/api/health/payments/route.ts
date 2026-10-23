@@ -58,6 +58,12 @@ export const GET = handler(async (req: Request) => {
   }
   const { data: hooks } = await db().from("events").select("props, created_at").eq("name", "mp_webhook")
     .order("created_at", { ascending: false }).limit(5);
+  // Admins: can the webhook log be written at all? (track() swallows its errors.) The probe row is removed at once.
+  if (admin) {
+    const { data: row, error } = await db().from("events").insert({ name: "mp_webhook", props: { probe: true } }).select("id").single();
+    out.webhook_log_write = error ? `failed: ${error.message.slice(0, 200)}` : "ok";
+    if (row) await db().from("events").delete().eq("id", row.id);
+  }
   out.recent_webhooks = (hooks ?? []).map((h: any) => ({ at: h.created_at, topic: h.props?.topic ?? null, signature_ok: h.props?.signature_ok ?? null }));
   return json(out);
 });
