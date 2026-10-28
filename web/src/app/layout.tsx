@@ -37,10 +37,25 @@ export const viewport: Viewport = {
   themeColor: "#E05A47",
 };
 
+// Google Analytics 4 measurement ID; NEXT_PUBLIC_GA_ID overrides it.
+const GA_ID = process.env.NEXT_PUBLIC_GA_ID || "G-52CQL94LPY";
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es-CL">
       <body>
+        {GA_ID && (
+          <>
+            <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="afterInteractive" />
+            {/* GA4 counts in-app navigation as page views by itself (browser history changes). */}
+            <Script id="ga4" strategy="afterInteractive">{`
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', '${GA_ID}');
+            `}</Script>
+          </>
+        )}
         {/* Chrome/Edge/Samsung offer their install dialog once, early in page load; keep it for our "Agregar" buttons. */}
         <Script id="install-capture" strategy="beforeInteractive">{`
           window.addEventListener("beforeinstallprompt", function (e) { e.preventDefault(); window.__petitoBIP = e; window.dispatchEvent(new Event("petito:bip")); });
