@@ -4,7 +4,10 @@ import { useNavigate } from "@/lib/router";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { toast } from "sonner";
 import { ArrowLeft, ArrowRight, ImagePlus, Loader2, Check, Sparkles, PawPrint } from "lucide-react";
-import { createPet, uploadPetPhoto, revealPet, setActivePetId, getPetsMeta } from "@/lib/api";
+import { HomeLink } from "@/components/HomeLink";
+import { Logo } from "@/components/Logo";
+import { ProfileMenu } from "@/components/ProfileMenu";
+import { createPet, uploadPetPhoto, revealPet, setActivePetId, getPetsMeta, getPets, plusStatus } from "@/lib/api";
 
 const SPECIES = [
   { key: "perro", label: "Perro", emoji: "🐶" },
@@ -28,10 +31,27 @@ export default function Onboarding() {
   const [busy, setBusy] = useState(false);
   const [intro, setIntro] = useState("");
   const [petId, setPetId] = useState("");
+  const [photoSaved, setPhotoSaved] = useState(false);
+  const [allowed, setAllowed] = useState(false);
 
   useEffect(() => {
     getPetsMeta().then((m) => setOptions(m.personality_options || [])).catch(() => {});
   }, []);
+
+  // The free plan has one pet: send them to Plus before they fill in a form the server would refuse.
+  useEffect(() => {
+    let alive = true;
+    getPets().then(async (pets) => {
+      if (pets.length && !(await plusStatus().catch(() => ({}))).active) {
+        if (!alive) return;
+        toast("El plan gratis incluye 1 mascota. Con Plus puedes agregar todas las que quieras 👑");
+        nav("/plus", { replace: true });
+        return;
+      }
+      if (alive) setAllowed(true);
+    }).catch(() => { if (alive) setAllowed(true); });
+    return () => { alive = false; };
+  }, [nav]);
 
   const onPhoto = (list) => {
     const arr = Array.from(list);
@@ -39,6 +59,7 @@ export default function Onboarding() {
     if (!f) return;
     setPhoto(f);
     setPhotoUrl(URL.createObjectURL(f));
+    setPhotoSaved(false);
   };
 
   const togglePersonality = (key) =>
@@ -50,15 +71,23 @@ export default function Onboarding() {
   const submit = async () => {
     setBusy(true);
     try {
-      const pet = await createPet({
-        name: name.trim(), species,
-        personality, personality_text: customText.trim() || undefined,
-        favorite_memory: memory.trim() || undefined,
-      });
-      setPetId(pet.id);
-      await uploadPetPhoto(pet.id, photo);
+      // A retry after a failed upload or welcome text reuses the pet already created, never a second one.
+      let id = petId;
+      if (!id) {
+        const pet = await createPet({
+          name: name.trim(), species,
+          personality, personality_text: customText.trim() || undefined,
+          favorite_memory: memory.trim() || undefined,
+        });
+        id = pet.id;
+        setPetId(id);
+      }
+      if (!photoSaved) {
+        await uploadPetPhoto(id, photo);
+        setPhotoSaved(true);
+      }
       setStep(4);
-      const res = await revealPet(pet.id);
+      const res = await revealPet(id);
       setIntro(res.intro_text || "");
     } catch (e) {
       const msg = e?.response?.data?.detail || "Algo salió mal. Intenta de nuevo.";
@@ -83,7 +112,12 @@ export default function Onboarding() {
       <input ref={inputRef} type="file" accept="image/*,.heic,.heif" className="hidden"
         onChange={(e) => { onPhoto(e.target.files); e.target.value = ""; }} data-testid="onboarding-photo-input" />
 
-      <div className="flex items-center gap-3 px-5 pt-5">
+      <div className="flex items-center justify-between px-5 pt-5">
+        <HomeLink className="flex items-center gap-2 font-display font-semibold" style={{ color: "#B85C3C" }}><Logo /></HomeLink>
+        <ProfileMenu />
+      </div>
+
+      <div className="flex items-center gap-3 px-5 pt-4">
         {step > 1 && step < 4 && (
           <button onClick={() => setStep((s) => s - 1)} data-testid="onboarding-back"
             className="w-9 h-9 rounded-full bg-white border grid place-items-center" style={{ borderColor: "#EADFCF" }}>
@@ -101,7 +135,10 @@ export default function Onboarding() {
 
       <div className="flex-1 px-6 pt-6 pb-8 overflow-y-auto no-scrollbar">
         <AnimatePresence mode="wait">
-          {step === 1 && (
+          {!allowed && (
+            <div key="checking" className="pt-16 grid place-items-center"><Loader2 className="w-6 h-6 animate-spin" style={{ color: "#C2683F" }} /></div>
+          )}
+          {allowed && step === 1 && (
             <motion.div key="s1" {...slide} data-testid="onboarding-step-1">
               <h1 className="font-display font-bold text-2xl" style={{ color: "#3A2A20" }}>Conozcamos a tu mascota</h1>
               <p className="mt-1.5 text-sm" style={{ color: "#8A7868" }}>Empecemos por lo esencial: su nombre y una linda foto.</p>

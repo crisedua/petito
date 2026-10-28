@@ -1,7 +1,7 @@
 "use client";
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
-import { getMe, logoutApi, claimPending } from "@/lib/api";
+import { getMe, logoutApi, claimPending, clearActivePet } from "@/lib/api";
 import { oncePerSession, track } from "@/lib/track";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 
@@ -48,6 +48,7 @@ export function AuthProvider({ children }) {
     try { await logoutApi(); } catch { /* ignore */ }
     try { await supabaseBrowser().auth.signOut(); } catch { /* ignore */ }
     try { localStorage.removeItem("petito_token"); } catch { /* ignore */ }
+    try { clearActivePet(); } catch { /* ignore */ }
     setUser(null);
   }, []);
 
